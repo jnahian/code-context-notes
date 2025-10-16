@@ -5,12 +5,21 @@
   "version": "0.1.0",
   "publisher": "your-publisher-name",
   "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/code-context-notes/issues"
+  },
+  "homepage": "https://github.com/your-username/code-context-notes#readme",
   "engines": {
     "vscode": "^1.80.0"
   },
   "categories": [
     "Other",
-    "Notebooks"
+    "Notebooks",
+    "Programming Languages"
   ],
   "keywords": [
     "notes",
