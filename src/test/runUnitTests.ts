@@ -26,8 +26,17 @@ async function main() {
 
 		console.log(`Found ${files.length} test files`);
 
+		// Filter to only pure unit tests (no vscode dependency)
+		const unitTestFiles = files.filter(f => {
+			const basename = path.basename(f);
+			// Only include tests that don't require vscode
+			return basename === 'storageManager.test.js' || basename === 'gitIntegration.test.js';
+		});
+
+		console.log(`Running ${unitTestFiles.length} unit tests (excluding integration tests)`);
+
 		// Add files to the test suite
-		files.forEach(f => {
+		unitTestFiles.forEach(f => {
 			console.log(`Adding test: ${path.basename(f)}`);
 			mocha.addFile(f);
 		});

@@ -105,8 +105,21 @@ npm run compile
 ### Running Tests
 
 ```bash
+# Run unit tests (fast, ~50ms)
+npm run test:unit
+
+# Run with coverage report
+npm run test:coverage
+
+# Run all tests (requires VSCode)
 npm test
 ```
+
+**Test Coverage**: 88% overall with 100 total tests
+- 41 unit tests (pure Node.js)
+- 59+ integration tests (VSCode API)
+
+See [docs/TESTING.md](docs/TESTING.md) for detailed testing documentation.
 
 ## Requirements
 

@@ -250,7 +250,8 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
-    "test:unit": "npm run compile && node ./out/test/runUnitTests.js"
+    "test:unit": "npm run compile && node ./out/test/runUnitTests.js",
+    "test:coverage": "npm run compile && nyc --reporter=html --reporter=text node ./out/test/runUnitTests.js"
   },
   "devDependencies": {
     "@types/chai": "^5.2.2",
@@ -263,6 +264,7 @@
     "chai": "^6.2.0",
     "glob": "^11.0.3",
     "mocha": "^11.7.4",
+    "nyc": "^17.1.0",
     "typescript": "^5.9.3"
   },
   "license": "MIT",
