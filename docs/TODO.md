@@ -168,25 +168,25 @@
 **So that** all components interact with notes consistently
 
 **Tasks:**
-- [ ] Create src/noteManager.ts
-- [ ] Implement createNote() with validation
-- [ ] Implement updateNote() with history tracking
-- [ ] Implement deleteNote() with history entry
-- [ ] Implement getNotesForFile()
-- [ ] Implement getNoteById()
-- [ ] Add automatic timestamp management
-- [ ] Add automatic author assignment
-- [ ] Integrate with storage manager
-- [ ] Integrate with content hash tracker
-- [ ] Add note validation logic
-- [ ] Implement note cache for performance
+- [x] Create src/noteManager.ts
+- [x] Implement createNote() with validation
+- [x] Implement updateNote() with history tracking
+- [x] Implement deleteNote() with history entry
+- [x] Implement getNotesForFile()
+- [x] Implement getNoteById()
+- [x] Add automatic timestamp management
+- [x] Add automatic author assignment
+- [x] Integrate with storage manager
+- [x] Integrate with content hash tracker
+- [x] Add note validation logic
+- [x] Implement note cache for performance
 
 **Acceptance Criteria:**
-- All CRUD operations available
-- History automatically tracked
-- Timestamps and author automatically added
-- Thread-safe operations
-- Cache invalidation works correctly
+- [x] All CRUD operations available
+- [x] History automatically tracked
+- [x] Timestamps and author automatically added
+- [x] Thread-safe operations
+- [x] Cache invalidation works correctly
 
 ---
 
@@ -196,19 +196,19 @@
 **So that** I can track how my understanding evolved
 
 **Tasks:**
-- [ ] Add history entry on note creation
-- [ ] Add history entry on every edit
-- [ ] Add history entry on deletion
-- [ ] Store previous content in history
-- [ ] Format history in markdown output
-- [ ] Implement getHistory() method
-- [ ] Add history display in comment UI
+- [x] Add history entry on note creation
+- [x] Add history entry on every edit
+- [x] Add history entry on deletion
+- [x] Store previous content in history
+- [x] Format history in markdown output (handled by StorageManager)
+- [x] Implement getHistory() method
+- [ ] Add history display in comment UI (deferred to Comment Controller)
 
 **Acceptance Criteria:**
-- Every change tracked with timestamp and author
-- History entries never deleted
-- History readable in markdown file
-- History accessible through UI
+- [x] Every change tracked with timestamp and author
+- [x] History entries never deleted
+- [x] History readable in markdown file
+- [ ] History accessible through UI (requires Comment Controller)
 
 ---
 
