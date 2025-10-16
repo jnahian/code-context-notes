@@ -319,22 +319,22 @@
 **So that** I don't have to manually enable it
 
 **Tasks:**
-- [ ] Create src/extension.ts with activate() function
-- [ ] Register comment controller on activation
-- [ ] Register CodeLens provider on activation
-- [ ] Initialize note manager on activation
-- [ ] Load existing notes on activation
-- [ ] Register all commands on activation
-- [ ] Set up document change listeners
-- [ ] Create .code-notes/ directory if needed
-- [ ] Add activation events to package.json
-- [ ] Implement deactivate() cleanup function
+- [x] Create src/extension.ts with activate() function
+- [x] Register comment controller on activation
+- [x] Register CodeLens provider on activation
+- [x] Initialize note manager on activation
+- [x] Load existing notes on activation
+- [x] Register all commands on activation
+- [x] Set up document change listeners
+- [x] Create .code-notes/ directory if needed
+- [x] Add activation events to package.json (already in package.json)
+- [x] Implement deactivate() cleanup function
 
 **Acceptance Criteria:**
-- Extension activates on workspace open
-- All features available immediately
-- No errors in activation
-- Clean deactivation with no leaks
+- [x] Extension activates on workspace open
+- [x] All features available immediately
+- [x] No errors in activation
+- [x] Clean deactivation with no leaks
 
 ---
 
@@ -344,19 +344,19 @@
 **So that** it fits my workflow
 
 **Tasks:**
-- [ ] Add configuration schema to package.json
-- [ ] Implement codeContextNotes.storageDirectory setting
-- [ ] Implement codeContextNotes.authorName setting
-- [ ] Implement codeContextNotes.showCodeLens setting
-- [ ] Listen for configuration changes
-- [ ] Update behavior when configuration changes
-- [ ] Validate configuration values
-- [ ] Provide sensible defaults
+- [x] Add configuration schema to package.json (already in package.json)
+- [x] Implement codeContextNotes.storageDirectory setting
+- [x] Implement codeContextNotes.authorName setting
+- [x] Implement codeContextNotes.showCodeLens setting
+- [x] Listen for configuration changes
+- [x] Update behavior when configuration changes
+- [x] Validate configuration values
+- [x] Provide sensible defaults
 
 **Acceptance Criteria:**
-- All settings configurable via VSCode settings UI
-- Configuration changes applied without reload
-- Invalid configuration values rejected with messages
+- [x] All settings configurable via VSCode settings UI
+- [x] Configuration changes applied without reload
+- [x] Invalid configuration values rejected with messages
 
 ---
 
@@ -368,22 +368,22 @@
 **So that** I can work efficiently
 
 **Tasks:**
-- [ ] Define command IDs in package.json
-- [ ] Implement "Add Note to Selection" command
-- [ ] Implement "Delete Note at Cursor" command
-- [ ] Implement "View Note History" command
-- [ ] Implement "Refresh All Notes" command
-- [ ] Register command handlers in extension.ts
-- [ ] Add commands to command palette
-- [ ] Add suggested keybindings
-- [ ] Handle commands with no active editor
-- [ ] Handle commands with no selection
+- [x] Define command IDs in package.json (already in package.json)
+- [x] Implement "Add Note to Selection" command
+- [x] Implement "Delete Note at Cursor" command
+- [x] Implement "View Note History" command
+- [x] Implement "Refresh All Notes" command
+- [x] Register command handlers in extension.ts
+- [x] Add commands to command palette (via package.json)
+- [ ] Add suggested keybindings (optional for v1)
+- [x] Handle commands with no active editor
+- [x] Handle commands with no selection
 
 **Acceptance Criteria:**
-- All commands accessible from Command Palette
-- Commands work as expected
-- Error messages for invalid states
-- Keybindings suggested but not forced
+- [x] All commands accessible from Command Palette
+- [x] Commands work as expected
+- [x] Error messages for invalid states
+- [ ] Keybindings suggested but not forced (optional)
 
 ---
 
