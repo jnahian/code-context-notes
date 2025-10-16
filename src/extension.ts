@@ -349,12 +349,6 @@ function registerCommands(context: vscode.ExtensionContext) {
 	const saveNoteCommand = vscode.commands.registerCommand(
 		'codeContextNotes.saveNote',
 		async (comment: vscode.Comment) => {
-			const editor = vscode.window.activeTextEditor;
-			if (!editor) {
-				vscode.window.showErrorMessage('No active editor');
-				return;
-			}
-
 			const noteId = comment.contextValue;
 			if (!noteId) {
 				return;
@@ -363,9 +357,12 @@ function registerCommands(context: vscode.ExtensionContext) {
 			const newContent = typeof comment.body === 'string' ? comment.body : comment.body.value;
 
 			try {
-				await commentController.saveEditedNote(noteId, editor.document.uri.fsPath, newContent, editor.document);
-				codeLensProvider.refresh();
-				vscode.window.showInformationMessage('Note saved!');
+				// Get the actual file path and document from the comment thread
+				const result = await commentController.saveEditedNoteById(noteId, newContent);
+				if (result) {
+					codeLensProvider.refresh();
+					vscode.window.showInformationMessage('Note saved!');
+				}
 			} catch (error) {
 				vscode.window.showErrorMessage(`Failed to save note: ${error}`);
 			}

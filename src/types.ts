@@ -133,8 +133,12 @@ export interface UpdateNoteParams {
 export interface NoteStorage {
   /** Save a note to storage */
   saveNote(note: Note): Promise<void>;
-  /** Load all notes for a given file */
+  /** Load all notes for a given file (excluding deleted notes) */
   loadNotes(filePath: string): Promise<Note[]>;
+  /** Load ALL notes for a given file (including deleted notes) */
+  loadAllNotes(filePath: string): Promise<Note[]>;
+  /** Load a single note by its ID */
+  loadNoteById(noteId: string): Promise<Note | null>;
   /** Delete a note from storage */
   deleteNote(noteId: string, filePath: string): Promise<void>;
   /** Check if storage directory exists */

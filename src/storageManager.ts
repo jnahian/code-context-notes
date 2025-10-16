@@ -29,11 +29,11 @@ export class StorageManager implements NoteStorage {
   }
 
   /**
-   * Get the note file path based on content hash
-   * Example: contentHash abc123 -> .code-notes/abc123.md
+   * Get the note file path based on note ID
+   * Example: noteId abc123 -> .code-notes/abc123.md
    */
-  getNoteFilePath(contentHash: string): string {
-    const noteFileName = `${contentHash}.md`;
+  getNoteFilePath(noteId: string): string {
+    const noteFileName = `${noteId}.md`;
     return path.join(this.getStoragePath(), noteFileName);
   }
 
@@ -92,10 +92,10 @@ export class StorageManager implements NoteStorage {
   /**
    * Save a note to storage
    * Converts the note to markdown and writes to file
-   * Each note is saved to a separate file named by its content hash
+   * Each note is saved to a separate file named by its note ID
    */
   async saveNote(note: Note): Promise<void> {
-    const noteFilePath = this.getNoteFilePath(note.contentHash);
+    const noteFilePath = this.getNoteFilePath(note.id);
 
     // Ensure storage directory exists
     await this.createStorage();
@@ -112,10 +112,19 @@ export class StorageManager implements NoteStorage {
   }
 
   /**
-   * Load all notes for a given source file
+   * Load all notes for a given source file (excluding deleted notes)
    * Searches through all note files to find notes for the specified file
    */
   async loadNotes(filePath: string): Promise<Note[]> {
+    const allNotes = await this.loadAllNotes(filePath);
+    return allNotes.filter(n => !n.isDeleted);
+  }
+
+  /**
+   * Load ALL notes for a given source file (including deleted notes)
+   * Searches through all note files to find notes for the specified file
+   */
+  async loadAllNotes(filePath: string): Promise<Note[]> {
     const allNoteFiles = await this.getAllNoteFiles();
     const notes: Note[] = [];
 
@@ -124,8 +133,8 @@ export class StorageManager implements NoteStorage {
         const content = await fs.readFile(noteFile, 'utf-8');
         const note = this.markdownToNote(content);
 
-        // Only include notes for the specified file
-        if (note && note.filePath === filePath && !note.isDeleted) {
+        // Include all notes for the specified file (including deleted)
+        if (note && note.filePath === filePath) {
           notes.push(note);
         }
       } catch (error) {
@@ -160,15 +169,15 @@ export class StorageManager implements NoteStorage {
       action: 'deleted'
     });
 
-    // Save updated note (will save to file named by content hash)
+    // Save updated note (will save to file named by note ID)
     await this.saveNote(note);
   }
 
   /**
-   * Load a single note by its content hash
+   * Load a single note by its ID
    */
-  async loadNoteByHash(contentHash: string): Promise<Note | null> {
-    const noteFilePath = this.getNoteFilePath(contentHash);
+  async loadNoteById(noteId: string): Promise<Note | null> {
+    const noteFilePath = this.getNoteFilePath(noteId);
 
     try {
       const content = await fs.readFile(noteFilePath, 'utf-8');

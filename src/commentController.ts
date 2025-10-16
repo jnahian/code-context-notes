@@ -449,7 +449,35 @@ export class CommentController {
   }
 
   /**
-   * Save edited note
+   * Save edited note by ID (finds the correct file automatically)
+   */
+  async saveEditedNoteById(noteId: string, newContent: string): Promise<boolean> {
+    // Get the comment thread to find the file
+    const thread = this.commentThreads.get(noteId);
+    if (!thread) {
+      vscode.window.showErrorMessage('Note thread not found');
+      return false;
+    }
+
+    const filePath = thread.uri.fsPath;
+
+    // Open the document
+    const document = await vscode.workspace.openTextDocument(filePath);
+
+    // Update the note
+    const updatedNote = await this.noteManager.updateNote(
+      { id: noteId, content: newContent },
+      document
+    );
+
+    // Update thread back to preview mode
+    this.updateCommentThread(updatedNote, document);
+
+    return true;
+  }
+
+  /**
+   * Save edited note (legacy method - kept for compatibility)
    */
   async saveEditedNote(
     noteId: string,

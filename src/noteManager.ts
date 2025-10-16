@@ -124,10 +124,10 @@ export class NoteManager {
       action: 'edited'
     });
 
-    // Update content hash if needed
+    // Update content hash (may change if code was edited)
     note.contentHash = this.hashTracker.generateHash(document, note.lineRange);
 
-    // Save to storage
+    // Save to storage (file named by note ID, so always same file)
     await this.storage.saveNote(note);
 
     // Update cache
@@ -198,8 +198,8 @@ export class NoteManager {
       return this.noteCache.get(filePath)!;
     }
 
-    // Load from storage
-    const notes = await this.storage.loadNotes(filePath);
+    // Load from storage (including deleted notes)
+    const notes = await this.storage.loadAllNotes(filePath);
 
     // Update cache
     this.noteCache.set(filePath, notes);

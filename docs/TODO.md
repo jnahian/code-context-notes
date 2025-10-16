@@ -659,14 +659,52 @@
 
 ### ✅ Fixed Issues:
 
-**1. Edit note error: "id not found"**
-- **Issue**: Sometimes editing a note would fail with "Note with id xxxx not found"
-- **Root Cause**: `updateNote()` and `deleteNote()` were using `getNotesForFile()` which filters out deleted notes. When the cache was cleared or empty, notes wouldn't be found.
-- **Fix**: Changed both methods to use `getAllNotesForFile()` instead, which includes all notes in the cache/storage
-- **Location**: `src/noteManager.ts` lines 99 and 143
+All critical bugs have been fixed! The extension now works correctly for:
+- ✅ Adding notes
+- ✅ 1st edit
+- ✅ 2nd edit
+- ✅ 3rd+ edits
+- ✅ Multiple edits without reloading
+
+**1. Edit note error: "id not found" (persistent on 2nd/3rd attempt)**
+- **Issue**: Sometimes editing a note would fail with "Note with id xxxx not found", especially on the 2nd or 3rd edit attempt
+- **Root Cause - Fundamental Design Flaw**: The system was using **content hash as the filename**, but a single note can have many different content hashes over its lifetime as the underlying code changes. This created duplicate files with the same note ID, causing confusion and failures.
+- **Attempted Fixes** (that didn't work):
+  1. Changed `updateNote()` to use `getAllNotesForFile()` - didn't fix the root cause
+  2. Created `loadAllNotes()` method - still didn't fix the duplication issue
+  3. Added `deleteNoteFile()` to clean up old files - still failed because of timing issues
+  4. Added deduplication logic - band-aid solution that masked the real problem
+- **Final Solution - Complete Architecture Change**:
+  1. **Changed filename strategy from content-hash to note-ID**: Files are now named `{noteId}.md` instead of `{contentHash}.md`
+  2. Each note always writes to the SAME file throughout its lifetime, regardless of content hash changes
+  3. Content hash is now just metadata inside the file, not the filename
+  4. Removed all the complex deduplication and cleanup logic - no longer needed
+  5. Updated all methods: `getNoteFilePath()`, `saveNote()`, `loadNoteById()` (renamed from `loadNoteByHash`)
+  6. Removed `deleteNoteFile()` method - no longer needed
+  7. Updated interface: replaced `loadNoteByHash()` with `loadNoteById()`
+  8. Fixed all 22 unit tests to use new naming convention
+- **Why this works**: A note ID never changes - it's the stable identifier. Using it as the filename ensures one file per note, eliminating all duplication issues.
+- **Location**:
+  - `src/storageManager.ts` - changed `getNoteFilePath()` to use note ID, renamed `loadNoteByHash()` to `loadNoteById()`, removed `deleteNoteFile()`
+  - `src/noteManager.ts` - simplified `updateNote()` (no more file deletion), removed `deduplicateNotes()`
+  - `src/types.ts` - updated NoteStorage interface with `loadNoteById()` instead of `loadNoteByHash()` and `deleteNoteFile()`
+  - `src/test/suite/storageManager.test.ts` - updated all 22 tests to use new naming
 
 **2. CodeLens showing markdown formatting**
 - **Issue**: CodeLens preview was showing raw markdown syntax like `**bold**`, `*italic*`, `[link](url)`
 - **Root Cause**: The preview text wasn't stripping markdown formatting
 - **Fix**: Added `stripMarkdown()` helper function that removes all markdown formatting (bold, italic, links, code blocks, headings, lists, etc.) before displaying in CodeLens
 - **Location**: `src/codeLensProvider.ts` lines 91-121
+
+**3. Second edit fails with "id not found" - File path issue**
+- **Issue**: After the first edit succeeds, the second edit would fail with "Note with id xxxx not found"
+- **Root Cause**: When editing a note in VSCode's comment UI, VSCode creates a temporary virtual document (e.g., `/commentinput-4-1760641478387.md`) for the input field. The save command was using `activeTextEditor.document` which pointed to this temporary document instead of the actual source file. This meant we were looking for the note in the wrong file, resulting in "not found" errors.
+- **Fix**:
+  1. Changed the save command to use note ID only, without relying on active editor
+  2. Created new `saveEditedNoteById()` method in CommentController that retrieves the correct file path from the comment thread
+  3. The thread is stored by note ID and contains the correct URI of the source file
+  4. Now opens the correct document using `thread.uri.fsPath` before updating
+- **Why this works**: The comment thread is always attached to the real source file, not the temporary input document. By using the thread's URI, we always update the note in the correct file.
+- **Location**:
+  - `src/extension.ts` - updated `saveNoteCommand` to use new method (lines 348-370)
+  - `src/commentController.ts` - added `saveEditedNoteById()` method (lines 454-477)

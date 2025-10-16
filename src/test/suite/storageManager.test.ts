@@ -72,8 +72,8 @@ suite('StorageManager Test Suite', () => {
 	test('saveNote should create storage and save note file', async () => {
 		await storageManager.saveNote(testNote);
 
-		// Verify file exists
-		const filePath = storageManager.getNoteFilePath(testNote.contentHash);
+		// Verify file exists (now named by note ID)
+		const filePath = storageManager.getNoteFilePath(testNote.id);
 		const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
 		assert.strictEqual(fileExists, true);
 
@@ -85,9 +85,9 @@ suite('StorageManager Test Suite', () => {
 		assert.ok(content.includes(testNote.content));
 	});
 
-	test('loadNoteByHash should load saved note', async () => {
+	test('loadNoteById should load saved note', async () => {
 		await storageManager.saveNote(testNote);
-		const loadedNote = await storageManager.loadNoteByHash(testNote.contentHash);
+		const loadedNote = await storageManager.loadNoteById(testNote.id);
 
 		assert.ok(loadedNote);
 		assert.strictEqual(loadedNote!.id, testNote.id);
@@ -100,8 +100,8 @@ suite('StorageManager Test Suite', () => {
 		assert.strictEqual(loadedNote!.isDeleted, false);
 	});
 
-	test('loadNoteByHash should return null for non-existent note', async () => {
-		const loadedNote = await storageManager.loadNoteByHash('nonexistent');
+	test('loadNoteById should return null for non-existent note', async () => {
+		const loadedNote = await storageManager.loadNoteById('nonexistent');
 		assert.strictEqual(loadedNote, null);
 	});
 
@@ -141,8 +141,8 @@ suite('StorageManager Test Suite', () => {
 		await storageManager.saveNote(testNote);
 		await storageManager.deleteNote(testNote.id, testNote.filePath);
 
-		// Load the note directly by hash to see if it's marked deleted
-		const note = await storageManager.loadNoteByHash(testNote.contentHash);
+		// Load the note directly by ID to see if it's marked deleted
+		const note = await storageManager.loadNoteById(testNote.id);
 		assert.ok(note);
 		assert.strictEqual(note!.isDeleted, true);
 
@@ -160,7 +160,7 @@ suite('StorageManager Test Suite', () => {
 
 	test('markdown serialization should preserve all note data', async () => {
 		await storageManager.saveNote(testNote);
-		const loadedNote = await storageManager.loadNoteByHash(testNote.contentHash);
+		const loadedNote = await storageManager.loadNoteById(testNote.id);
 
 		assert.ok(loadedNote);
 		assert.deepStrictEqual(loadedNote!.id, testNote.id);
@@ -201,7 +201,7 @@ suite('StorageManager Test Suite', () => {
 		};
 
 		await storageManager.saveNote(noteWithHistory);
-		const loadedNote = await storageManager.loadNoteByHash(noteWithHistory.contentHash);
+		const loadedNote = await storageManager.loadNoteById(noteWithHistory.id);
 
 		assert.ok(loadedNote);
 		assert.strictEqual(loadedNote!.history.length, 3);
@@ -220,7 +220,7 @@ suite('StorageManager Test Suite', () => {
 		};
 
 		await storageManager.saveNote(noteWithSpecialChars);
-		const loadedNote = await storageManager.loadNoteByHash(noteWithSpecialChars.contentHash);
+		const loadedNote = await storageManager.loadNoteById(noteWithSpecialChars.id);
 
 		assert.ok(loadedNote);
 		assert.strictEqual(loadedNote!.content, noteWithSpecialChars.content);
@@ -234,7 +234,7 @@ suite('StorageManager Test Suite', () => {
 		};
 
 		await storageManager.saveNote(noteWithMultiline);
-		const loadedNote = await storageManager.loadNoteByHash(noteWithMultiline.contentHash);
+		const loadedNote = await storageManager.loadNoteById(noteWithMultiline.id);
 
 		assert.ok(loadedNote);
 		assert.strictEqual(loadedNote!.content, noteWithMultiline.content);
@@ -247,7 +247,7 @@ suite('StorageManager Test Suite', () => {
 		};
 
 		await storageManager.saveNote(noteWithCodeBlock);
-		const loadedNote = await storageManager.loadNoteByHash(noteWithCodeBlock.contentHash);
+		const loadedNote = await storageManager.loadNoteById(noteWithCodeBlock.id);
 
 		assert.ok(loadedNote);
 		assert.strictEqual(loadedNote!.content, noteWithCodeBlock.content);
@@ -260,7 +260,7 @@ suite('StorageManager Test Suite', () => {
 		};
 
 		await storageManager.saveNote(noteWithLists);
-		const loadedNote = await storageManager.loadNoteByHash(noteWithLists.contentHash);
+		const loadedNote = await storageManager.loadNoteById(noteWithLists.id);
 
 		assert.ok(loadedNote);
 		assert.strictEqual(loadedNote!.content, noteWithLists.content);
@@ -273,16 +273,16 @@ suite('StorageManager Test Suite', () => {
 		};
 
 		await storageManager.saveNote(noteWithEmptyHistory);
-		const loadedNote = await storageManager.loadNoteByHash(noteWithEmptyHistory.contentHash);
+		const loadedNote = await storageManager.loadNoteById(noteWithEmptyHistory.id);
 
 		assert.ok(loadedNote);
 		assert.strictEqual(loadedNote!.history.length, 0);
 	});
 
 	test('getAllNoteFiles should return all note files', async () => {
-		await storageManager.saveNote({ ...testNote, contentHash: 'hash1' });
-		await storageManager.saveNote({ ...testNote, contentHash: 'hash2' });
-		await storageManager.saveNote({ ...testNote, contentHash: 'hash3' });
+		await storageManager.saveNote({ ...testNote, id: 'note1' });
+		await storageManager.saveNote({ ...testNote, id: 'note2' });
+		await storageManager.saveNote({ ...testNote, id: 'note3' });
 
 		const files = await storageManager.getAllNoteFiles();
 		assert.strictEqual(files.length, 3);
@@ -296,7 +296,7 @@ suite('StorageManager Test Suite', () => {
 	test('saveNote should overwrite existing file', async () => {
 		await storageManager.saveNote(testNote);
 
-		// Update and save again
+		// Update and save again (same note ID, so overwrites)
 		const updatedNote = {
 			...testNote,
 			content: 'Updated content',
@@ -304,7 +304,7 @@ suite('StorageManager Test Suite', () => {
 		};
 		await storageManager.saveNote(updatedNote);
 
-		const loadedNote = await storageManager.loadNoteByHash(testNote.contentHash);
+		const loadedNote = await storageManager.loadNoteById(testNote.id);
 		assert.ok(loadedNote);
 		assert.strictEqual(loadedNote!.content, 'Updated content');
 		assert.strictEqual(loadedNote!.updatedAt, '2025-01-02T00:00:00.000Z');
@@ -314,7 +314,7 @@ suite('StorageManager Test Suite', () => {
 		const deletedNote = { ...testNote, isDeleted: true };
 		await storageManager.saveNote(deletedNote);
 
-		const filePath = storageManager.getNoteFilePath(deletedNote.contentHash);
+		const filePath = storageManager.getNoteFilePath(deletedNote.id);
 		const content = await fs.readFile(filePath, 'utf-8');
 
 		assert.ok(content.includes('**Status:** DELETED'));
