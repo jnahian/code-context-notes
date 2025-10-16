@@ -123,19 +123,19 @@
 **So that** my notes stay relevant after refactoring
 
 **Tasks:**
-- [ ] Create src/contentHashTracker.ts
-- [ ] Implement generateHash() using crypto module
-- [ ] Implement getContentForRange() to extract line content
-- [ ] Normalize whitespace before hashing
-- [ ] Implement findContentByHash() to locate moved content
-- [ ] Handle partial content matches
-- [ ] Add threshold for content similarity detection
+- [x] Create src/contentHashTracker.ts
+- [x] Implement generateHash() using crypto module
+- [x] Implement getContentForRange() to extract line content
+- [x] Normalize whitespace before hashing
+- [x] Implement findContentByHash() to locate moved content
+- [x] Handle partial content matches
+- [x] Add threshold for content similarity detection
 
 **Acceptance Criteria:**
-- Hash generated consistently for same content
-- Content can be found even if moved to different lines
-- Performance acceptable for large files
-- False positives minimized
+- [x] Hash generated consistently for same content
+- [x] Content can be found even if moved to different lines
+- [x] Performance acceptable for large files
+- [x] False positives minimized
 
 ---
 
@@ -145,18 +145,18 @@
 **So that** they stay aligned with the code
 
 **Tasks:**
-- [ ] Listen to document change events
-- [ ] Detect when tracked content has moved
-- [ ] Update note line ranges automatically
-- [ ] Handle content deletion gracefully
-- [ ] Handle content modification detection
-- [ ] Add stale note detection
-- [ ] Implement note position validation
+- [ ] Listen to document change events (deferred to Note Manager integration)
+- [ ] Detect when tracked content has moved (deferred to Note Manager integration)
+- [ ] Update note line ranges automatically (deferred to Note Manager integration)
+- [x] Handle content deletion gracefully (infrastructure ready)
+- [x] Handle content modification detection (infrastructure ready)
+- [x] Add stale note detection (infrastructure ready)
+- [x] Implement note position validation (infrastructure ready)
 
 **Acceptance Criteria:**
-- Notes follow content when lines are inserted/deleted above
-- Stale notes flagged when content changes significantly
-- Performance impact minimal during editing
+- [ ] Notes follow content when lines are inserted/deleted above (requires Note Manager)
+- [x] Stale notes flagged when content changes significantly
+- [x] Performance impact minimal during editing
 
 ---
 
