@@ -44,8 +44,160 @@
         "command": "codeContextNotes.refreshNotes",
         "title": "Refresh All Notes",
         "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.editNote",
+        "title": "Edit Note",
+        "icon": "$(edit)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.saveNote",
+        "title": "Save Note",
+        "icon": "$(save)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.cancelEditNote",
+        "title": "Cancel",
+        "icon": "$(close)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.saveNewNote",
+        "title": "Save Note",
+        "icon": "$(save)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.cancelNewNote",
+        "title": "Cancel",
+        "icon": "$(close)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.insertBold",
+        "title": "Insert Bold Text",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.insertItalic",
+        "title": "Insert Italic Text",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.insertCode",
+        "title": "Insert Inline Code",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.insertCodeBlock",
+        "title": "Insert Code Block",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.insertLink",
+        "title": "Insert Link",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.insertList",
+        "title": "Insert List",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.showMarkdownHelp",
+        "title": "Show Markdown Formatting Guide",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.deleteNoteFromComment",
+        "title": "Delete Note",
+        "icon": "$(trash)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.viewNoteHistory",
+        "title": "View History",
+        "icon": "$(history)",
+        "category": "Code Notes"
       }
     ],
+    "keybindings": [
+      {
+        "command": "codeContextNotes.insertBold",
+        "key": "ctrl+b",
+        "mac": "cmd+b",
+        "when": "commentEditorFocused"
+      },
+      {
+        "command": "codeContextNotes.insertItalic",
+        "key": "ctrl+i",
+        "mac": "cmd+i",
+        "when": "commentEditorFocused"
+      },
+      {
+        "command": "codeContextNotes.insertCode",
+        "key": "ctrl+shift+c",
+        "mac": "cmd+shift+c",
+        "when": "commentEditorFocused"
+      },
+      {
+        "command": "codeContextNotes.insertCodeBlock",
+        "key": "ctrl+shift+k",
+        "mac": "cmd+shift+k",
+        "when": "commentEditorFocused"
+      },
+      {
+        "command": "codeContextNotes.insertLink",
+        "key": "ctrl+k",
+        "mac": "cmd+k",
+        "when": "commentEditorFocused"
+      }
+    ],
+    "menus": {
+      "comments/commentThread/context": [
+        {
+          "command": "codeContextNotes.saveNewNote",
+          "group": "inline@1",
+          "when": "commentController == codeContextNotes && commentThreadIsEmpty"
+        },
+        {
+          "command": "codeContextNotes.cancelNewNote",
+          "group": "inline@2",
+          "when": "commentController == codeContextNotes && commentThreadIsEmpty"
+        }
+      ],
+      "comments/comment/title": [
+        {
+          "command": "codeContextNotes.editNote",
+          "group": "inline@1",
+          "when": "commentController == codeContextNotes && comment =~ /^[a-f0-9-]+$/"
+        },
+        {
+          "command": "codeContextNotes.viewNoteHistory",
+          "group": "inline@2",
+          "when": "commentController == codeContextNotes && comment =~ /^[a-f0-9-]+$/"
+        },
+        {
+          "command": "codeContextNotes.deleteNoteFromComment",
+          "group": "inline@3",
+          "when": "commentController == codeContextNotes && comment =~ /^[a-f0-9-]+$/"
+        }
+      ],
+      "comments/comment/context": [
+        {
+          "command": "codeContextNotes.saveNote",
+          "group": "inline@1",
+          "when": "commentController == codeContextNotes"
+        },
+        {
+          "command": "codeContextNotes.cancelEditNote",
+          "group": "inline@2",
+          "when": "commentController == codeContextNotes"
+        }
+      ]
+    },
     "configuration": {
       "title": "Code Context Notes",
       "properties": {

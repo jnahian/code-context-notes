@@ -74,14 +74,80 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 	}
 
+	// Listen for selection changes to update CodeLens
+	vscode.window.onDidChangeTextEditorSelection((event) => {
+		codeLensProvider.refresh();
+	}, null, context.subscriptions);
+
 	console.log('Code Context Notes extension is now active!');
+}
+
+/**
+ * Helper function to show markdown formatting help
+ */
+async function showMarkdownHelp() {
+	const helpText = `# Markdown Formatting Guide
+
+## Text Formatting
+- **Bold**: \`**text**\` or \`__text__\`
+- *Italic*: \`*text*\` or \`_text_\`
+- \`Code\`: \`\`code\`\`
+- ~~Strikethrough~~: \`~~text~~\`
+
+## Headings
+\`# Heading 1\`
+\`## Heading 2\`
+\`### Heading 3\`
+
+## Lists
+**Unordered:**
+\`- Item 1\`
+\`- Item 2\`
+
+**Ordered:**
+\`1. First\`
+\`2. Second\`
+
+## Links & Images
+\`[Link text](url)\`
+\`![Alt text](image-url)\`
+
+## Code Blocks
+\`\`\`
+Code block
+\`\`\`
+
+\`\`\`javascript
+const x = 1;
+\`\`\`
+
+## Quotes
+\`> Quote text\`
+
+## Tables
+\`| Col1 | Col2 |\`
+\`|------|------|\`
+\`| A    | B    |\`
+
+**Keyboard Shortcuts:**
+- Bold: Ctrl/Cmd+B
+- Italic: Ctrl/Cmd+I
+- Code: Ctrl/Cmd+Shift+C
+- Code Block: Ctrl/Cmd+Shift+K
+- Link: Ctrl/Cmd+K`;
+
+	const doc = await vscode.workspace.openTextDocument({
+		content: helpText,
+		language: 'markdown'
+	});
+	await vscode.window.showTextDocument(doc);
 }
 
 /**
  * Register all extension commands
  */
 function registerCommands(context: vscode.ExtensionContext) {
-	// Add Note to Selection
+	// Add Note to Selection (via command palette)
 	const addNoteCommand = vscode.commands.registerCommand(
 		'codeContextNotes.addNote',
 		async () => {
@@ -119,24 +185,26 @@ function registerCommands(context: vscode.ExtensionContext) {
 		}
 	);
 
+	// Add Note via CodeLens (opens comment editor)
+	const addNoteViaCodeLensCommand = vscode.commands.registerCommand(
+		'codeContextNotes.addNoteViaCodeLens',
+		async (document: vscode.TextDocument, selection: vscode.Selection) => {
+			try {
+				const range = new vscode.Range(selection.start.line, 0, selection.end.line, 0);
+				await commentController.openCommentEditor(document, range);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to open comment editor: ${error}`);
+			}
+		}
+	);
+
 	// View Note
 	const viewNoteCommand = vscode.commands.registerCommand(
 		'codeContextNotes.viewNote',
 		async (noteId: string, filePath: string) => {
 			try {
-				const note = await noteManager.getNoteById(noteId, filePath);
-				if (!note) {
-					vscode.window.showErrorMessage('Note not found');
-					return;
-				}
-
-				// Show note in a new document
-				const doc = await vscode.workspace.openTextDocument({
-					content: `# Note by ${note.author}\n\nCreated: ${new Date(note.createdAt).toLocaleString()}\nUpdated: ${new Date(note.updatedAt).toLocaleString()}\n\n---\n\n${note.content}\n\n---\n\n## History\n\n${note.history.map(h => `- ${new Date(h.timestamp).toLocaleString()} - ${h.author} - ${h.action}`).join('\n')}`,
-					language: 'markdown'
-				});
-
-				await vscode.window.showTextDocument(doc);
+				// Focus and expand the comment thread instead of opening a new document
+				await commentController.focusNoteThread(noteId, filePath);
 			} catch (error) {
 				vscode.window.showErrorMessage(`Failed to view note: ${error}`);
 			}
@@ -250,13 +318,270 @@ function registerCommands(context: vscode.ExtensionContext) {
 		}
 	);
 
+	// Edit Note
+	const editNoteCommand = vscode.commands.registerCommand(
+		'codeContextNotes.editNote',
+		async (comment: vscode.Comment) => {
+			const editor = vscode.window.activeTextEditor;
+			if (!editor) {
+				vscode.window.showErrorMessage('No active editor');
+				return;
+			}
+
+			const noteId = comment.contextValue;
+			if (!noteId) {
+				return;
+			}
+
+			try {
+				await commentController.enableEditMode(noteId, editor.document.uri.fsPath);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to edit note: ${error}`);
+			}
+		}
+	);
+
+	// Save Note
+	const saveNoteCommand = vscode.commands.registerCommand(
+		'codeContextNotes.saveNote',
+		async (comment: vscode.Comment) => {
+			const editor = vscode.window.activeTextEditor;
+			if (!editor) {
+				vscode.window.showErrorMessage('No active editor');
+				return;
+			}
+
+			const noteId = comment.contextValue;
+			if (!noteId) {
+				return;
+			}
+
+			const newContent = typeof comment.body === 'string' ? comment.body : comment.body.value;
+
+			try {
+				await commentController.saveEditedNote(noteId, editor.document.uri.fsPath, newContent, editor.document);
+				codeLensProvider.refresh();
+				vscode.window.showInformationMessage('Note saved!');
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to save note: ${error}`);
+			}
+		}
+	);
+
+	// Cancel Edit Note
+	const cancelEditNoteCommand = vscode.commands.registerCommand(
+		'codeContextNotes.cancelEditNote',
+		async (comment: vscode.Comment) => {
+			const editor = vscode.window.activeTextEditor;
+			if (!editor) {
+				return;
+			}
+
+			const noteId = comment.contextValue;
+			if (!noteId) {
+				return;
+			}
+
+			try {
+				// Reload the note to cancel edits
+				await commentController.refreshCommentsForDocument(editor.document);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to cancel edit: ${error}`);
+			}
+		}
+	);
+
+	// Save New Note (from comment thread)
+	const saveNewNoteCommand = vscode.commands.registerCommand(
+		'codeContextNotes.saveNewNote',
+		async (reply: vscode.CommentReply) => {
+			const thread = reply.thread;
+			const content = reply.text;
+
+			try {
+				await commentController.handleSaveNewNote(thread, content);
+				codeLensProvider.refresh();
+				vscode.window.showInformationMessage('Note added successfully!');
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to save note: ${error}`);
+			}
+		}
+	);
+
+	// Cancel New Note (from comment thread)
+	const cancelNewNoteCommand = vscode.commands.registerCommand(
+		'codeContextNotes.cancelNewNote',
+		async (reply: vscode.CommentReply) => {
+			const thread = reply.thread;
+			const tempId = (thread as any).tempId;
+
+			// Dispose the temporary thread
+			thread.dispose();
+
+			vscode.window.showInformationMessage('Note creation cancelled');
+		}
+	);
+
+	// Markdown formatting commands
+	const insertBoldCommand = vscode.commands.registerCommand(
+		'codeContextNotes.insertBold',
+		async () => {
+			await vscode.commands.executeCommand('editor.action.insertSnippet', {
+				snippet: '**${TM_SELECTED_TEXT:${1:bold text}}**$0'
+			});
+		}
+	);
+
+	const insertItalicCommand = vscode.commands.registerCommand(
+		'codeContextNotes.insertItalic',
+		async () => {
+			await vscode.commands.executeCommand('editor.action.insertSnippet', {
+				snippet: '*${TM_SELECTED_TEXT:${1:italic text}}*$0'
+			});
+		}
+	);
+
+	const insertCodeCommand = vscode.commands.registerCommand(
+		'codeContextNotes.insertCode',
+		async () => {
+			await vscode.commands.executeCommand('editor.action.insertSnippet', {
+				snippet: '\`${TM_SELECTED_TEXT:${1:code}}\`$0'
+			});
+		}
+	);
+
+	const insertCodeBlockCommand = vscode.commands.registerCommand(
+		'codeContextNotes.insertCodeBlock',
+		async () => {
+			await vscode.commands.executeCommand('editor.action.insertSnippet', {
+				snippet: '```${1:language}\n${TM_SELECTED_TEXT:${2:code}}\n```$0'
+			});
+		}
+	);
+
+	const insertLinkCommand = vscode.commands.registerCommand(
+		'codeContextNotes.insertLink',
+		async () => {
+			const url = await vscode.window.showInputBox({
+				prompt: 'Enter URL',
+				placeHolder: 'https://example.com'
+			});
+			if (url) {
+				await vscode.commands.executeCommand('editor.action.insertSnippet', {
+					snippet: '[${TM_SELECTED_TEXT:${1:link text}}](' + url + ')$0'
+				});
+			}
+		}
+	);
+
+	const insertListCommand = vscode.commands.registerCommand(
+		'codeContextNotes.insertList',
+		async () => {
+			await vscode.commands.executeCommand('editor.action.insertSnippet', {
+				snippet: '- ${1:item 1}\n- ${2:item 2}\n- $0'
+			});
+		}
+	);
+
+	const showMarkdownHelpCommand = vscode.commands.registerCommand(
+		'codeContextNotes.showMarkdownHelp',
+		async () => {
+			await showMarkdownHelp();
+		}
+	);
+
+	// Delete Note from Comment (inline button)
+	const deleteNoteFromCommentCommand = vscode.commands.registerCommand(
+		'codeContextNotes.deleteNoteFromComment',
+		async (comment: vscode.Comment) => {
+			const noteId = comment.contextValue;
+			if (!noteId) {
+				return;
+			}
+
+			const editor = vscode.window.activeTextEditor;
+			if (!editor) {
+				vscode.window.showErrorMessage('No active editor');
+				return;
+			}
+
+			const filePath = editor.document.uri.fsPath;
+
+			// Get the note to show confirmation
+			const note = await noteManager.getNoteById(noteId, filePath);
+			if (!note) {
+				vscode.window.showErrorMessage('Note not found');
+				return;
+			}
+
+			// Confirm deletion
+			const confirm = await vscode.window.showWarningMessage(
+				`Delete note: "${note.content.substring(0, 50)}${note.content.length > 50 ? '...' : ''}"?`,
+				'Delete',
+				'Cancel'
+			);
+
+			if (confirm !== 'Delete') {
+				return;
+			}
+
+			try {
+				await commentController.handleDeleteNote(noteId, filePath);
+				codeLensProvider.refresh();
+				vscode.window.showInformationMessage('Note deleted successfully!');
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to delete note: ${error}`);
+			}
+		}
+	);
+
+	// View Note History from Comment (inline button)
+	const viewNoteHistoryFromCommentCommand = vscode.commands.registerCommand(
+		'codeContextNotes.viewNoteHistory',
+		async (comment: vscode.Comment) => {
+			const noteId = comment.contextValue;
+			if (!noteId) {
+				return;
+			}
+
+			const editor = vscode.window.activeTextEditor;
+			if (!editor) {
+				vscode.window.showErrorMessage('No active editor');
+				return;
+			}
+
+			const filePath = editor.document.uri.fsPath;
+
+			try {
+				await commentController.showHistoryInThread(noteId, filePath);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to view history: ${error}`);
+			}
+		}
+	);
+
 	// Register all commands
 	context.subscriptions.push(
 		addNoteCommand,
+		addNoteViaCodeLensCommand,
 		viewNoteCommand,
 		deleteNoteCommand,
 		viewHistoryCommand,
-		refreshNotesCommand
+		refreshNotesCommand,
+		editNoteCommand,
+		saveNoteCommand,
+		cancelEditNoteCommand,
+		saveNewNoteCommand,
+		cancelNewNoteCommand,
+		insertBoldCommand,
+		insertItalicCommand,
+		insertCodeCommand,
+		insertCodeBlockCommand,
+		insertLinkCommand,
+		insertListCommand,
+		showMarkdownHelpCommand,
+		deleteNoteFromCommentCommand,
+		viewNoteHistoryFromCommentCommand
 	);
 }
 

@@ -52,21 +52,24 @@
 
 **Tasks:**
 - [x] Create src/storageManager.ts
-- [x] Implement getNoteFilePath() to map source files to note files
+- [x] Implement getNoteFilePath() to use content hash as filename
 - [x] Implement createNotesDirectory() to ensure .code-notes/ exists
-- [x] Implement saveNote() to write markdown files
-- [x] Implement loadNote() to read markdown files
-- [x] Implement loadAllNotes() for a given source file
-- [x] Implement deleteNote() to remove notes
+- [x] Implement saveNote() to write markdown files (one file per content hash)
+- [x] Implement loadNotes() to search all note files for a given source file
+- [x] Implement loadNoteByHash() to load a single note by content hash
+- [x] Implement deleteNote() to mark notes as deleted in history
 - [x] Add error handling for file I/O operations
-- [x] Implement markdown serialization/deserialization
+- [x] Implement markdown serialization/deserialization for single note per file
+- [x] Store complete edit history in each note file
 - [ ] Add unit tests for storage operations
 
 **Acceptance Criteria:**
-- [x] Notes saved in `.code-notes/` directory
-- [x] Directory structure mirrors source code structure
-- [x] Markdown files are human-readable
+- [x] Notes saved in `.code-notes/` directory with content hash as filename
+- [x] Each note file named by its content hash (e.g., abc123.md)
+- [x] Markdown files include full edit history for that code location
+- [x] Markdown files are human-readable with clear sections
 - [x] All CRUD operations work correctly
+- [x] loadNotes() searches all files to find notes for a specific source file
 
 ---
 
@@ -76,17 +79,21 @@
 **So that** they are easy to read and understand
 
 **Tasks:**
-- [x] Design markdown template structure
+- [x] Design markdown template structure for single note per file
 - [x] Implement noteToMarkdown() serialization function
-- [x] Implement markdownToNote() deserialization function
-- [x] Handle history section formatting
+- [x] Implement markdownToNote() deserialization function for single note
+- [x] Handle history section formatting with code blocks
 - [x] Support markdown escaping for user content
-- [x] Add metadata section (author, timestamps, hash)
+- [x] Add metadata section (author, timestamps, hash, file path, line range)
+- [x] Store full edit history in chronological order
+- [x] Use code blocks for history content preservation
 - [ ] Test with various content types (code blocks, lists, etc.)
 
 **Acceptance Criteria:**
 - [x] Generated markdown is valid and readable
 - [x] Round-trip conversion (note → markdown → note) preserves data
+- [x] Each file contains complete history for one code location
+- [x] History entries preserve original content in code blocks
 - [ ] Special characters handled correctly (needs testing)
 
 ---
@@ -228,16 +235,52 @@
 - [x] Handle comment edit events
 - [x] Handle comment delete events
 - [x] Implement markdown support in comments
-- [ ] Add comment reactions/actions (edit, delete, history) - deferred to extension.ts
+- [x] Add comment actions (edit, save, cancel) with buttons
+- [x] Enable markdown formatting in comment body
+- [x] Add Edit button to comment threads
+- [x] Add Save and Cancel buttons for editing existing notes
+- [x] Add Save and Cancel buttons for creating new notes
+- [x] Implement handleSaveNewNote() method for new note creation
+- [x] Configure comment thread context menu for new notes
+- [x] Add markdown formatting keyboard shortcuts (Ctrl/Cmd+B, I, K, etc.)
+- [x] Implement snippet-based markdown insertion commands
+- [x] Add markdown formatting help guide
+- [x] Configure helpful placeholder with markdown hints
+- [x] Display keyboard shortcut hints in placeholder text
+- [x] Add comprehensive formatting guide in placeholder
+- [x] Include both keyboard shortcuts and markdown syntax in hints
+- [x] Add Delete button to comment title (trash icon)
+- [x] Add View History button to comment title (history icon)
+- [x] Implement deleteNoteFromComment command
+- [x] Implement viewNoteHistory command with inline history display
+- [x] Add confirmation dialog for note deletion
+- [x] Implement showHistoryInThread method in CommentController
+- [x] Display history entries as comment replies in thread
+- [x] Format history with action, author, timestamp, and content
 - [x] Sync comment threads with note data
 - [x] Handle comment thread disposal
 
 **Acceptance Criteria:**
 - [x] Comment threads appear at note locations
-- [ ] Users can add notes via comment UI (requires extension.ts commands)
-- [ ] Edit/delete work through comment UI (requires extension.ts commands)
-- [x] Markdown rendered correctly
+- [x] Users can add notes via comment UI with Save button
+- [x] Edit/delete work through comment UI with dedicated buttons
+- [x] Delete button appears in comment title with trash icon
+- [x] View History button appears in comment title with history icon
+- [x] Delete button shows confirmation dialog before deletion
+- [x] View History shows history as replies in the comment thread
+- [x] Each history entry displays as a separate reply
+- [x] History entries show action type, author, and timestamp
+- [x] Markdown rendered correctly with trusted content
 - [x] Comments persist across sessions (handled by NoteManager)
+- [x] Edit mode allows inline editing of notes
+- [x] Save button commits changes with history tracking
+- [x] Cancel button reverts unsaved changes
+- [x] New note creation shows Save/Cancel buttons in comment thread
+- [x] Save button for new notes creates note and updates UI
+- [x] Keyboard shortcuts work for markdown formatting
+- [x] Placeholder text shows keyboard shortcut hints
+- [x] Placeholder text shows markdown syntax examples
+- [x] Help guide accessible via command palette
 
 ---
 
@@ -273,21 +316,23 @@
 **Tasks:**
 - [x] Create src/codeLensProvider.ts
 - [x] Implement CodeLensProvider interface
-- [ ] Register provider for all languages (deferred to extension.ts)
+- [x] Register provider for all languages
 - [x] Generate CodeLens for each note location
 - [x] Add "View Note" command to CodeLens
-- [ ] Add "Add Note" command for selection ranges (deferred to extension.ts)
+- [x] Add "Add Note" command for selection ranges
 - [x] Display note preview in CodeLens text
 - [x] Handle CodeLens refresh on document changes
 - [x] Handle CodeLens commands
 - [x] Optimize CodeLens calculation for performance
+- [x] Implement focusNoteThread() to open comment editor on view
 
 **Acceptance Criteria:**
 - [x] CodeLens appears above lines with notes
-- [ ] Clicking CodeLens opens comment thread (requires extension.ts)
+- [x] Clicking CodeLens opens and focuses comment thread
 - [x] Note preview shown in CodeLens
 - [x] Updates in real-time as notes change
 - [x] Minimal performance impact
+- [x] Comment thread expands and scrolls into view when clicked
 
 ---
 
@@ -297,17 +342,19 @@
 **So that** I have quick access to note actions
 
 **Tasks:**
-- [ ] Implement "View Note" command (deferred to extension.ts)
-- [ ] Implement "Add Note" command (deferred to extension.ts)
-- [ ] Implement "Edit Note" command (optional, deferred to extension.ts)
-- [ ] Register commands in package.json (deferred to extension.ts)
-- [x] Pass note context to commands (infrastructure ready)
-- [ ] Handle command errors gracefully (deferred to extension.ts)
+- [x] Implement "View Note" command
+- [x] Implement "Add Note" command via CodeLens (opens comment editor)
+- [x] Register commands in package.json
+- [x] Pass note context to commands
+- [x] Handle command errors gracefully
+- [x] Add selection change listener to refresh CodeLens dynamically
+- [x] Show "Add Note" CodeLens only when selection exists and no existing note
 
 **Acceptance Criteria:**
-- [ ] All commands functional from CodeLens (requires extension.ts)
-- [ ] Commands open appropriate UI (requires extension.ts)
-- [ ] Error messages shown to user if needed (requires extension.ts)
+- [x] All commands functional from CodeLens
+- [x] Commands open appropriate UI (comment editor for add, markdown view for view)
+- [x] Error messages shown to user if needed
+- [x] CodeLens updates in real-time when selection changes
 
 ---
 
@@ -368,13 +415,17 @@
 **So that** I can work efficiently
 
 **Tasks:**
-- [x] Define command IDs in package.json (already in package.json)
+- [x] Define command IDs in package.json
 - [x] Implement "Add Note to Selection" command
 - [x] Implement "Delete Note at Cursor" command
 - [x] Implement "View Note History" command
 - [x] Implement "Refresh All Notes" command
+- [x] Implement "Edit Note" command with inline button
+- [x] Implement "Save Note" command for edited notes
+- [x] Implement "Cancel Edit Note" command
 - [x] Register command handlers in extension.ts
 - [x] Add commands to command palette (via package.json)
+- [x] Configure comment menu buttons in package.json
 - [ ] Add suggested keybindings (optional for v1)
 - [x] Handle commands with no active editor
 - [x] Handle commands with no selection
@@ -382,6 +433,7 @@
 **Acceptance Criteria:**
 - [x] All commands accessible from Command Palette
 - [x] Commands work as expected
+- [x] Edit/Save/Cancel buttons appear in comment UI
 - [x] Error messages for invalid states
 - [ ] Keybindings suggested but not forced (optional)
 

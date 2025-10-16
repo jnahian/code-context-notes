@@ -29,16 +29,28 @@ export class StorageManager implements NoteStorage {
   }
 
   /**
-   * Map a source file path to its corresponding note file path
-   * Example: src/app.ts -> .code-notes/src/app.ts.md
+   * Get the note file path based on content hash
+   * Example: contentHash abc123 -> .code-notes/abc123.md
    */
-  getNoteFilePath(sourceFilePath: string): string {
-    // Get relative path from workspace root
-    const relativePath = path.relative(this.workspaceRoot, sourceFilePath);
-    // Add .md extension
-    const noteFileName = `${relativePath}.md`;
-    // Join with storage directory
+  getNoteFilePath(contentHash: string): string {
+    const noteFileName = `${contentHash}.md`;
     return path.join(this.getStoragePath(), noteFileName);
+  }
+
+  /**
+   * Get all note files in the storage directory
+   */
+  async getAllNoteFiles(): Promise<string[]> {
+    const storagePath = this.getStoragePath();
+    try {
+      const files = await fs.readdir(storagePath);
+      return files.filter(f => f.endsWith('.md')).map(f => path.join(storagePath, f));
+    } catch (error: any) {
+      if (error.code === 'ENOENT') {
+        return [];
+      }
+      throw new Error(`Failed to read storage directory: ${error}`);
+    }
   }
 
   /**
@@ -80,12 +92,13 @@ export class StorageManager implements NoteStorage {
   /**
    * Save a note to storage
    * Converts the note to markdown and writes to file
+   * Each note is saved to a separate file named by its content hash
    */
   async saveNote(note: Note): Promise<void> {
-    const noteFilePath = this.getNoteFilePath(note.filePath);
+    const noteFilePath = this.getNoteFilePath(note.contentHash);
 
     // Ensure storage directory exists
-    await this.ensureNoteDirectory(noteFilePath);
+    await this.createStorage();
 
     // Convert note to markdown
     const markdown = this.noteToMarkdown(note);
@@ -100,20 +113,28 @@ export class StorageManager implements NoteStorage {
 
   /**
    * Load all notes for a given source file
+   * Searches through all note files to find notes for the specified file
    */
   async loadNotes(filePath: string): Promise<Note[]> {
-    const noteFilePath = this.getNoteFilePath(filePath);
+    const allNoteFiles = await this.getAllNoteFiles();
+    const notes: Note[] = [];
 
-    try {
-      const content = await fs.readFile(noteFilePath, 'utf-8');
-      return this.markdownToNotes(content, filePath);
-    } catch (error: any) {
-      // If file doesn't exist, return empty array
-      if (error.code === 'ENOENT') {
-        return [];
+    for (const noteFile of allNoteFiles) {
+      try {
+        const content = await fs.readFile(noteFile, 'utf-8');
+        const note = this.markdownToNote(content);
+
+        // Only include notes for the specified file
+        if (note && note.filePath === filePath && !note.isDeleted) {
+          notes.push(note);
+        }
+      } catch (error) {
+        console.error(`Failed to load note from ${noteFile}:`, error);
+        // Continue with other files
       }
-      throw new Error(`Failed to load notes: ${error}`);
     }
+
+    return notes;
   }
 
   /**
@@ -122,13 +143,12 @@ export class StorageManager implements NoteStorage {
    */
   async deleteNote(noteId: string, filePath: string): Promise<void> {
     const notes = await this.loadNotes(filePath);
-    const noteIndex = notes.findIndex(n => n.id === noteId);
+    const note = notes.find(n => n.id === noteId);
 
-    if (noteIndex === -1) {
+    if (!note) {
       throw new Error(`Note with id ${noteId} not found`);
     }
 
-    const note = notes[noteIndex];
     note.isDeleted = true;
     note.updatedAt = new Date().toISOString();
 
@@ -140,45 +160,71 @@ export class StorageManager implements NoteStorage {
       action: 'deleted'
     });
 
-    // Save updated note
+    // Save updated note (will save to file named by content hash)
     await this.saveNote(note);
   }
 
   /**
+   * Load a single note by its content hash
+   */
+  async loadNoteByHash(contentHash: string): Promise<Note | null> {
+    const noteFilePath = this.getNoteFilePath(contentHash);
+
+    try {
+      const content = await fs.readFile(noteFilePath, 'utf-8');
+      return this.markdownToNote(content);
+    } catch (error: any) {
+      if (error.code === 'ENOENT') {
+        return null;
+      }
+      throw new Error(`Failed to load note: ${error}`);
+    }
+  }
+
+  /**
    * Convert a Note object to markdown format
+   * Stores complete history for this content hash
    */
   private noteToMarkdown(note: Note): string {
     const lines: string[] = [];
 
-    // Header
-    lines.push(`# Notes for ${path.basename(note.filePath)}`);
+    // Header with source file info
+    lines.push(`# Code Context Note`);
+    lines.push('');
+    lines.push(`**File:** ${note.filePath}`);
+    lines.push(`**Lines:** ${note.lineRange.start + 1}-${note.lineRange.end + 1}`);
+    lines.push(`**Content Hash:** ${note.contentHash}`);
     lines.push('');
 
-    // Note section
+    // Metadata
     lines.push(`## Note: ${note.id}`);
-    lines.push(`**Lines:** ${note.lineRange.start + 1}-${note.lineRange.end + 1}`);
     lines.push(`**Author:** ${note.author}`);
     lines.push(`**Created:** ${note.createdAt}`);
     lines.push(`**Updated:** ${note.updatedAt}`);
-    lines.push(`**Content Hash:** ${note.contentHash}`);
     if (note.isDeleted) {
       lines.push(`**Status:** DELETED`);
     }
     lines.push('');
 
     // Current content
-    lines.push('### Current Content');
+    lines.push('## Current Content');
+    lines.push('');
     lines.push(note.content);
     lines.push('');
 
-    // History
+    // Full edit history for this content hash
     if (note.history.length > 0) {
-      lines.push('### History');
+      lines.push('## Edit History');
+      lines.push('');
+      lines.push('Complete chronological history of all edits to this code location:');
       lines.push('');
       for (const entry of note.history) {
-        lines.push(`- **${entry.timestamp}** - ${entry.author} - ${entry.action}`);
-        if (entry.content && entry.content !== note.content) {
-          lines.push(`  > ${entry.content.replace(/\n/g, '\n  > ')}`);
+        lines.push(`### ${entry.timestamp} - ${entry.author} - ${entry.action}`);
+        lines.push('');
+        if (entry.content) {
+          lines.push('```');
+          lines.push(entry.content);
+          lines.push('```');
         }
         lines.push('');
       }
@@ -188,100 +234,114 @@ export class StorageManager implements NoteStorage {
   }
 
   /**
-   * Parse markdown content back into Note objects
+   * Parse markdown content back into a single Note object
    */
-  private markdownToNotes(markdown: string, filePath: string): Note[] {
-    const notes: Note[] = [];
+  private markdownToNote(markdown: string): Note | null {
     const lines = markdown.split('\n');
+    const note: Partial<Note> = {
+      history: []
+    };
 
-    let currentNote: Partial<Note> | null = null;
     let inContent = false;
     let inHistory = false;
     let contentLines: string[] = [];
-    let historyEntry: any = null;
+    let historyContentLines: string[] = [];
+    let currentHistoryEntry: any = null;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
-      // Start of a new note
-      if (line.startsWith('## Note: ')) {
-        // Save previous note if exists
-        if (currentNote && contentLines.length > 0) {
-          currentNote.content = contentLines.join('\n').trim();
-          if (this.isValidNote(currentNote)) {
-            notes.push(currentNote as Note);
-          }
-        }
-
-        // Start new note
-        currentNote = {
-          id: line.substring(9).trim(),
-          filePath,
-          history: []
-        };
-        contentLines = [];
-        inContent = false;
-        inHistory = false;
-        continue;
+      // Parse file path
+      if (line.startsWith('**File:**')) {
+        note.filePath = line.substring(9).trim();
       }
-
-      if (!currentNote) {
-        continue;
-      }
-
-      // Parse metadata
-      if (line.startsWith('**Lines:**')) {
+      // Parse line range
+      else if (line.startsWith('**Lines:**')) {
         const range = line.substring(10).trim().split('-');
-        currentNote.lineRange = {
+        note.lineRange = {
           start: parseInt(range[0]) - 1,
           end: parseInt(range[1]) - 1
         };
-      } else if (line.startsWith('**Author:**')) {
-        currentNote.author = line.substring(11).trim();
-      } else if (line.startsWith('**Created:**')) {
-        currentNote.createdAt = line.substring(12).trim();
-      } else if (line.startsWith('**Updated:**')) {
-        currentNote.updatedAt = line.substring(12).trim();
-      } else if (line.startsWith('**Content Hash:**')) {
-        currentNote.contentHash = line.substring(17).trim();
-      } else if (line.startsWith('**Status:** DELETED')) {
-        currentNote.isDeleted = true;
-      } else if (line === '### Current Content') {
+      }
+      // Parse content hash (at top level)
+      else if (line.startsWith('**Content Hash:**') && !note.contentHash) {
+        note.contentHash = line.substring(17).trim();
+      }
+      // Parse note ID
+      else if (line.startsWith('## Note: ')) {
+        note.id = line.substring(9).trim();
+      }
+      // Parse metadata
+      else if (line.startsWith('**Author:**')) {
+        note.author = line.substring(11).trim();
+      }
+      else if (line.startsWith('**Created:**')) {
+        note.createdAt = line.substring(12).trim();
+      }
+      else if (line.startsWith('**Updated:**')) {
+        note.updatedAt = line.substring(12).trim();
+      }
+      else if (line.startsWith('**Status:** DELETED')) {
+        note.isDeleted = true;
+      }
+      // Parse current content section
+      else if (line === '## Current Content') {
         inContent = true;
         inHistory = false;
         contentLines = [];
-      } else if (line === '### History') {
+      }
+      // Parse history section
+      else if (line === '## Edit History') {
         inContent = false;
         inHistory = true;
-      } else if (inContent && line.trim()) {
+      }
+      // Content lines
+      else if (inContent && line && line !== '') {
         contentLines.push(line);
-      } else if (inHistory && line.startsWith('- **')) {
-        // Parse history entry: - **timestamp** - author - action
-        const match = line.match(/- \*\*(.+?)\*\* - (.+?) - (.+)/);
+      }
+      // History entry header
+      else if (inHistory && line.startsWith('### ')) {
+        // Save previous history entry if exists
+        if (currentHistoryEntry && historyContentLines.length > 0) {
+          currentHistoryEntry.content = historyContentLines.join('\n').trim();
+        }
+
+        // Parse: ### timestamp - author - action
+        const match = line.substring(4).match(/^(.+?) - (.+?) - (.+)$/);
         if (match) {
-          historyEntry = {
+          currentHistoryEntry = {
             timestamp: match[1],
             author: match[2],
             action: match[3] as any,
             content: ''
           };
-          currentNote.history!.push(historyEntry);
+          note.history!.push(currentHistoryEntry);
+          historyContentLines = [];
         }
-      } else if (inHistory && line.startsWith('  > ') && historyEntry) {
-        // History content
-        historyEntry.content += line.substring(4) + '\n';
+      }
+      // History content in code block
+      else if (inHistory && currentHistoryEntry) {
+        if (line === '```') {
+          // Skip code fence markers
+          continue;
+        }
+        if (line || historyContentLines.length > 0) {
+          historyContentLines.push(line);
+        }
       }
     }
 
-    // Save last note
-    if (currentNote && contentLines.length > 0) {
-      currentNote.content = contentLines.join('\n').trim();
-      if (this.isValidNote(currentNote)) {
-        notes.push(currentNote as Note);
-      }
+    // Save last history entry content
+    if (currentHistoryEntry && historyContentLines.length > 0) {
+      currentHistoryEntry.content = historyContentLines.join('\n').trim();
     }
 
-    return notes;
+    // Set final content
+    if (contentLines.length > 0) {
+      note.content = contentLines.join('\n').trim();
+    }
+
+    return this.isValidNote(note) ? (note as Note) : null;
   }
 
   /**

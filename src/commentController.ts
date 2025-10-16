@@ -35,6 +35,27 @@ export class CommentController {
 
     // Register for disposal
     context.subscriptions.push(this.commentController);
+
+    // Set up comment options to support markdown with formatting hints
+    this.commentController.options = {
+      prompt: 'Add a note (supports markdown) - Press F1 or use shortcuts below',
+      placeHolder: 'Write your note here...\n\n' +
+        '💡 Keyboard Shortcuts:\n' +
+        '  Ctrl/Cmd+B = **bold**\n' +
+        '  Ctrl/Cmd+I = *italic*\n' +
+        '  Ctrl/Cmd+Shift+C = `code`\n' +
+        '  Ctrl/Cmd+Shift+K = ```code block```\n' +
+        '  Ctrl/Cmd+K = [link](url)\n\n' +
+        '📝 Markdown Syntax:\n' +
+        '  **bold** *italic* `code` [link](url)\n' +
+        '  ```language\\ncode\\n``` for code blocks\n' +
+        '  > quote | - list | # heading'
+    };
+
+    // Set up the acceptInputCommand to handle Save button
+    this.commentController.reactionHandler = async (comment: vscode.Comment, reaction: vscode.CommentReaction) => {
+      // Handle reactions if needed in the future
+    };
   }
 
   /**
@@ -82,13 +103,20 @@ export class CommentController {
    * Create a VSCode comment from a note
    */
   private createComment(note: Note): vscode.Comment {
+    const markdownBody = new vscode.MarkdownString(note.content);
+    markdownBody.isTrusted = true;
+    markdownBody.supportHtml = true;
+
     const comment: vscode.Comment = {
-      body: new vscode.MarkdownString(note.content),
+      body: markdownBody,
       mode: vscode.CommentMode.Preview,
       author: {
         name: note.author
       },
-      label: `Created ${new Date(note.createdAt).toLocaleDateString()}`
+      label: `Created ${new Date(note.createdAt).toLocaleDateString()}`,
+      // Add Edit button as a command
+      // @ts-ignore - VSCode API supports this but types might be incomplete
+      contextValue: note.id
     };
 
     return comment;
@@ -175,6 +203,82 @@ export class CommentController {
   }
 
   /**
+   * Open comment editor for creating a new note
+   */
+  async openCommentEditor(
+    document: vscode.TextDocument,
+    range: vscode.Range
+  ): Promise<vscode.CommentThread> {
+    const lineRange: LineRange = {
+      start: range.start.line,
+      end: range.end.line
+    };
+
+    // Create a temporary comment thread to collect input
+    const thread = this.commentController.createCommentThread(
+      document.uri,
+      range,
+      []
+    );
+
+    thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
+    thread.canReply = true;
+    thread.label = 'New Note';
+
+    // Store thread temporarily with range info for the input handler
+    const tempId = `temp-${Date.now()}`;
+    // Store both the thread and the document in a temporary structure
+    (thread as any).tempId = tempId;
+    (thread as any).sourceDocument = document;
+    this.commentThreads.set(tempId, thread);
+
+    return thread;
+  }
+
+  /**
+   * Handle saving a new note from comment input
+   */
+  async handleSaveNewNote(
+    thread: vscode.CommentThread,
+    content: string
+  ): Promise<void> {
+    const tempId = (thread as any).tempId;
+    const document = (thread as any).sourceDocument as vscode.TextDocument;
+
+    if (!document || !content || !thread.range) {
+      thread.dispose();
+      if (tempId) {
+        this.commentThreads.delete(tempId);
+      }
+      return;
+    }
+
+    const lineRange: LineRange = {
+      start: thread.range.start.line,
+      end: thread.range.end.line
+    };
+
+    // Create the actual note
+    const note = await this.noteManager.createNote(
+      {
+        filePath: document.uri.fsPath,
+        lineRange,
+        content
+      },
+      document
+    );
+
+    // Remove temporary thread
+    thread.dispose();
+    if (tempId) {
+      this.commentThreads.delete(tempId);
+    }
+
+    // Create the real comment thread for the saved note
+    this.createCommentThread(document, note);
+  }
+
+  /**
    * Handle note creation via comment
    */
   async handleCreateNote(
@@ -244,6 +348,122 @@ export class CommentController {
       }
     }
     return undefined;
+  }
+
+  /**
+   * Focus and expand a comment thread for a note
+   */
+  async focusNoteThread(noteId: string, filePath: string): Promise<void> {
+    const thread = this.commentThreads.get(noteId);
+    if (!thread) {
+      vscode.window.showErrorMessage('Note thread not found');
+      return;
+    }
+
+    // Open the document if not already open
+    const document = await vscode.workspace.openTextDocument(filePath);
+    const editor = await vscode.window.showTextDocument(document);
+
+    // Expand the comment thread
+    thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
+
+    // Move cursor to the note location
+    if (thread.range) {
+      const position = new vscode.Position(thread.range.start.line, 0);
+      editor.selection = new vscode.Selection(position, position);
+      editor.revealRange(thread.range, vscode.TextEditorRevealType.InCenter);
+    }
+  }
+
+  /**
+   * Show note history as replies in the comment thread
+   */
+  async showHistoryInThread(noteId: string, filePath: string): Promise<void> {
+    const thread = this.commentThreads.get(noteId);
+    if (!thread) {
+      vscode.window.showErrorMessage('Note thread not found');
+      return;
+    }
+
+    const note = await this.noteManager.getNoteById(noteId, filePath);
+    if (!note) {
+      vscode.window.showErrorMessage('Note not found');
+      return;
+    }
+
+    // Create the main comment
+    const mainComment = this.createComment(note);
+
+    // Create history reply comments
+    const historyComments: vscode.Comment[] = [mainComment];
+
+    if (note.history && note.history.length > 0) {
+      for (const entry of note.history) {
+        const historyComment: vscode.Comment = {
+          body: new vscode.MarkdownString(
+            `**${entry.action}**\n\n${entry.content || '*(no content)*'}`
+          ),
+          mode: vscode.CommentMode.Preview,
+          author: {
+            name: entry.author
+          },
+          label: new Date(entry.timestamp).toLocaleString()
+        };
+        historyComments.push(historyComment);
+      }
+    }
+
+    // Update thread with main comment + history replies
+    thread.comments = historyComments;
+    thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
+
+    // Focus on the thread
+    await this.focusNoteThread(noteId, filePath);
+  }
+
+  /**
+   * Enable edit mode for a note
+   */
+  async enableEditMode(noteId: string, filePath: string): Promise<void> {
+    const note = await this.noteManager.getNoteById(noteId, filePath);
+    if (!note) {
+      vscode.window.showErrorMessage('Note not found');
+      return;
+    }
+
+    const thread = this.commentThreads.get(noteId);
+    if (!thread) {
+      return;
+    }
+
+    // Switch comment to edit mode
+    if (thread.comments.length > 0) {
+      const comment = thread.comments[0];
+      const editableComment: vscode.Comment = {
+        ...comment,
+        mode: vscode.CommentMode.Editing,
+        body: note.content // Plain text for editing
+      };
+      thread.comments = [editableComment];
+    }
+  }
+
+  /**
+   * Save edited note
+   */
+  async saveEditedNote(
+    noteId: string,
+    filePath: string,
+    newContent: string,
+    document: vscode.TextDocument
+  ): Promise<void> {
+    const updatedNote = await this.noteManager.updateNote(
+      { id: noteId, content: newContent },
+      document
+    );
+
+    // Update thread back to preview mode
+    this.updateCommentThread(updatedNote, document);
   }
 
   /**

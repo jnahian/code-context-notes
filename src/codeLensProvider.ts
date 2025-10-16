@@ -29,6 +29,8 @@ export class CodeNotesLensProvider implements vscode.CodeLensProvider {
     const codeLenses: vscode.CodeLens[] = [];
 
     try {
+      const editor = vscode.window.activeTextEditor;
+
       // Get all notes for this file
       const notes = await this.noteManager.getNotesForFile(document.uri.fsPath);
 
@@ -54,6 +56,27 @@ export class CodeNotesLensProvider implements vscode.CodeLensProvider {
         });
 
         codeLenses.push(codeLens);
+      }
+
+      // Add "Add Note" CodeLens above selection if there's a selection
+      if (editor && editor.document === document && !editor.selection.isEmpty) {
+        const selection = editor.selection;
+        const selectionStart = selection.start.line;
+
+        // Check if there's already a note at this position
+        const existingNote = notes.find(n =>
+          selectionStart >= n.lineRange.start && selectionStart <= n.lineRange.end
+        );
+
+        if (!existingNote) {
+          const addNoteRange = new vscode.Range(selectionStart, 0, selectionStart, 0);
+          const addNoteLens = new vscode.CodeLens(addNoteRange, {
+            title: '➕ Add Note',
+            command: 'codeContextNotes.addNoteViaCodeLens',
+            arguments: [document, selection]
+          });
+          codeLenses.push(addNoteLens);
+        }
       }
     } catch (error) {
       console.error('Error providing CodeLenses:', error);
