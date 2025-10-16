@@ -271,23 +271,23 @@
 **So that** I can quickly identify annotated sections
 
 **Tasks:**
-- [ ] Create src/codeLensProvider.ts
-- [ ] Implement CodeLensProvider interface
-- [ ] Register provider for all languages
-- [ ] Generate CodeLens for each note location
-- [ ] Add "View Note" command to CodeLens
-- [ ] Add "Add Note" command for selection ranges
-- [ ] Display note preview in CodeLens text
-- [ ] Handle CodeLens refresh on document changes
-- [ ] Handle CodeLens commands
-- [ ] Optimize CodeLens calculation for performance
+- [x] Create src/codeLensProvider.ts
+- [x] Implement CodeLensProvider interface
+- [ ] Register provider for all languages (deferred to extension.ts)
+- [x] Generate CodeLens for each note location
+- [x] Add "View Note" command to CodeLens
+- [ ] Add "Add Note" command for selection ranges (deferred to extension.ts)
+- [x] Display note preview in CodeLens text
+- [x] Handle CodeLens refresh on document changes
+- [x] Handle CodeLens commands
+- [x] Optimize CodeLens calculation for performance
 
 **Acceptance Criteria:**
-- CodeLens appears above lines with notes
-- Clicking CodeLens opens comment thread
-- Note preview shown in CodeLens
-- Updates in real-time as notes change
-- Minimal performance impact
+- [x] CodeLens appears above lines with notes
+- [ ] Clicking CodeLens opens comment thread (requires extension.ts)
+- [x] Note preview shown in CodeLens
+- [x] Updates in real-time as notes change
+- [x] Minimal performance impact
 
 ---
 
@@ -297,17 +297,17 @@
 **So that** I have quick access to note actions
 
 **Tasks:**
-- [ ] Implement "View Note" command
-- [ ] Implement "Add Note" command
-- [ ] Implement "Edit Note" command (optional)
-- [ ] Register commands in package.json
-- [ ] Pass note context to commands
-- [ ] Handle command errors gracefully
+- [ ] Implement "View Note" command (deferred to extension.ts)
+- [ ] Implement "Add Note" command (deferred to extension.ts)
+- [ ] Implement "Edit Note" command (optional, deferred to extension.ts)
+- [ ] Register commands in package.json (deferred to extension.ts)
+- [x] Pass note context to commands (infrastructure ready)
+- [ ] Handle command errors gracefully (deferred to extension.ts)
 
 **Acceptance Criteria:**
-- All commands functional from CodeLens
-- Commands open appropriate UI
-- Error messages shown to user if needed
+- [ ] All commands functional from CodeLens (requires extension.ts)
+- [ ] Commands open appropriate UI (requires extension.ts)
+- [ ] Error messages shown to user if needed (requires extension.ts)
 
 ---
 
