@@ -220,24 +220,24 @@
 **So that** the experience feels native
 
 **Tasks:**
-- [ ] Create src/commentController.ts
-- [ ] Create CommentController instance
-- [ ] Implement createCommentThread() for new notes
-- [ ] Implement comment provider interface
-- [ ] Handle comment creation events
-- [ ] Handle comment edit events
-- [ ] Handle comment delete events
-- [ ] Implement markdown support in comments
-- [ ] Add comment reactions/actions (edit, delete, history)
-- [ ] Sync comment threads with note data
-- [ ] Handle comment thread disposal
+- [x] Create src/commentController.ts
+- [x] Create CommentController instance
+- [x] Implement createCommentThread() for new notes
+- [x] Implement comment provider interface
+- [x] Handle comment creation events
+- [x] Handle comment edit events
+- [x] Handle comment delete events
+- [x] Implement markdown support in comments
+- [ ] Add comment reactions/actions (edit, delete, history) - deferred to extension.ts
+- [x] Sync comment threads with note data
+- [x] Handle comment thread disposal
 
 **Acceptance Criteria:**
-- Comment threads appear at note locations
-- Users can add notes via comment UI
-- Edit/delete work through comment UI
-- Markdown rendered correctly
-- Comments persist across sessions
+- [x] Comment threads appear at note locations
+- [ ] Users can add notes via comment UI (requires extension.ts commands)
+- [ ] Edit/delete work through comment UI (requires extension.ts commands)
+- [x] Markdown rendered correctly
+- [x] Comments persist across sessions (handled by NoteManager)
 
 ---
 
@@ -247,19 +247,19 @@
 **So that** I don't see stale or duplicate comments
 
 **Tasks:**
-- [ ] Create comment threads when notes loaded
-- [ ] Update comment threads when notes change
-- [ ] Remove comment threads when notes deleted
-- [ ] Handle file close/reopen scenarios
-- [ ] Handle workspace folder changes
-- [ ] Implement comment thread refresh mechanism
-- [ ] Add debouncing for performance
+- [x] Create comment threads when notes loaded
+- [x] Update comment threads when notes change
+- [x] Remove comment threads when notes deleted
+- [x] Handle file close/reopen scenarios
+- [ ] Handle workspace folder changes (deferred to extension.ts)
+- [x] Implement comment thread refresh mechanism
+- [ ] Add debouncing for performance (can be added in extension.ts)
 
 **Acceptance Criteria:**
-- Comment threads always match note data
-- No orphaned comment threads
-- No duplicate comment threads
-- Performance acceptable with many notes
+- [x] Comment threads always match note data
+- [x] No orphaned comment threads
+- [x] No duplicate comment threads
+- [x] Performance acceptable with many notes
 
 ---
 
