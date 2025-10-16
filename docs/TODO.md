@@ -99,19 +99,19 @@
 **So that** I know who created each note
 
 **Tasks:**
-- [ ] Create src/gitIntegration.ts
-- [ ] Implement getGitUsername() using git config
-- [ ] Add fallback to system username (os.userInfo())
-- [ ] Cache username for performance
-- [ ] Handle cases where git is not installed
-- [ ] Handle cases where not in a git repository
-- [ ] Add configuration option to override username
+- [x] Create src/gitIntegration.ts
+- [x] Implement getGitUsername() using git config
+- [x] Add fallback to system username (os.userInfo())
+- [x] Cache username for performance
+- [x] Handle cases where git is not installed
+- [x] Handle cases where not in a git repository
+- [x] Add configuration option to override username
 
 **Acceptance Criteria:**
-- Git username retrieved when available
-- Graceful fallback to system username
-- No crashes if git not available
-- Username cached to avoid repeated calls
+- [x] Git username retrieved when available
+- [x] Graceful fallback to system username
+- [x] No crashes if git not available
+- [x] Username cached to avoid repeated calls
 
 ---
 
