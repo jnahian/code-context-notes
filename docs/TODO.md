@@ -426,7 +426,7 @@
 - [x] Register command handlers in extension.ts
 - [x] Add commands to command palette (via package.json)
 - [x] Configure comment menu buttons in package.json
-- [ ] Add suggested keybindings (optional for v1)
+- [x] Add suggested keybindings (optional for v1)
 - [x] Handle commands with no active editor
 - [x] Handle commands with no selection
 
@@ -435,7 +435,7 @@
 - [x] Commands work as expected
 - [x] Edit/Save/Cancel buttons appear in comment UI
 - [x] Error messages for invalid states
-- [ ] Keybindings suggested but not forced (optional)
+- [x] Keybindings suggested but not forced (optional)
 
 ---
 
@@ -637,7 +637,7 @@
 - ✅ All core commands implemented
 - ✅ Command palette integration
 - ✅ Error handling for edge cases
-- ⚠️  Optional: Suggested keybindings (not required for v1)
+- ✅ Suggested keybindings added
 
 ### 🔄 REMAINING Work (Polish & Testing):
 

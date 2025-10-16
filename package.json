@@ -125,6 +125,30 @@
     ],
     "keybindings": [
       {
+        "command": "codeContextNotes.addNote",
+        "key": "ctrl+alt+n",
+        "mac": "cmd+alt+n",
+        "when": "editorTextFocus && editorHasSelection"
+      },
+      {
+        "command": "codeContextNotes.deleteNote",
+        "key": "ctrl+alt+d",
+        "mac": "cmd+alt+d",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "codeContextNotes.viewHistory",
+        "key": "ctrl+alt+h",
+        "mac": "cmd+alt+h",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "codeContextNotes.refreshNotes",
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r",
+        "when": "editorTextFocus"
+      },
+      {
         "command": "codeContextNotes.insertBold",
         "key": "ctrl+b",
         "mac": "cmd+b",
