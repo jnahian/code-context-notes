@@ -295,8 +295,8 @@ export class StorageManager implements NoteStorage {
         inContent = false;
         inHistory = true;
       }
-      // Content lines
-      else if (inContent && line && line !== '') {
+      // Content lines (capture everything including blank lines)
+      else if (inContent && !line.startsWith('##')) {
         contentLines.push(line);
       }
       // History entry header
@@ -339,6 +339,11 @@ export class StorageManager implements NoteStorage {
     // Set final content
     if (contentLines.length > 0) {
       note.content = contentLines.join('\n').trim();
+    }
+
+    // Set default for isDeleted if not specified
+    if (note.isDeleted === undefined) {
+      note.isDeleted = false;
     }
 
     return this.isValidNote(note) ? (note as Note) : null;

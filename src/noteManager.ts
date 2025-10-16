@@ -94,9 +94,9 @@ export class NoteManager {
    * Update an existing note
    */
   async updateNote(params: UpdateNoteParams, document: vscode.TextDocument): Promise<Note> {
-    // Load existing note
+    // Load existing note (including deleted notes to properly handle all cases)
     const filePath = document.uri.fsPath;
-    const notes = await this.getNotesForFile(filePath);
+    const notes = await this.getAllNotesForFile(filePath);
     const note = notes.find(n => n.id === params.id);
 
     if (!note) {
@@ -140,7 +140,7 @@ export class NoteManager {
    * Delete a note (soft delete)
    */
   async deleteNote(noteId: string, filePath: string): Promise<void> {
-    const notes = await this.getNotesForFile(filePath);
+    const notes = await this.getAllNotesForFile(filePath);
     const note = notes.find(n => n.id === noteId);
 
     if (!note) {

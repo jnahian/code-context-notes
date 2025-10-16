@@ -225,13 +225,20 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "test": "node ./out/test/runTest.js",
+    "test:unit": "npm run compile && node ./out/test/runUnitTests.js"
   },
   "devDependencies": {
+    "@types/chai": "^5.2.2",
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^24.8.0",
     "@types/uuid": "^10.0.0",
     "@types/vscode": "^1.105.0",
     "@vscode/test-electron": "^2.5.2",
+    "chai": "^6.2.0",
+    "glob": "^11.0.3",
+    "mocha": "^11.7.4",
     "typescript": "^5.9.3"
   },
   "license": "MIT",

@@ -86,11 +86,47 @@ export class CodeNotesLensProvider implements vscode.CodeLensProvider {
   }
 
   /**
+   * Strip markdown formatting from text
+   */
+  private stripMarkdown(text: string): string {
+    return text
+      // Remove code blocks
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/`([^`]+)`/g, '$1')
+      // Remove bold/italic
+      .replace(/\*\*\*(.+?)\*\*\*/g, '$1')
+      .replace(/\*\*(.+?)\*\*/g, '$1')
+      .replace(/\*(.+?)\*/g, '$1')
+      .replace(/___(.+?)___/g, '$1')
+      .replace(/__(.+?)__/g, '$1')
+      .replace(/_(.+?)_/g, '$1')
+      // Remove strikethrough
+      .replace(/~~(.+?)~~/g, '$1')
+      // Remove links but keep text
+      .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+      // Remove images
+      .replace(/!\[([^\]]*)\]\([^\)]+\)/g, '$1')
+      // Remove headings
+      .replace(/^#{1,6}\s+/gm, '')
+      // Remove blockquotes
+      .replace(/^>\s+/gm, '')
+      // Remove list markers
+      .replace(/^[\*\-\+]\s+/gm, '')
+      .replace(/^\d+\.\s+/gm, '')
+      // Remove horizontal rules
+      .replace(/^[\*\-_]{3,}$/gm, '')
+      // Clean up extra whitespace
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  /**
    * Format the CodeLens title to show note preview
    */
   private formatCodeLensTitle(note: Note): string {
-    // Get first line of note content as preview
-    const firstLine = note.content.split('\n')[0];
+    // Strip markdown formatting and get first line
+    const plainText = this.stripMarkdown(note.content);
+    const firstLine = plainText.split('\n')[0];
     const preview = firstLine.length > 50
       ? firstLine.substring(0, 47) + '...'
       : firstLine;

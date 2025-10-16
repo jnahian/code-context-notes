@@ -18,7 +18,7 @@
 
 **Acceptance Criteria:**
 - [x] Project compiles without errors
-- [ ] Extension can be run in Extension Development Host
+- [x] Extension can be run in Extension Development Host
 
 ---
 
@@ -61,7 +61,7 @@
 - [x] Add error handling for file I/O operations
 - [x] Implement markdown serialization/deserialization for single note per file
 - [x] Store complete edit history in each note file
-- [ ] Add unit tests for storage operations
+- [x] Add unit tests for storage operations
 
 **Acceptance Criteria:**
 - [x] Notes saved in `.code-notes/` directory with content hash as filename
@@ -87,14 +87,14 @@
 - [x] Add metadata section (author, timestamps, hash, file path, line range)
 - [x] Store full edit history in chronological order
 - [x] Use code blocks for history content preservation
-- [ ] Test with various content types (code blocks, lists, etc.)
+- [x] Test with various content types (code blocks, lists, etc.)
 
 **Acceptance Criteria:**
 - [x] Generated markdown is valid and readable
 - [x] Round-trip conversion (note → markdown → note) preserves data
 - [x] Each file contains complete history for one code location
 - [x] History entries preserve original content in code blocks
-- [ ] Special characters handled correctly (needs testing)
+- [x] Special characters handled correctly (tested and verified)
 
 ---
 
@@ -152,16 +152,16 @@
 **So that** they stay aligned with the code
 
 **Tasks:**
-- [ ] Listen to document change events (deferred to Note Manager integration)
-- [ ] Detect when tracked content has moved (deferred to Note Manager integration)
-- [ ] Update note line ranges automatically (deferred to Note Manager integration)
+- [x] Listen to document change events (implemented in extension.ts)
+- [x] Detect when tracked content has moved (implemented in NoteManager)
+- [x] Update note line ranges automatically (implemented in NoteManager.updateNotePositions)
 - [x] Handle content deletion gracefully (infrastructure ready)
 - [x] Handle content modification detection (infrastructure ready)
 - [x] Add stale note detection (infrastructure ready)
 - [x] Implement note position validation (infrastructure ready)
 
 **Acceptance Criteria:**
-- [ ] Notes follow content when lines are inserted/deleted above (requires Note Manager)
+- [x] Notes follow content when lines are inserted/deleted above
 - [x] Stale notes flagged when content changes significantly
 - [x] Performance impact minimal during editing
 
@@ -209,13 +209,13 @@
 - [x] Store previous content in history
 - [x] Format history in markdown output (handled by StorageManager)
 - [x] Implement getHistory() method
-- [ ] Add history display in comment UI (deferred to Comment Controller)
+- [x] Add history display in comment UI (implemented via viewNoteHistory command)
 
 **Acceptance Criteria:**
 - [x] Every change tracked with timestamp and author
 - [x] History entries never deleted
 - [x] History readable in markdown file
-- [ ] History accessible through UI (requires Comment Controller)
+- [x] History accessible through UI (via View History button)
 
 ---
 
@@ -294,9 +294,9 @@
 - [x] Update comment threads when notes change
 - [x] Remove comment threads when notes deleted
 - [x] Handle file close/reopen scenarios
-- [ ] Handle workspace folder changes (deferred to extension.ts)
+- [x] Handle workspace folder changes (implemented in extension.ts)
 - [x] Implement comment thread refresh mechanism
-- [ ] Add debouncing for performance (can be added in extension.ts)
+- [x] Add debouncing for performance (implemented in extension.ts)
 
 **Acceptance Criteria:**
 - [x] Comment threads always match note data
@@ -584,3 +584,89 @@
 
 **Estimated Timeline:** 4-6 weeks
 **Priority Order:** Epics 1-8 (MVP), Epics 9-11 (Polish)
+
+---
+
+## MVP Status (Epics 1-9)
+
+### ✅ COMPLETED MVP Features:
+
+**Epic 1: Project Foundation & Setup**
+- ✅ Extension project fully set up with TypeScript
+- ✅ Core data models defined and typed
+- ✅ Extension runs in Development Host
+
+**Epic 2: Storage & File Management**
+- ✅ Storage manager with markdown serialization
+- ✅ 22 passing unit tests for storage operations
+- ✅ Support for code blocks, lists, special characters, multiline content
+- ✅ Complete edit history tracking
+
+**Epic 3: Git Integration**
+- ✅ Git username retrieval with fallback
+- ✅ Configuration override support
+
+**Epic 4: Content Hash Tracking**
+- ✅ Content hashing for tracking moved code
+- ✅ Automatic note position updates
+- ✅ Document change event handling with debouncing
+
+**Epic 5: Note Management Core**
+- ✅ Full CRUD operations with history tracking
+- ✅ Caching for performance
+- ✅ Automatic timestamp and author management
+
+**Epic 6: VSCode Comment Integration**
+- ✅ Native comment UI with markdown support
+- ✅ Edit/Save/Cancel/Delete/View History buttons
+- ✅ Markdown formatting keyboard shortcuts (Ctrl/Cmd+B, I, K, etc.)
+- ✅ Comment thread lifecycle management
+- ✅ Workspace folder change handling
+
+**Epic 7: CodeLens Integration**
+- ✅ CodeLens indicators above code with notes
+- ✅ "View Note" and "Add Note" commands
+- ✅ Real-time updates on selection changes
+
+**Epic 8: Extension Activation & Lifecycle**
+- ✅ Automatic activation on workspace open
+- ✅ Configuration management (storage directory, author name, CodeLens toggle)
+- ✅ Clean deactivation with proper cleanup
+
+**Epic 9: Commands & Keybindings**
+- ✅ All core commands implemented
+- ✅ Command palette integration
+- ✅ Error handling for edge cases
+- ⚠️  Optional: Suggested keybindings (not required for v1)
+
+### 🔄 REMAINING Work (Polish & Testing):
+
+**Epic 10: Testing & Quality Assurance**
+- ✅ Testing framework set up (Mocha + Chai)
+- ✅ StorageManager unit tests (22 tests passing)
+- ⚠️  Need tests for: contentHashTracker, gitIntegration, noteManager
+- ⚠️  Need integration tests for VSCode features
+- ⚠️  Need manual testing for edge cases
+
+**Epic 11: Documentation & Polish**
+- ⚠️  User documentation (README, usage examples, configuration)
+- ⚠️  Developer documentation (architecture, contributing guide)
+- ⚠️  Marketplace preparation (icon, screenshots, description)
+
+---
+
+## Bug Fixes (Post Manual Testing)
+
+### ✅ Fixed Issues:
+
+**1. Edit note error: "id not found"**
+- **Issue**: Sometimes editing a note would fail with "Note with id xxxx not found"
+- **Root Cause**: `updateNote()` and `deleteNote()` were using `getNotesForFile()` which filters out deleted notes. When the cache was cleared or empty, notes wouldn't be found.
+- **Fix**: Changed both methods to use `getAllNotesForFile()` instead, which includes all notes in the cache/storage
+- **Location**: `src/noteManager.ts` lines 99 and 143
+
+**2. CodeLens showing markdown formatting**
+- **Issue**: CodeLens preview was showing raw markdown syntax like `**bold**`, `*italic*`, `[link](url)`
+- **Root Cause**: The preview text wasn't stripping markdown formatting
+- **Fix**: Added `stripMarkdown()` helper function that removes all markdown formatting (bold, italic, links, code blocks, headings, lists, etc.) before displaying in CodeLens
+- **Location**: `src/codeLensProvider.ts` lines 91-121

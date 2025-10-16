@@ -14,6 +14,10 @@ let noteManager: NoteManager;
 let commentController: CommentController;
 let codeLensProvider: CodeNotesLensProvider;
 
+// Debounce timers for performance optimization
+const documentChangeTimers: Map<string, NodeJS.Timeout> = new Map();
+const DEBOUNCE_DELAY = 500; // ms
+
 /**
  * Extension activation
  */
@@ -589,15 +593,32 @@ function registerCommands(context: vscode.ExtensionContext) {
  * Set up event listeners for document changes
  */
 function setupEventListeners(context: vscode.ExtensionContext) {
-	// Listen for text document changes
+	// Listen for text document changes with debouncing
 	const changeDisposable = vscode.workspace.onDidChangeTextDocument(async (event) => {
 		if (event.document.uri.scheme !== 'file') {
 			return;
 		}
 
-		// Update note positions on document change
-		await commentController.handleDocumentChange(event.document);
-		codeLensProvider.refresh();
+		const documentKey = event.document.uri.fsPath;
+
+		// Clear existing timer for this document
+		const existingTimer = documentChangeTimers.get(documentKey);
+		if (existingTimer) {
+			clearTimeout(existingTimer);
+		}
+
+		// Set new debounced timer
+		const timer = setTimeout(async () => {
+			try {
+				// Update note positions on document change
+				await commentController.handleDocumentChange(event.document);
+				codeLensProvider.refresh();
+			} finally {
+				documentChangeTimers.delete(documentKey);
+			}
+		}, DEBOUNCE_DELAY);
+
+		documentChangeTimers.set(documentKey, timer);
 	});
 
 	// Listen for document open
@@ -629,7 +650,32 @@ function setupEventListeners(context: vscode.ExtensionContext) {
 		}
 	});
 
-	context.subscriptions.push(changeDisposable, openDisposable, configDisposable);
+	// Listen for workspace folder changes
+	const workspaceFoldersDisposable = vscode.workspace.onDidChangeWorkspaceFolders(async (event) => {
+		// Reload extension when workspace folders change
+		for (const removed of event.removed) {
+			console.log(`Workspace folder removed: ${removed.uri.fsPath}`);
+		}
+
+		for (const added of event.added) {
+			console.log(`Workspace folder added: ${added.uri.fsPath}`);
+		}
+
+		// Clear all caches and reload
+		noteManager.clearAllCache();
+
+		// Reload notes for all open documents
+		for (const editor of vscode.window.visibleTextEditors) {
+			if (editor.document.uri.scheme === 'file') {
+				await commentController.refreshCommentsForDocument(editor.document);
+			}
+		}
+
+		codeLensProvider.refresh();
+		vscode.window.showInformationMessage('Workspace folders changed. Notes reloaded.');
+	});
+
+	context.subscriptions.push(changeDisposable, openDisposable, configDisposable, workspaceFoldersDisposable);
 }
 
 /**
@@ -637,6 +683,12 @@ function setupEventListeners(context: vscode.ExtensionContext) {
  */
 export function deactivate() {
 	console.log('Code Context Notes extension is deactivating...');
+
+	// Clear all debounce timers
+	for (const timer of documentChangeTimers.values()) {
+		clearTimeout(timer);
+	}
+	documentChangeTimers.clear();
 
 	// Clean up resources
 	if (commentController) {
