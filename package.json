@@ -1,0 +1,89 @@
+{
+  "name": "code-context-notes",
+  "displayName": "Code Context Notes",
+  "description": "Add contextual notes to your code with full version history and intelligent tracking",
+  "version": "0.1.0",
+  "publisher": "your-publisher-name",
+  "icon": "images/icon.png",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other",
+    "Notebooks"
+  ],
+  "keywords": [
+    "notes",
+    "annotations",
+    "comments",
+    "context",
+    "documentation"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "codeContextNotes.addNote",
+        "title": "Add Note to Selection",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.deleteNote",
+        "title": "Delete Note at Cursor",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.viewHistory",
+        "title": "View Note History",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.refreshNotes",
+        "title": "Refresh All Notes",
+        "category": "Code Notes"
+      }
+    ],
+    "configuration": {
+      "title": "Code Context Notes",
+      "properties": {
+        "codeContextNotes.storageDirectory": {
+          "type": "string",
+          "default": ".code-notes",
+          "description": "Directory where notes are stored (relative to workspace root)"
+        },
+        "codeContextNotes.authorName": {
+          "type": "string",
+          "default": "",
+          "description": "Override author name (defaults to git username or system username)"
+        },
+        "codeContextNotes.showCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show CodeLens indicators above code with notes"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/node": "^24.8.0",
+    "@types/vscode": "^1.105.0",
+    "@vscode/test-electron": "^2.5.2",
+    "typescript": "^5.9.3"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/code-context-notes"
+  }
+}

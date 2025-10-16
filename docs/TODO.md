@@ -8,17 +8,17 @@
 **So that** I have a foundation to build upon
 
 **Tasks:**
-- [ ] Initialize npm project with TypeScript
-- [ ] Install VSCode extension dependencies (@types/vscode, @vscode/test-electron)
-- [ ] Configure tsconfig.json for VSCode extension development
-- [ ] Set up package.json with extension manifest metadata
-- [ ] Create basic folder structure (src/, out/, docs/)
-- [ ] Add .gitignore for node_modules, out/, .vscode-test/
-- [ ] Create README.md with extension overview
+- [x] Initialize npm project with TypeScript
+- [x] Install VSCode extension dependencies (@types/vscode, @vscode/test-electron)
+- [x] Configure tsconfig.json for VSCode extension development
+- [x] Set up package.json with extension manifest metadata
+- [x] Create basic folder structure (src/, out/, docs/)
+- [x] Add .gitignore for node_modules, out/, .vscode-test/
+- [x] Create README.md with extension overview
 
 **Acceptance Criteria:**
-- Project compiles without errors
-- Extension can be run in Extension Development Host
+- [x] Project compiles without errors
+- [ ] Extension can be run in Extension Development Host
 
 ---
 
@@ -28,18 +28,18 @@
 **So that** I have type safety throughout the codebase
 
 **Tasks:**
-- [ ] Create src/types.ts file
-- [ ] Define Note interface with all required fields
-- [ ] Define NoteHistoryEntry interface
-- [ ] Define LineRange interface
-- [ ] Define StorageMetadata interface
-- [ ] Add JSDoc comments for all types
-- [ ] Export all types for use in other modules
+- [x] Create src/types.ts file
+- [x] Define Note interface with all required fields
+- [x] Define NoteHistoryEntry interface
+- [x] Define LineRange interface
+- [x] Define StorageMetadata interface
+- [x] Add JSDoc comments for all types
+- [x] Export all types for use in other modules
 
 **Acceptance Criteria:**
-- All data structures properly typed
-- No TypeScript compilation errors
-- Types support all planned features
+- [x] All data structures properly typed
+- [x] No TypeScript compilation errors
+- [x] Types support all planned features
 
 ---
 
@@ -51,22 +51,22 @@
 **So that** I can read and manage them outside VSCode if needed
 
 **Tasks:**
-- [ ] Create src/storageManager.ts
-- [ ] Implement getNoteFilePath() to map source files to note files
-- [ ] Implement createNotesDirectory() to ensure .code-notes/ exists
-- [ ] Implement saveNote() to write markdown files
-- [ ] Implement loadNote() to read markdown files
-- [ ] Implement loadAllNotes() for a given source file
-- [ ] Implement deleteNote() to remove notes
-- [ ] Add error handling for file I/O operations
-- [ ] Implement markdown serialization/deserialization
+- [x] Create src/storageManager.ts
+- [x] Implement getNoteFilePath() to map source files to note files
+- [x] Implement createNotesDirectory() to ensure .code-notes/ exists
+- [x] Implement saveNote() to write markdown files
+- [x] Implement loadNote() to read markdown files
+- [x] Implement loadAllNotes() for a given source file
+- [x] Implement deleteNote() to remove notes
+- [x] Add error handling for file I/O operations
+- [x] Implement markdown serialization/deserialization
 - [ ] Add unit tests for storage operations
 
 **Acceptance Criteria:**
-- Notes saved in `.code-notes/` directory
-- Directory structure mirrors source code structure
-- Markdown files are human-readable
-- All CRUD operations work correctly
+- [x] Notes saved in `.code-notes/` directory
+- [x] Directory structure mirrors source code structure
+- [x] Markdown files are human-readable
+- [x] All CRUD operations work correctly
 
 ---
 
@@ -76,18 +76,18 @@
 **So that** they are easy to read and understand
 
 **Tasks:**
-- [ ] Design markdown template structure
-- [ ] Implement noteToMarkdown() serialization function
-- [ ] Implement markdownToNote() deserialization function
-- [ ] Handle history section formatting
-- [ ] Support markdown escaping for user content
-- [ ] Add metadata section (author, timestamps, hash)
+- [x] Design markdown template structure
+- [x] Implement noteToMarkdown() serialization function
+- [x] Implement markdownToNote() deserialization function
+- [x] Handle history section formatting
+- [x] Support markdown escaping for user content
+- [x] Add metadata section (author, timestamps, hash)
 - [ ] Test with various content types (code blocks, lists, etc.)
 
 **Acceptance Criteria:**
-- Generated markdown is valid and readable
-- Round-trip conversion (note → markdown → note) preserves data
-- Special characters handled correctly
+- [x] Generated markdown is valid and readable
+- [x] Round-trip conversion (note → markdown → note) preserves data
+- [ ] Special characters handled correctly (needs testing)
 
 ---
 
