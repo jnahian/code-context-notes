@@ -41,6 +41,25 @@ export function Footer() {
             </Link>
           </div>
         </div>
+        
+        <div className="mt-6 pt-6 border-t border-brand-warm-muted/20 flex flex-col md:flex-row justify-between items-center space-y-2 md:space-y-0 text-sm text-brand-warm-muted">
+          <div>
+            © {new Date().getFullYear()} Code Context Notes. All rights reserved.
+          </div>
+          <div className="flex items-center space-x-1">
+            <span>Made with</span>
+            <span className="text-red-400">❤️</span>
+            <span>by</span>
+            <a
+              href="https://github.com/jnahian"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand-orange hover:text-brand-warm transition-colors font-medium"
+            >
+              jnahian
+            </a>
+          </div>
+        </div>
       </div>
     </footer>
   );
