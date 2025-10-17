@@ -26,6 +26,10 @@ docs/RELEASE_CHECKLIST.md
 # Build artifacts
 *.vsix
 
+# Environment files
+.env
+
 # Unused images
 images/logo.png
 images/README.md
+images/screenshot-*.jpg

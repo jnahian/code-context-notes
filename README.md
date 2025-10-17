@@ -6,13 +6,9 @@
   Add contextual notes to your code with full version history and intelligent tracking. Notes stay with your code even when line numbers change.
 </div>
 
-![Adding a Note](images/screenshot-add-note.jpg)
-
 ## Demo
 
-See Code Context Notes in action:
-
-![CodeLens Integration](images/screenshot-codelens.jpg)
+See Code Context Notes in action - add contextual notes that stay with your code!
 
 ## Features
 
@@ -22,8 +18,6 @@ See Code Context Notes in action:
 - CodeLens indicators show where notes exist
 - Markdown formatting with keyboard shortcuts (Ctrl/Cmd+B, I, K)
 - Inline editing with Save/Cancel buttons
-
-![Editing Notes](images/screenshot-edit.jpg)
 
 ### Intelligent Content Tracking
 
@@ -37,15 +31,11 @@ See Code Context Notes in action:
 - View history directly in the comment thread
 - Never lose context - all edits preserved with timestamps
 
-![Note History](images/screenshot-history.jpg)
-
 ### Human-Readable Storage
 
 - Notes stored as markdown files in `.code-notes/` directory
 - One file per note, named by note ID
 - Easy to read, search, and version control
-
-![Storage Format](images/screenshot-storage.jpg)
 
 ### Git Integration
 
@@ -97,8 +87,6 @@ Notes support full markdown with keyboard shortcuts:
 - **Link**: `Ctrl/Cmd+K` or `[text](url)`
 - **List**: Type `- ` or `1. `
 - **Heading**: Type `# ` or `## `
-
-![Markdown Support](images/screenshot-markdown.jpg)
 
 ### Viewing Notes
 
