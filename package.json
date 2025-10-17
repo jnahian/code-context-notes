@@ -272,7 +272,10 @@
     "package": "node scripts/package.js",
     "package:simple": "vsce package",
     "package:dev": "vsce package --no-git-tag-version",
-    "test:package": "node scripts/test-package.js"
+    "test:package": "node scripts/test-package.js",
+    "web:install": "cd web && npm install",
+    "web:dev": "cd web && npm run dev",
+    "web:build": "cd web && npm run build"
   },
   "devDependencies": {
     "@types/chai": "^5.2.2",

@@ -1,0 +1,21 @@
+{
+  "name": "Code Context Notes",
+  "short_name": "Code Notes",
+  "description": "Add contextual notes to your code with full version history and intelligent tracking",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F4F1E9",
+  "theme_color": "#FF8A3D",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
