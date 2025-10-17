@@ -52,10 +52,8 @@ export class CommentController {
         '  > quote | - list | # heading'
     };
 
-    // Set up the acceptInputCommand to handle Save button
-    this.commentController.reactionHandler = async (comment: vscode.Comment, reaction: vscode.CommentReaction) => {
-      // Handle reactions if needed in the future
-    };
+    // Disable reactions by not setting a reactionHandler
+    // this.commentController.reactionHandler is intentionally not set to disable reactions
   }
 
   /**
@@ -117,6 +115,7 @@ export class CommentController {
       // Add Edit button as a command
       // @ts-ignore - VSCode API supports this but types might be incomplete
       contextValue: note.id
+      // Don't set reactions property - leaving it undefined disables reactions UI
     };
 
     return comment;
@@ -408,6 +407,7 @@ export class CommentController {
             name: entry.author
           },
           label: new Date(entry.timestamp).toLocaleString()
+          // Don't set reactions property - leaving it undefined disables reactions UI
         };
         historyComments.push(historyComment);
       }
@@ -443,6 +443,7 @@ export class CommentController {
         ...comment,
         mode: vscode.CommentMode.Editing,
         body: note.content // Plain text for editing
+        // Don't set reactions property - leaving it undefined disables reactions UI
       };
       thread.comments = [editableComment];
     }

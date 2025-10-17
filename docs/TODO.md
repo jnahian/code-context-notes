@@ -860,3 +860,21 @@ All critical bugs have been fixed! The extension now works correctly for:
 - **Location**:
   - `src/extension.ts` - updated `saveNoteCommand` to use new method (lines 348-370)
   - `src/commentController.ts` - added `saveEditedNoteById()` method (lines 454-477)
+
+**4. Removed reaction icons from comment editor**
+
+- **Issue**: VSCode comment UI was showing reaction icons (thumbs up, etc.) that weren't needed for this extension in all operations (view, edit, history)
+- **Root Cause**: The `reactionHandler` was being set in the CommentController, and the Comment interface's `reactions` property was not being controlled properly
+- **Fix**:
+  1. Removed the `reactionHandler` setting from the CommentController constructor (line 55-57)
+  2. Ensured `reactions` property is NOT set on any comment objects (left undefined instead of empty array)
+  3. Per VSCode API: If `reactions` is undefined, the reaction UI is not displayed
+- **Why this works**:
+  1. By not setting a `reactionHandler`, VSCode knows the controller doesn't support reactions
+  2. By leaving `reactions` undefined (not setting it at all), VSCode won't display reaction UI for individual comments
+  3. Setting `reactions: []` would still show the reaction UI (just empty), while `undefined` hides it completely
+- **Location**:
+  - `src/commentController.ts` - removed `reactionHandler` assignment (line 55-57)
+  - `src/commentController.ts` - removed `reactions` property from `createComment()` method (line 118)
+  - `src/commentController.ts` - removed `reactions` property from history comments in `showHistoryInThread()` (line 410)
+  - `src/commentController.ts` - removed `reactions` property from editable comments in `enableEditMode()` (line 446)
