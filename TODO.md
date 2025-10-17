@@ -68,3 +68,10 @@
    - Added `fileURLToPath` and `dirname` imports from 'url' and 'path'
    - Created `__dirname` constant using `import.meta.url`
    - All 41 unit tests passing ✅
+
+8. **scripts/package.js** - Fixed git tag creation and push
+   - Added explicit git tag creation step (Step 5)
+   - vsce package does not create git tags automatically
+   - Now creates annotated tag: `git tag -a v{version} -m "Release v{version}"`
+   - Checks if tag already exists before creating to avoid errors
+   - Renamed steps for clarity (Step 4: Package, Step 5: Create tag, Step 6: Push tag)

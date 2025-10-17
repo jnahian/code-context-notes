@@ -70,16 +70,32 @@ async function main() {
   }
   console.log();
 
-  // Step 4: Package with git tag
-  log('📦 Step 4: Packaging extension with git tag...', 'blue');
+  // Step 4: Package extension
+  log('📦 Step 4: Packaging extension...', 'blue');
   exec('vsce package');
   const packageFile = `${name}-${version}.vsix`;
   log(`✅ Package created: ${packageFile}`, 'green');
-  log(`✅ Git tag v${version} created`, 'green');
   console.log();
 
-  // Step 5: Push git tag
-  log('🚀 Step 5: Pushing git tag...', 'blue');
+  // Step 5: Create git tag
+  log('🏷️  Step 5: Creating git tag...', 'blue');
+  try {
+    // Check if tag already exists
+    try {
+      execSync(`git rev-parse v${version}`, { stdio: 'ignore' });
+      log(`⚠️  Tag v${version} already exists, skipping tag creation`, 'yellow');
+    } catch {
+      // Tag doesn't exist, create it
+      exec(`git tag -a v${version} -m "Release v${version}"`);
+      log(`✅ Git tag v${version} created`, 'green');
+    }
+  } catch (error) {
+    log('⚠️  Failed to create git tag', 'yellow');
+  }
+  console.log();
+
+  // Step 6: Push git tag
+  log('🚀 Step 6: Pushing git tag...', 'blue');
   try {
     exec(`git push origin v${version}`);
     log(`✅ Git tag v${version} pushed to remote`, 'green');
