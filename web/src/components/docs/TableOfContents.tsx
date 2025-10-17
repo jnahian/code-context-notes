@@ -38,7 +38,7 @@ export function TableOfContents() {
         });
       },
       {
-        rootMargin: "-20% 0% -35% 0%",
+        rootMargin: "-80px 0% -35% 0%",
         threshold: 0,
       }
     );
@@ -56,9 +56,13 @@ export function TableOfContents() {
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
+      const headerOffset = 80; // Account for sticky header height (64px) + some padding
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth"
       });
     }
   };
