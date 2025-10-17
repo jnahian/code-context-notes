@@ -1,1 +1,1 @@
-- always update the TODO.md after making any changes
+- always update the docs/TODO.md after making any changes
