@@ -84,21 +84,43 @@ export function DocsPage() {
                 </div>
 
                 <div>
+                  <h4 className="font-semibold mb-2">From Open VSX Registry (VS Codium)</h4>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Available for VS Codium and other Open VSX compatible editors
+                  </p>
+                  <code className="block bg-brand-navy text-brand-warm p-3 rounded-xl text-sm">
+                    codium --install-extension jnahian.code-context-notes
+                  </code>
+                </div>
+
+                <div>
                   <h4 className="font-semibold mb-2">From Command Line</h4>
                   <code className="block bg-brand-navy text-brand-warm p-3 rounded-xl text-sm">
                     code --install-extension jnahian.code-context-notes
                   </code>
                 </div>
 
-                <Button asChild>
-                  <a
-                    href="https://marketplace.visualstudio.com/items?itemName=jnahian.code-context-notes"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Install from Marketplace
-                  </a>
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button asChild>
+                    <a
+                      href="https://marketplace.visualstudio.com/items?itemName=jnahian.code-context-notes"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Install from VS Code Marketplace
+                    </a>
+                  </Button>
+                  
+                  <Button variant="outline" asChild>
+                    <a
+                      href="https://open-vsx.org/extension/jnahian/code-context-notes"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Install from Open VSX
+                    </a>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 

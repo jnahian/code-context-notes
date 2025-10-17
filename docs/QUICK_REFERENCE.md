@@ -238,6 +238,26 @@ project/
 2. Check comment editor has focus (for markdown shortcuts)
 3. Check selection exists (for Add Note)
 
+## Installation
+
+### VS Code Marketplace
+1. Open VS Code
+2. Go to Extensions (Ctrl+Shift+X)
+3. Search for "Code Context Notes"
+4. Click Install
+
+### Open VSX Registry (VS Codium)
+Available at: https://open-vsx.org/extension/jnahian/code-context-notes
+
+### Command Line
+```bash
+# VS Code
+code --install-extension jnahian.code-context-notes
+
+# VS Codium
+codium --install-extension jnahian.code-context-notes
+```
+
 ## Getting Help
 
 - **Documentation**: See [README.md](../README.md)

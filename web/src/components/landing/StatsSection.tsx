@@ -41,8 +41,8 @@ export function StatsSection() {
   const trustIndicators = [
     {
       icon: Users,
-      title: "Active Community",
-      description: "Growing user base",
+      title: "Available on Both Marketplaces",
+      description: "VS Code Marketplace & Open VSX",
     },
     {
       icon: History,

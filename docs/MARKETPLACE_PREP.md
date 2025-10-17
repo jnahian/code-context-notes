@@ -386,6 +386,75 @@ Select appropriate categories:
 - **Marketplace**: https://marketplace.visualstudio.com/manage
 - **vsce Documentation**: https://github.com/microsoft/vscode-vsce
 
+## Publishing to Open VSX Registry
+
+### What is Open VSX?
+
+Open VSX Registry is an open-source alternative to the VS Code Marketplace, used by:
+
+- **VS Codium** (open-source VS Code distribution)
+- **Eclipse Theia**
+- **Gitpod**
+- **GitHub Codespaces** (in some configurations)
+
+### Prerequisites for Open VSX
+
+1. **GitHub Account**: Required for authentication
+2. **Extension Package**: Same `.vsix` file used for VS Code Marketplace
+
+### Publishing to Open VSX
+
+#### 1. Install ovsx CLI
+
+```bash
+npm install -g ovsx
+```
+
+#### 2. Create Access Token
+
+1. Go to https://open-vsx.org/
+2. Sign in with GitHub
+3. Go to your profile → Access Tokens
+4. Click "New Access Token"
+5. Give it a name and copy the token
+
+#### 3. Login to Open VSX
+
+```bash
+ovsx login
+# Enter your access token when prompted
+```
+
+#### 4. Publish Extension
+
+```bash
+# Publish the same .vsix file
+ovsx publish code-context-notes-0.1.0.vsix
+
+# Or publish directly (if you have the source)
+ovsx publish
+```
+
+#### 5. Verify Publication
+
+Visit: https://open-vsx.org/extension/jnahian/code-context-notes
+
+### Automated Publishing Script
+
+For publishing to both marketplaces, use the provided script:
+
+```bash
+# Publishes to both VS Code Marketplace and Open VSX
+npm run publish
+```
+
+This script handles:
+
+- Building and packaging
+- Publishing to VS Code Marketplace
+- Publishing to Open VSX Registry
+- Git tagging
+
 ## ✅ PUBLICATION COMPLETE!
 
 ### 🎉 Successfully Published

@@ -30,6 +30,18 @@ export function CTASection() {
 
             <Button variant="outline" size="lg" asChild>
               <a
+                href="https://open-vsx.org/extension/jnahian/code-context-notes"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center space-x-2"
+              >
+                <Download className="h-5 w-5" />
+                <span>Install from Open VSX</span>
+              </a>
+            </Button>
+
+            <Button variant="outline" size="lg" asChild>
+              <a
                 href="https://github.com/jnahian/code-context-notes"
                 target="_blank"
                 rel="noopener noreferrer"
