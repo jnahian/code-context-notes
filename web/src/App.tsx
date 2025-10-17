@@ -2,19 +2,21 @@ import { Routes, Route, useLocation } from 'react-router-dom'
 import { LandingPage } from './pages/LandingPage'
 import { Navigation } from './components/Navigation'
 import { DocsPage } from './pages/DocsPage'
+import { Footer } from './components/landing/Footer'
 
 function App() {
   const location = useLocation()
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navigation />
-      <main className="transition-all duration-300 ease-in-out">
+      <main className="transition-all duration-300 ease-in-out flex-1">
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<LandingPage />} />
           <Route path="/docs" element={<DocsPage />} />
         </Routes>
       </main>
+      <Footer />
     </div>
   )
 }

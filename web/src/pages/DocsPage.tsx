@@ -8,7 +8,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableOfContents } from "@/components/docs/TableOfContents";
-import { Footer } from "@/components/landing";
 import { PageTransition } from "@/components/PageTransition";
 import {
   Download,
