@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GitHub Discussions
+    url: https://github.com/jnahian/code-context-notes/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: VS Code Marketplace
+    url: https://marketplace.visualstudio.com/items?itemName=jnahian.code-context-notes
+    about: View the extension on VS Code Marketplace
+  - name: Open VSX Registry
+    url: https://open-vsx.org/extension/jnahian/code-context-notes
+    about: View the extension on Open VSX Registry
