@@ -9,7 +9,7 @@
     "build": "npm run build:client && npm run build:server",
     "build:client": "tsc && vite build --outDir dist/client",
     "build:server": "tsc && vite build --ssr src/entry-server.tsx --outDir dist/server",
-    "build:vercel": "npm run build && cp -r dist/server api/ && cp -r dist/client/* .",
+    "build:vercel": "npm run build && mkdir -p server && cp -r dist/server/* server/ && cp dist/client/index.html .",
     "preview:ssr": "npm run build && node server",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
