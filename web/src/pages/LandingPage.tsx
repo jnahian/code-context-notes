@@ -339,7 +339,7 @@ export function LandingPage() {
 
         <div className="container relative z-10">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-brand-warm-bright mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-brand-navy mb-4">
               Trusted by Developers Worldwide
             </h2>
             <p className="text-xl text-brand-warm max-w-2xl mx-auto opacity-90">
@@ -357,7 +357,7 @@ export function LandingPage() {
                     <CheckCircle className="h-8 w-8 text-brand-orange" />
                   </div>
                 </div>
-                <div className="text-4xl font-bold text-brand-warm-bright mb-2">
+                <div className="text-4xl font-bold text-brand-navy mb-2">
                   88%
                 </div>
                 <div className="text-brand-warm font-medium opacity-90">
@@ -377,7 +377,7 @@ export function LandingPage() {
                     <Zap className="h-8 w-8 text-brand-orange" />
                   </div>
                 </div>
-                <div className="text-4xl font-bold text-brand-warm-bright mb-2">
+                <div className="text-4xl font-bold text-brand-navy mb-2">
                   100+
                 </div>
                 <div className="text-brand-warm font-medium opacity-90">
@@ -397,7 +397,7 @@ export function LandingPage() {
                     <Code className="h-8 w-8 text-brand-orange" />
                   </div>
                 </div>
-                <div className="text-4xl font-bold text-brand-warm-bright mb-2">
+                <div className="text-4xl font-bold text-brand-navy mb-2">
                   All
                 </div>
                 <div className="text-brand-warm font-medium opacity-90">
@@ -417,7 +417,7 @@ export function LandingPage() {
                     <Github className="h-8 w-8 text-brand-orange" />
                   </div>
                 </div>
-                <div className="text-4xl font-bold text-brand-warm-bright mb-2">
+                <div className="text-4xl font-bold text-brand-navy mb-2">
                   MIT
                 </div>
                 <div className="text-brand-warm font-medium opacity-90">
@@ -437,7 +437,7 @@ export function LandingPage() {
                 <Users className="h-6 w-6 text-brand-orange" />
               </div>
               <div>
-                <div className="text-2xl font-bold text-brand-warm-bright">
+                <div className="text-2xl font-bold text-brand-navy">
                   Active Community
                 </div>
                 <div className="text-brand-warm opacity-80">
@@ -451,7 +451,7 @@ export function LandingPage() {
                 <History className="h-6 w-6 text-brand-orange" />
               </div>
               <div>
-                <div className="text-2xl font-bold text-brand-warm-bright">
+                <div className="text-2xl font-bold text-brand-navy">
                   Regular Updates
                 </div>
                 <div className="text-brand-warm opacity-80">
@@ -465,7 +465,7 @@ export function LandingPage() {
                 <FileText className="h-6 w-6 text-brand-orange" />
               </div>
               <div>
-                <div className="text-2xl font-bold text-brand-warm-bright">
+                <div className="text-2xl font-bold text-brand-navy">
                   Full Documentation
                 </div>
                 <div className="text-brand-warm opacity-80">
