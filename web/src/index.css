@@ -4,48 +4,82 @@
 
 @layer base {
   :root {
-    --background: 42 33% 95%; /* F4F1E9 - Pin & Note base (warm white) */
-    --foreground: 215 85% 9%; /* 0B1220 - Navy (braces & note lines) */
-    --card: 42 33% 95%; /* F4F1E9 - Pin & Note base (warm white) */
-    --card-foreground: 215 85% 9%; /* 0B1220 - Navy */
-    --popover: 42 33% 95%; /* F4F1E9 */
-    --popover-foreground: 215 85% 9%; /* 0B1220 */
-    --primary: 22 100% 61%; /* FF8A3D - Primary Orange */
-    --primary-foreground: 0 0% 100%; /* FFFFFF - Pin highlight */
-    --secondary: 215 85% 9%; /* 0B1220 - Navy */
-    --secondary-foreground: 42 33% 95%; /* F4F1E9 */
-    --muted: 215 43% 13%; /* 142036 - Navy soft (inner shadow) */
-    --muted-foreground: 215 43% 35%; /* Lighter navy for better contrast on light backgrounds */
-    --accent: 22 100% 70%; /* FFA766 - Orange highlight */
-    --accent-foreground: 215 85% 9%; /* 0B1220 */
+    --background: 42 33% 95%;
+    /* F4F1E9 - Pin & Note base (warm white) */
+    --foreground: 215 85% 9%;
+    /* 0B1220 - Navy (braces & note lines) */
+    --card: 42 33% 95%;
+    /* F4F1E9 - Pin & Note base (warm white) */
+    --card-foreground: 215 85% 9%;
+    /* 0B1220 - Navy */
+    --popover: 42 33% 95%;
+    /* F4F1E9 */
+    --popover-foreground: 215 85% 9%;
+    /* 0B1220 */
+    --primary: 22 100% 61%;
+    /* FF8A3D - Primary Orange */
+    --primary-foreground: 0 0% 100%;
+    /* FFFFFF - Pin highlight */
+    --secondary: 215 85% 9%;
+    /* 0B1220 - Navy */
+    --secondary-foreground: 42 33% 95%;
+    /* F4F1E9 */
+    --muted: 215 43% 13%;
+    /* 142036 - Navy soft (inner shadow) */
+    --muted-foreground: 215 43% 35%;
+    /* Lighter navy for better contrast on light backgrounds */
+    --accent: 22 100% 70%;
+    /* FFA766 - Orange highlight */
+    --accent-foreground: 215 85% 9%;
+    /* 0B1220 */
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 215 43% 13%; /* 142036 - Navy soft */
-    --input: 215 43% 13%; /* 142036 */
-    --ring: 22 100% 61%; /* FF8A3D - Primary Orange */
+    --border: 22 100% 70%;
+    /* FFA766 - Orange highlight */
+    --input: 215 43% 13%;
+    /* 142036 */
+    --ring: 22 100% 61%;
+    /* FF8A3D - Primary Orange */
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 215 85% 9%; /* 0B1220 - Navy (dark mode background) */
-    --foreground: 42 33% 95%; /* F4F1E9 - Pin & Note base (warm white) */
-    --card: 215 43% 13%; /* 142036 - Navy soft */
-    --card-foreground: 42 33% 95%; /* F4F1E9 */
-    --popover: 215 43% 13%; /* 142036 */
-    --popover-foreground: 42 33% 95%; /* F4F1E9 */
-    --primary: 22 100% 61%; /* FF8A3D - Primary Orange */
-    --primary-foreground: 0 0% 100%; /* FFFFFF - Pin highlight */
-    --secondary: 215 43% 13%; /* 142036 - Navy soft */
-    --secondary-foreground: 42 33% 95%; /* F4F1E9 */
-    --muted: 215 43% 13%; /* 142036 - Navy soft */
-    --muted-foreground: 42 33% 95%; /* F4F1E9 */
-    --accent: 22 100% 70%; /* FFA766 - Orange highlight */
-    --accent-foreground: 215 85% 9%; /* 0B1220 */
+    --background: 215 85% 9%;
+    /* 0B1220 - Navy (dark mode background) */
+    --foreground: 42 33% 95%;
+    /* F4F1E9 - Pin & Note base (warm white) */
+    --card: 215 43% 13%;
+    /* 142036 - Navy soft */
+    --card-foreground: 42 33% 95%;
+    /* F4F1E9 */
+    --popover: 215 43% 13%;
+    /* 142036 */
+    --popover-foreground: 42 33% 95%;
+    /* F4F1E9 */
+    --primary: 22 100% 61%;
+    /* FF8A3D - Primary Orange */
+    --primary-foreground: 0 0% 100%;
+    /* FFFFFF - Pin highlight */
+    --secondary: 215 43% 13%;
+    /* 142036 - Navy soft */
+    --secondary-foreground: 42 33% 95%;
+    /* F4F1E9 */
+    --muted: 215 43% 13%;
+    /* 142036 - Navy soft */
+    --muted-foreground: 42 33% 95%;
+    /* F4F1E9 */
+    --accent: 22 100% 70%;
+    /* FFA766 - Orange highlight */
+    --accent-foreground: 215 85% 9%;
+    /* 0B1220 */
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 215 43% 13%; /* 142036 - Navy soft */
-    --input: 215 43% 13%; /* 142036 */
-    --ring: 22 100% 61%; /* FF8A3D - Primary Orange */
+    --border: 215 43% 13%;
+    /* 142036 - Navy soft */
+    --input: 215 43% 13%;
+    /* 142036 */
+    --ring: 22 100% 61%;
+    /* FF8A3D - Primary Orange */
   }
 }
 
@@ -53,6 +87,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -63,34 +98,95 @@
   .bg-brand-orange {
     background-color: #FF8A3D;
   }
+
   .bg-brand-navy {
     background-color: #0B1220;
   }
+
   .bg-brand-warm {
     background-color: #F4F1E9;
   }
+
   .text-brand-orange {
     color: #FF8A3D;
   }
+
   .text-brand-navy {
     color: #0B1220;
   }
+
   .text-brand-warm {
     color: #F4F1E9;
   }
+
   .text-brand-warm-muted {
     color: rgba(244, 241, 233, 0.8);
   }
+
   .text-brand-warm-bright {
     color: #FFFFFF;
   }
+
   .border-brand-orange {
     border-color: #FF8A3D;
   }
+
   .shadow-brand-glow {
     box-shadow: 0 0 20px rgba(255, 138, 61, 0.25);
   }
+
   .shadow-brand-drop {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.20);
+  }
+}
+
+/* Custom animations */
+@layer utilities {
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  @keyframes pulse-glow {
+
+    0%,
+    100% {
+      box-shadow: 0 0 20px rgba(255, 138, 61, 0.25);
+    }
+
+    50% {
+      box-shadow: 0 0 30px rgba(255, 138, 61, 0.4);
+    }
+  }
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 3s ease-in-out infinite;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.6s ease-out forwards;
   }
 }

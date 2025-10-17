@@ -4,16 +4,21 @@ import {
   QuickStartSection,
   StatsSection,
   CTASection,
+  Footer,
 } from "@/components/landing";
+import { PageTransition } from "@/components/PageTransition";
 
 export function LandingPage() {
   return (
-    <div className="flex flex-col">
-      <HeroSection />
-      <FeaturesSection />
-      <QuickStartSection />
-      <StatsSection />
-      <CTASection />
-    </div>
+    <PageTransition>
+      <div className="flex flex-col">
+        <HeroSection />
+        <FeaturesSection />
+        <QuickStartSection />
+        <StatsSection />
+        <CTASection />
+        <Footer />
+      </div>
+    </PageTransition>
   );
 }

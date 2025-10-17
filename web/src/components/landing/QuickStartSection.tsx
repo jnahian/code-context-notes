@@ -96,7 +96,7 @@ export function QuickStartSection() {
   return (
     <section className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20">
       <div className="container py-24">
-        <div className="text-center space-y-4 mb-20">
+        <div className="text-center space-y-4 mb-20 animate-in fade-in-0 slide-in-from-top-4 duration-700">
           <h2 className="text-3xl md:text-4xl font-bold">
             Get Started in Seconds
           </h2>
@@ -119,7 +119,8 @@ export function QuickStartSection() {
             {steps.map((step, index) => (
               <Card
                 key={step.number}
-                className="relative shadow-brand-drop hover:shadow-brand-glow transition-all duration-300 border-2 border-transparent hover:border-brand-orange/20"
+                className="relative shadow-brand-drop hover:shadow-brand-glow transition-all duration-300 border-2 border-transparent hover:border-brand-orange/20 hover:-translate-y-2 animate-in fade-in-0 slide-in-from-bottom-6"
+                style={{ animationDelay: `${index * 200 + 400}ms` }}
               >
                 <CardHeader className="text-center pb-6">
                   <div className="relative mb-6">

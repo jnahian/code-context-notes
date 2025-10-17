@@ -56,7 +56,7 @@ export function FeaturesSection() {
   return (
     <section className="bg-white dark:bg-slate-900 border-y border-slate-200 dark:border-slate-700">
       <div className="container py-24">
-        <div className="text-center space-y-4 mb-16">
+        <div className="text-center space-y-4 mb-16 animate-in fade-in-0 slide-in-from-top-4 duration-700">
           <h2 className="text-3xl md:text-4xl font-bold">
             Why Choose Code Context Notes?
           </h2>
@@ -70,7 +70,8 @@ export function FeaturesSection() {
           {features.map((feature, index) => (
             <Card
               key={index}
-              className="shadow-brand-drop hover:shadow-brand-glow transition-shadow duration-300"
+              className="shadow-brand-drop hover:shadow-brand-glow transition-all duration-300 hover:-translate-y-1 animate-in fade-in-0 slide-in-from-bottom-4"
+              style={{ animationDelay: `${index * 100 + 200}ms` }}
             >
               <CardHeader>
                 <feature.icon className="h-10 w-10 text-brand-orange mb-2" />

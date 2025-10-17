@@ -7,34 +7,34 @@ export function HeroSection() {
   return (
     <section className="bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
       <div className="container py-24 md:py-32">
-        <div className="flex flex-col items-center text-center space-y-8">
-          <div className="flex items-center justify-center mb-4">
+        <div className="flex flex-col items-center text-center space-y-8 animate-in fade-in-0 duration-700">
+          <div className="flex items-center justify-center mb-4 animate-in zoom-in-50 duration-500 delay-200">
             <img
               src="/logo.png"
               alt="Code Context Notes Logo"
-              className="h-24 w-24 md:h-32 md:w-32 shadow-brand-glow rounded-2xl"
+              className="h-24 w-24 md:h-32 md:w-32 shadow-brand-glow rounded-2xl hover:scale-105 transition-transform duration-300 animate-float"
             />
           </div>
 
           <Badge
             variant="secondary"
-            className="px-4 py-2 bg-brand-orange text-white border-brand-orange"
+            className="px-4 py-2 bg-brand-orange text-white border-brand-orange animate-in slide-in-from-top-4 duration-500 delay-300"
           >
             VS Code Extension
           </Badge>
 
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight max-w-4xl">
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight max-w-4xl animate-in slide-in-from-bottom-6 duration-700 delay-400">
             Smart Code Annotations with{" "}
             <span className="text-brand-orange">Full History</span>
           </h1>
 
-          <p className="text-xl text-muted-foreground max-w-2xl">
+          <p className="text-xl text-muted-foreground max-w-2xl animate-in fade-in-0 duration-700 delay-500">
             Add contextual notes to your code that stay with your code even when
             line numbers change. Complete version history and intelligent
             tracking included.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 animate-in slide-in-from-bottom-4 duration-700 delay-600">
             <Button size="lg" asChild>
               <a
                 href="https://marketplace.visualstudio.com/items?itemName=jnahian.code-context-notes"

@@ -8,6 +8,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableOfContents } from "@/components/docs/TableOfContents";
+import { Footer } from "@/components/landing";
+import { PageTransition } from "@/components/PageTransition";
 import {
   Download,
   Keyboard,
@@ -26,6 +28,7 @@ import {
 
 export function DocsPage() {
   return (
+    <PageTransition>
     <div className="container py-12 max-w-7xl">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Table of Contents - Left Sidebar */}
@@ -637,5 +640,6 @@ export function DocsPage() {
         </div>
       </div>
     </div>
+    </PageTransition>
   );
 }

@@ -66,7 +66,7 @@ export function StatsSection() {
       </div>
 
       <div className="container relative z-10">
-        <div className="text-center mb-16">
+        <div className="text-center mb-16 animate-in fade-in-0 slide-in-from-top-4 duration-700">
           <h2 className="text-3xl md:text-4xl font-bold text-brand-navy mb-4">
             Trusted by Developers Worldwide
           </h2>
@@ -79,7 +79,8 @@ export function StatsSection() {
           {stats.map((stat, index) => (
             <Card
               key={index}
-              className="bg-brand-warm/15 backdrop-blur-sm border-brand-orange/30 hover:bg-brand-warm/20 transition-all duration-300 group shadow-lg"
+              className="bg-brand-warm/15 backdrop-blur-sm border-brand-orange/30 hover:bg-brand-warm/20 transition-all duration-300 group shadow-lg hover:-translate-y-1 animate-in fade-in-0 slide-in-from-bottom-4"
+              style={{ animationDelay: `${index * 150 + 300}ms` }}
             >
               <CardContent className="p-6 text-center">
                 <div className="mb-4">
@@ -104,7 +105,11 @@ export function StatsSection() {
         {/* Additional Trust Indicators */}
         <div className="mt-16 grid md:grid-cols-3 gap-8 text-center">
           {trustIndicators.map((indicator, index) => (
-            <div key={index} className="flex flex-col items-center space-y-3">
+            <div 
+              key={index} 
+              className="flex flex-col items-center space-y-3 animate-in fade-in-0 slide-in-from-bottom-4"
+              style={{ animationDelay: `${index * 200 + 800}ms` }}
+            >
               <div className="w-12 h-12 bg-brand-orange/20 rounded-full flex items-center justify-center">
                 <indicator.icon className="h-6 w-6 text-brand-orange" />
               </div>
