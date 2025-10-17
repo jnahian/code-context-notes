@@ -241,5 +241,5 @@ project/
 ## Getting Help
 
 - **Documentation**: See [README.md](../README.md)
-- **Issues**: [GitHub Issues](https://github.com/your-username/code-context-notes/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-username/code-context-notes/discussions)
+- **Issues**: [GitHub Issues](https://github.com/jnahian/code-context-notes/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/jnahian/code-context-notes/discussions)

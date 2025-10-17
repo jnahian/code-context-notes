@@ -19,7 +19,7 @@ Be respectful, inclusive, and constructive. We're all here to build something us
 
 1. **Fork and clone the repository**
    ```bash
-   git clone https://github.com/your-username/code-context-notes
+   git clone https://github.com/jnahian/code-context-notes
    cd code-context-notes
    ```
 
@@ -314,8 +314,8 @@ Include:
 
 ## Questions?
 
-- Open a [GitHub Discussion](https://github.com/your-username/code-context-notes/discussions)
-- Check existing [Issues](https://github.com/your-username/code-context-notes/issues)
+- Open a [GitHub Discussion](https://github.com/jnahian/code-context-notes/discussions)
+- Check existing [Issues](https://github.com/jnahian/code-context-notes/issues)
 - Read the [documentation](docs/)
 
 ## License

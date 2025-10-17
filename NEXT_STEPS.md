@@ -60,7 +60,7 @@ Your extension is **fully functional** with **comprehensive documentation** and 
 ```bash
 # On GitHub, create new repository: code-context-notes
 # Then locally:
-git remote add origin https://github.com/your-username/code-context-notes.git
+git remote add origin https://github.com/jnahian/code-context-notes.git
 git branch -M main
 git push -u origin main
 ```

@@ -108,12 +108,12 @@ Update publisher and repository information:
   "publisher": "your-actual-publisher-id",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/code-context-notes"
+    "url": "https://github.com/jnahian/code-context-notes"
   },
   "bugs": {
-    "url": "https://github.com/your-username/code-context-notes/issues"
+    "url": "https://github.com/jnahian/code-context-notes/issues"
   },
-  "homepage": "https://github.com/your-username/code-context-notes#readme"
+  "homepage": "https://github.com/jnahian/code-context-notes#readme"
 }
 ```
 

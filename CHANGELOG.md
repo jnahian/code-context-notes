@@ -127,5 +127,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Testing documentation
 - Architecture overview
 
-[Unreleased]: https://github.com/your-username/code-context-notes/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/your-username/code-context-notes/releases/tag/v0.1.0
+[Unreleased]: https://github.com/jnahian/code-context-notes/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/jnahian/code-context-notes/releases/tag/v0.1.0

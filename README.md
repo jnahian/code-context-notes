@@ -232,7 +232,7 @@ Minimal. The extension uses caching and efficient algorithms. Even with 100+ not
 ### Building from Source
 
 ```bash
-git clone https://github.com/your-username/code-context-notes
+git clone https://github.com/jnahian/code-context-notes
 cd code-context-notes
 npm install
 npm run compile
@@ -301,8 +301,8 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for de
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/your-username/code-context-notes/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-username/code-context-notes/discussions)
+- **Issues**: [GitHub Issues](https://github.com/jnahian/code-context-notes/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/jnahian/code-context-notes/discussions)
 - **Documentation**: [docs/](docs/)
 
 ## Changelog
