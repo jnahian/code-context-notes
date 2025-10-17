@@ -189,4 +189,30 @@
   .animate-slide-up {
     animation: slide-up 0.6s ease-out forwards;
   }
+  
+  /* Viewport animation optimizations */
+  .will-change-transform {
+    will-change: transform;
+  }
+  
+  .will-change-opacity {
+    will-change: opacity;
+  }
+  
+  /* Reduce motion for accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-in,
+    .animate-float,
+    .animate-pulse-glow,
+    .animate-slide-up {
+      animation: none !important;
+      transition: none !important;
+    }
+    
+    .transition-all,
+    .transition-transform,
+    .transition-opacity {
+      transition: none !important;
+    }
+  }
 }

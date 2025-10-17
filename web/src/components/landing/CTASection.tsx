@@ -1,11 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Download, Github } from "lucide-react";
+import { AnimatedSection } from "@/components/AnimatedSection";
 
 export function CTASection() {
   return (
     <section className="bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
       <div className="container py-24">
-        <div className="text-center space-y-8 animate-in fade-in-0 slide-in-from-bottom-6 duration-700">
+        <AnimatedSection animation="fade-up" className="text-center space-y-8">
           <h2 className="text-3xl md:text-4xl font-bold">
             Ready to Enhance Your Code?
           </h2>
@@ -14,7 +15,7 @@ export function CTASection() {
             and track their code more effectively.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-in slide-in-from-bottom-4 duration-700 delay-200">
+          <AnimatedSection animation="fade-up" delay={300} className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" asChild>
               <a
                 href="https://marketplace.visualstudio.com/items?itemName=jnahian.code-context-notes"
@@ -38,8 +39,8 @@ export function CTASection() {
                 <span>View on GitHub</span>
               </a>
             </Button>
-          </div>
-        </div>
+          </AnimatedSection>
+        </AnimatedSection>
       </div>
     </section>
   );

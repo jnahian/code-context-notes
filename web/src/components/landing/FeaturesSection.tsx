@@ -12,6 +12,7 @@ import {
   FileText,
   Users,
 } from "lucide-react";
+import { AnimatedSection } from "@/components/AnimatedSection";
 
 export function FeaturesSection() {
   const features = [
@@ -56,7 +57,7 @@ export function FeaturesSection() {
   return (
     <section className="bg-white dark:bg-slate-900 border-y border-slate-200 dark:border-slate-700">
       <div className="container py-24">
-        <div className="text-center space-y-4 mb-16 animate-in fade-in-0 slide-in-from-top-4 duration-700">
+        <AnimatedSection animation="fade-up" className="text-center space-y-4 mb-16">
           <h2 className="text-3xl md:text-4xl font-bold">
             Why Choose Code Context Notes?
           </h2>
@@ -64,21 +65,24 @@ export function FeaturesSection() {
             Built for developers who need reliable, intelligent code annotation
             that scales with their projects.
           </p>
-        </div>
+        </AnimatedSection>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
-            <Card
+            <AnimatedSection
               key={index}
-              className="shadow-brand-drop hover:shadow-brand-glow transition-all duration-300 hover:-translate-y-1 animate-in fade-in-0 slide-in-from-bottom-4"
-              style={{ animationDelay: `${index * 100 + 200}ms` }}
+              animation="fade-up"
+              delay={index * 100}
+              duration={600}
             >
-              <CardHeader>
-                <feature.icon className="h-10 w-10 text-brand-orange mb-2" />
-                <CardTitle>{feature.title}</CardTitle>
-                <CardDescription>{feature.description}</CardDescription>
-              </CardHeader>
-            </Card>
+              <Card className="shadow-brand-drop hover:shadow-brand-glow transition-all duration-300 hover:-translate-y-1 h-full">
+                <CardHeader>
+                  <feature.icon className="h-10 w-10 text-brand-orange mb-2" />
+                  <CardTitle>{feature.title}</CardTitle>
+                  <CardDescription>{feature.description}</CardDescription>
+                </CardHeader>
+              </Card>
+            </AnimatedSection>
           ))}
         </div>
       </div>

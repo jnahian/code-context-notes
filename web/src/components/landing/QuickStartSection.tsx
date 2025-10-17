@@ -7,6 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CheckCircle } from "lucide-react";
+import { AnimatedSection } from "@/components/AnimatedSection";
 
 export function QuickStartSection() {
   const steps = [
@@ -96,7 +97,7 @@ export function QuickStartSection() {
   return (
     <section className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20">
       <div className="container py-24">
-        <div className="text-center space-y-4 mb-20 animate-in fade-in-0 slide-in-from-top-4 duration-700">
+        <AnimatedSection animation="fade-up" className="text-center space-y-4 mb-20">
           <h2 className="text-3xl md:text-4xl font-bold">
             Get Started in Seconds
           </h2>
@@ -104,54 +105,59 @@ export function QuickStartSection() {
             Three simple steps to start annotating your code with intelligent
             tracking and full history
           </p>
-        </div>
+        </AnimatedSection>
 
-        <div className="relative">
-          {/* Connection Lines for Desktop */}
-          <div className="hidden lg:block absolute top-16 left-1/2 transform -translate-x-1/2 w-full max-w-4xl">
-            <div className="flex justify-between items-center px-32">
-              <div className="w-24 h-0.5 bg-gradient-to-r from-brand-orange to-brand-orange/50"></div>
-              <div className="w-24 h-0.5 bg-gradient-to-r from-brand-orange/50 to-brand-orange"></div>
+        <AnimatedSection animation="fade-up" delay={200}>
+          <div className="relative">
+            {/* Connection Lines for Desktop */}
+            <div className="hidden lg:block absolute top-16 left-1/2 transform -translate-x-1/2 w-full max-w-4xl">
+              <div className="flex justify-between items-center px-32">
+                <div className="w-24 h-0.5 bg-gradient-to-r from-brand-orange to-brand-orange/50"></div>
+                <div className="w-24 h-0.5 bg-gradient-to-r from-brand-orange/50 to-brand-orange"></div>
+              </div>
             </div>
-          </div>
 
-          <div className="grid lg:grid-cols-3 gap-8 lg:gap-12 max-w-5xl mx-auto">
-            {steps.map((step, index) => (
-              <Card
-                key={step.number}
-                className="relative shadow-brand-drop hover:shadow-brand-glow transition-all duration-300 border-2 border-transparent hover:border-brand-orange/20 hover:-translate-y-2 animate-in fade-in-0 slide-in-from-bottom-6"
-                style={{ animationDelay: `${index * 200 + 400}ms` }}
-              >
-                <CardHeader className="text-center pb-6">
-                  <div className="relative mb-6">
-                    <div className="w-16 h-16 rounded-full bg-brand-orange text-white flex items-center justify-center text-2xl font-bold mx-auto shadow-brand-glow relative z-10">
-                      {step.number}
-                    </div>
-                    <div
-                      className="absolute inset-0 w-16 h-16 rounded-full bg-brand-orange/20 mx-auto animate-pulse"
-                      style={{ animationDelay: `${index * 0.5}s` }}
-                    ></div>
-                  </div>
-                  <CardTitle className="text-xl mb-3">{step.title}</CardTitle>
-                  <CardDescription className="text-base leading-relaxed">
-                    {step.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-0">{step.content}</CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Bottom CTA */}
-          <div className="text-center mt-16">
-            <div className="inline-flex items-center space-x-2 bg-brand-orange/10 px-6 py-3 rounded-full border border-brand-orange/20">
-              <CheckCircle className="h-5 w-5 text-brand-orange" />
-              <span className="text-brand-navy font-medium">
-                That's it! Your code is now annotated with intelligent tracking.
-              </span>
+            <div className="grid lg:grid-cols-3 gap-8 lg:gap-12 max-w-5xl mx-auto">
+              {steps.map((step, index) => (
+                <AnimatedSection
+                  key={step.number}
+                  animation="fade-up"
+                  delay={400 + index * 200}
+                  duration={600}
+                >
+                  <Card className="relative shadow-brand-drop hover:shadow-brand-glow transition-all duration-300 border-2 border-transparent hover:border-brand-orange/20 hover:-translate-y-2 h-full">
+                    <CardHeader className="text-center pb-6">
+                      <div className="relative mb-6">
+                        <div className="w-16 h-16 rounded-full bg-brand-orange text-white flex items-center justify-center text-2xl font-bold mx-auto shadow-brand-glow relative z-10">
+                          {step.number}
+                        </div>
+                        <div
+                          className="absolute inset-0 w-16 h-16 rounded-full bg-brand-orange/20 mx-auto animate-pulse"
+                          style={{ animationDelay: `${index * 0.5}s` }}
+                        ></div>
+                      </div>
+                      <CardTitle className="text-xl mb-3">{step.title}</CardTitle>
+                      <CardDescription className="text-base leading-relaxed">
+                        {step.description}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-0">{step.content}</CardContent>
+                  </Card>
+                </AnimatedSection>
+              ))}
             </div>
+
+            {/* Bottom CTA */}
+            <AnimatedSection animation="fade-up" delay={1000} className="text-center mt-16">
+              <div className="inline-flex items-center space-x-2 bg-brand-orange/10 px-6 py-3 rounded-full border border-brand-orange/20">
+                <CheckCircle className="h-5 w-5 text-brand-orange" />
+                <span className="text-brand-navy font-medium">
+                  That's it! Your code is now annotated with intelligent tracking.
+                </span>
+              </div>
+            </AnimatedSection>
           </div>
-        </div>
+        </AnimatedSection>
       </div>
     </section>
   );
