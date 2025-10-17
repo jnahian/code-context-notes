@@ -16,8 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] - 2025-10-17
 
+### 🎉 Initial Release - Published to Marketplaces!
+
+**Marketplace URLs:**
+- VSCode Marketplace: https://marketplace.visualstudio.com/items?itemName=jnahian.code-context-notes
+- Open VSX Registry: https://open-vsx.org/extension/jnahian/code-context-notes
+
 ### Added
-- Initial release of Code Context Notes
 - Add notes to code using VSCode's native comment UI
 - Markdown formatting support with keyboard shortcuts
 - CodeLens indicators above code with notes
@@ -129,3 +134,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]: https://github.com/jnahian/code-context-notes/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/jnahian/code-context-notes/releases/tag/v0.1.0
+
+#### Package & Distribution
+- Package size: 77KB (highly optimized)
+- Supports VSCode 1.80.0+
+- Published to both VSCode Marketplace and Open VSX Registry
+- Automated publishing scripts included
+- Git tagging integration
+
+#### Development Tools
+- 41 unit tests with 88% coverage
+- Integration tests for VSCode API
+- TypeScript compilation
+- ESLint code quality
+- Publishing automation (`npm run publish`)
+- Package automation (`npm run package`)
+
+### Installation
+
+Install from VSCode Extensions marketplace or use:
+```bash
+code --install-extension jnahian.code-context-notes
+```
+
+### Links
+- [VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=jnahian.code-context-notes)
+- [Open VSX Registry](https://open-vsx.org/extension/jnahian/code-context-notes)
+- [GitHub Repository](https://github.com/jnahian/code-context-notes)
+- [Issues & Feedback](https://github.com/jnahian/code-context-notes/issues)

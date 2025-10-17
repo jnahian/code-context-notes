@@ -4,7 +4,27 @@
   # Code Context Notes
   
   Add contextual notes to your code with full version history and intelligent tracking. Notes stay with your code even when line numbers change.
+
+  [![VSCode Marketplace](https://img.shields.io/visual-studio-marketplace/v/jnahian.code-context-notes?style=for-the-badge&logo=visual-studio-code&label=VS%20Code)](https://marketplace.visualstudio.com/items?itemName=jnahian.code-context-notes)
+  [![Open VSX](https://img.shields.io/open-vsx/v/jnahian/code-context-notes?style=for-the-badge&logo=eclipse-ide&label=Open%20VSX)](https://open-vsx.org/extension/jnahian/code-context-notes)
+  [![Downloads](https://img.shields.io/visual-studio-marketplace/d/jnahian.code-context-notes?style=for-the-badge)](https://marketplace.visualstudio.com/items?itemName=jnahian.code-context-notes)
 </div>
+
+## Installation
+
+### From VSCode Marketplace
+1. Open VSCode
+2. Go to Extensions (Ctrl+Shift+X)
+3. Search for "Code Context Notes"
+4. Click Install
+
+### From Command Line
+```bash
+code --install-extension jnahian.code-context-notes
+```
+
+### From Open VSX (VS Codium)
+Available on [Open VSX Registry](https://open-vsx.org/extension/jnahian/code-context-notes) for VS Codium users.
 
 ## Demo
 
@@ -281,6 +301,12 @@ npm run test:coverage
 
 # Run all tests (requires VSCode)
 npm test
+
+# Package extension with git tagging
+npm run package
+
+# Publish to both marketplaces
+npm run publish
 ```
 
 **Test Coverage**: 88% overall with 100 total tests
