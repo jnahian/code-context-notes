@@ -1,6 +1,6 @@
 {
   "name": "code-context-notes",
-  "displayName": "Code Context Notes",
+  "displayName": "Code Context Notes - Smart Annotations",
   "description": "Add contextual notes to your code with full version history and intelligent tracking",
   "version": "0.1.0",
   "publisher": "jnahian",
@@ -265,7 +265,12 @@
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
     "test:unit": "npm run compile && node ./out/test/runUnitTests.js",
-    "test:coverage": "npm run compile && nyc --reporter=html --reporter=text node ./out/test/runUnitTests.js"
+    "test:coverage": "npm run compile && nyc --reporter=html --reporter=text node ./out/test/runUnitTests.js",
+    "publish": "node scripts/publish.js",
+    "publish:bash": "./scripts/publish.sh",
+    "package": "node scripts/package.js",
+    "package:simple": "vsce package",
+    "package:dev": "vsce package --no-git-tag-version"
   },
   "devDependencies": {
     "@types/chai": "^5.2.2",

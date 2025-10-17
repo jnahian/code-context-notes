@@ -11,6 +11,7 @@ node_modules/**
 .claude/**
 CLAUDE.md
 NEXT_STEPS.md
+scripts/**
 
 # Documentation (keep only essential)
 docs/TODO.md
