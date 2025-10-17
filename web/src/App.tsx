@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
-import { Navigation } from './components/Navigation'
 import { LandingPage } from './pages/LandingPage'
+import { Footer } from './components/landing'
+import { Navigation } from './components/Navigation'
 import { DocsPage } from './pages/DocsPage'
 
 function App() {
@@ -11,6 +12,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/docs" element={<DocsPage />} />
       </Routes>
+      <Footer />
     </div>
   )
 }

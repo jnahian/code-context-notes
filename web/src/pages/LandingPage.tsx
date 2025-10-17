@@ -4,7 +4,6 @@ import {
   QuickStartSection,
   StatsSection,
   CTASection,
-  Footer,
 } from "@/components/landing";
 
 export function LandingPage() {
@@ -15,7 +14,6 @@ export function LandingPage() {
       <QuickStartSection />
       <StatsSection />
       <CTASection />
-      <Footer />
     </div>
   );
 }
