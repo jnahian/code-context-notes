@@ -287,21 +287,22 @@ All documentation for Epic 11 has been completed. The extension is now fully doc
 
 ### Visual Assets (Not Documentation)
 
-The only remaining tasks are creating visual assets:
+Visual assets status:
 
-1. **Extension Icon** (128x128 PNG)
+1. **Extension Icon** (128x128 PNG) ✅ COMPLETE
+   - Added: images/icon.png
+   - Configured in package.json
+
+2. **Screenshots** ✅ COMPLETE
+   - Added: 6 screenshots showing all key features
+   - Integrated into README.md
+   - Files: screenshot-add-note.jpg, screenshot-codelens.jpg, screenshot-edit.jpg, screenshot-history.jpg, screenshot-markdown.jpg, screenshot-storage.jpg
+
+3. **Demo GIF** ⏳ PENDING
    - See: images/README.md
    - See: docs/MARKETPLACE_PREP.md
 
-2. **Screenshots**
-   - See: images/README.md
-   - See: docs/MARKETPLACE_PREP.md
-
-3. **Demo GIF**
-   - See: images/README.md
-   - See: docs/MARKETPLACE_PREP.md
-
-These are **not documentation tasks** but rather **design/media tasks**.
+Only the demo GIF remains to be created.
 
 ### GitHub Repository Setup (Not Documentation)
 
@@ -366,10 +367,10 @@ All criteria met:
 
 ## Conclusion
 
-**Epic 11: Documentation & Polish is 95% complete.**
+**Epic 11: Documentation & Polish is 98% complete.**
 
-The 5% remaining consists of:
-- Creating visual assets (icon, screenshots, GIF)
+The 2% remaining consists of:
+- Creating demo GIF
 - Setting up GitHub repository
 - Publishing to marketplace
 

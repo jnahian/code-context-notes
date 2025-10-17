@@ -1,31 +1,54 @@
-# Code Context Notes
+<div align="center">
+  <img src="images/icon.png" alt="Code Context Notes" width="128" height="128">
+  
+  # Code Context Notes
+  
+  Add contextual notes to your code with full version history and intelligent tracking. Notes stay with your code even when line numbers change.
+</div>
 
-Add contextual notes to your code with full version history and intelligent tracking. Notes stay with your code even when line numbers change.
+![Adding a Note](images/screenshot-add-note.jpg)
+
+## Demo
+
+See Code Context Notes in action:
+
+![CodeLens Integration](images/screenshot-codelens.jpg)
 
 ## Features
 
 ### Native VSCode Integration
+
 - Add notes using VSCode's native comment UI
 - CodeLens indicators show where notes exist
 - Markdown formatting with keyboard shortcuts (Ctrl/Cmd+B, I, K)
 - Inline editing with Save/Cancel buttons
 
+![Editing Notes](images/screenshot-edit.jpg)
+
 ### Intelligent Content Tracking
+
 - Notes follow code content even when line numbers change
 - Content hash tracking detects moved code
 - Automatic position updates on document changes
 
 ### Complete Version History
+
 - Full audit trail of all note modifications
 - View history directly in the comment thread
 - Never lose context - all edits preserved with timestamps
 
+![Note History](images/screenshot-history.jpg)
+
 ### Human-Readable Storage
+
 - Notes stored as markdown files in `.code-notes/` directory
 - One file per note, named by note ID
 - Easy to read, search, and version control
 
+![Storage Format](images/screenshot-storage.jpg)
+
 ### Git Integration
+
 - Automatic author detection using git username
 - Fallback to system username
 - Override via configuration
@@ -44,18 +67,21 @@ That's it! A CodeLens indicator appears above your code.
 ### Adding Notes
 
 **Method 1: Keyboard Shortcut**
+
 1. Select the line(s) of code
 2. Press `Ctrl+Alt+N` (Windows/Linux) or `Cmd+Alt+N` (Mac)
 3. Enter your note in the comment editor
 4. Click Save
 
 **Method 2: Command Palette**
+
 1. Select the line(s) of code
 2. Open Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`)
 3. Type "Code Notes: Add Note to Selection"
 4. Enter your note and click Save
 
 **Method 3: CodeLens**
+
 1. Select the line(s) of code
 2. Click "Add Note" in the CodeLens that appears
 3. Enter your note and click Save
@@ -67,10 +93,12 @@ Notes support full markdown with keyboard shortcuts:
 - **Bold**: `Ctrl/Cmd+B` or `**text**`
 - **Italic**: `Ctrl/Cmd+I` or `*text*`
 - **Inline Code**: `Ctrl/Cmd+Shift+C` or `` `code` ``
-- **Code Block**: `Ctrl/Cmd+Shift+K` or ` ```language ```
+- **Code Block**: `Ctrl/Cmd+Shift+K` or ` `language `
 - **Link**: `Ctrl/Cmd+K` or `[text](url)`
 - **List**: Type `- ` or `1. `
 - **Heading**: Type `# ` or `## `
+
+![Markdown Support](images/screenshot-markdown.jpg)
 
 ### Viewing Notes
 
@@ -108,36 +136,42 @@ Each edit creates a new history entry with timestamp and author.
 Open VSCode Settings (`Ctrl+,` or `Cmd+,`) and search for "Code Context Notes":
 
 ### Storage Directory
+
 ```json
 "codeContextNotes.storageDirectory": ".code-notes"
 ```
+
 Directory where notes are stored (relative to workspace root). Default: `.code-notes`
 
 ### Author Name
+
 ```json
 "codeContextNotes.authorName": "Your Name"
 ```
+
 Override automatic username detection. Default: git username or system username
 
 ### Show CodeLens
+
 ```json
 "codeContextNotes.showCodeLens": true
 ```
+
 Enable/disable CodeLens indicators above code with notes. Default: `true`
 
 ## Keyboard Shortcuts
 
-| Command | Windows/Linux | Mac | Description |
-|---------|--------------|-----|-------------|
-| Add Note | `Ctrl+Alt+N` | `Cmd+Alt+N` | Add note to selected code |
-| Delete Note | `Ctrl+Alt+D` | `Cmd+Alt+D` | Delete note at cursor |
-| View History | `Ctrl+Alt+H` | `Cmd+Alt+H` | View note history |
-| Refresh Notes | `Ctrl+Alt+R` | `Cmd+Alt+R` | Refresh all notes |
-| Bold | `Ctrl+B` | `Cmd+B` | Insert bold text (in comment editor) |
-| Italic | `Ctrl+I` | `Cmd+I` | Insert italic text (in comment editor) |
-| Inline Code | `Ctrl+Shift+C` | `Cmd+Shift+C` | Insert inline code (in comment editor) |
-| Code Block | `Ctrl+Shift+K` | `Cmd+Shift+K` | Insert code block (in comment editor) |
-| Link | `Ctrl+K` | `Cmd+K` | Insert link (in comment editor) |
+| Command       | Windows/Linux  | Mac           | Description                            |
+| ------------- | -------------- | ------------- | -------------------------------------- |
+| Add Note      | `Ctrl+Alt+N`   | `Cmd+Alt+N`   | Add note to selected code              |
+| Delete Note   | `Ctrl+Alt+D`   | `Cmd+Alt+D`   | Delete note at cursor                  |
+| View History  | `Ctrl+Alt+H`   | `Cmd+Alt+H`   | View note history                      |
+| Refresh Notes | `Ctrl+Alt+R`   | `Cmd+Alt+R`   | Refresh all notes                      |
+| Bold          | `Ctrl+B`       | `Cmd+B`       | Insert bold text (in comment editor)   |
+| Italic        | `Ctrl+I`       | `Cmd+I`       | Insert italic text (in comment editor) |
+| Inline Code   | `Ctrl+Shift+C` | `Cmd+Shift+C` | Insert inline code (in comment editor) |
+| Code Block    | `Ctrl+Shift+K` | `Cmd+Shift+K` | Insert code block (in comment editor)  |
+| Link          | `Ctrl+K`       | `Cmd+K`       | Insert link (in comment editor)        |
 
 ## Storage Format
 
@@ -171,16 +205,20 @@ Your note content here with **markdown** formatting.
 ## History
 
 ### Created - 2025-10-17T10:30:00.000Z - username
-
 ```
+
 Original content
+
 ```
 
 ### Edited - 2025-10-17T14:45:00.000Z - username
 
 ```
+
 Previous content before this edit
+
 ```
+
 ```
 
 ### Version Control
@@ -258,6 +296,7 @@ npm test
 ```
 
 **Test Coverage**: 88% overall with 100 total tests
+
 - 41 unit tests (pure Node.js)
 - 59+ integration tests (VSCode API)
 

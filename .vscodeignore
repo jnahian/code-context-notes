@@ -1,0 +1,31 @@
+# Source files
+src/**
+tsconfig.json
+
+# Test files
+.nyc_output/**
+coverage/**
+node_modules/**
+
+# Development files
+.claude/**
+CLAUDE.md
+NEXT_STEPS.md
+
+# Documentation (keep only essential)
+docs/TODO.md
+docs/ARCHITECTURE.md
+docs/TESTING*.md
+docs/DOCUMENTATION_SUMMARY.md
+docs/MARKETPLACE_PREP.md
+docs/RELEASE_CHECKLIST.md
+
+# Git files
+.gitignore
+
+# Build artifacts
+*.vsix
+
+# Unused images
+images/logo.png
+images/README.md

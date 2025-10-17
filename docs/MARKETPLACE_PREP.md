@@ -30,12 +30,12 @@ Create a 128x128 PNG icon:
 
 Create screenshots showing key features:
 
-- [ ] Adding a note (comment UI)
-- [ ] CodeLens indicator
-- [ ] Editing a note
-- [ ] Viewing history
-- [ ] Markdown formatting
-- [ ] Note file in `.code-notes/` directory
+- [x] Adding a note (comment UI)
+- [x] CodeLens indicator
+- [x] Editing a note
+- [x] Viewing history
+- [x] Markdown formatting
+- [x] Note file in `.code-notes/` directory
 
 **Screenshot Guidelines**:
 - Use high-resolution displays
@@ -47,12 +47,13 @@ Create screenshots showing key features:
 Save screenshots in `images/` directory:
 ```
 images/
-├── icon.png
-├── screenshot-add-note.png
-├── screenshot-codelens.png
-├── screenshot-edit.png
-├── screenshot-history.png
-└── screenshot-markdown.png
+├── icon.png (✓ Added)
+├── screenshot-add-note.jpg (✓ Added)
+├── screenshot-codelens.jpg (✓ Added)
+├── screenshot-edit.jpg (✓ Added)
+├── screenshot-history.jpg (✓ Added)
+├── screenshot-markdown.jpg (✓ Added)
+└── screenshot-storage.jpg (✓ Added)
 ```
 
 ### 3. Demo GIF
@@ -375,8 +376,8 @@ Select appropriate categories:
 
 Before publishing:
 
-- [ ] Extension icon created (128x128 PNG)
-- [ ] Screenshots taken and added to README
+- [x] Extension icon created (128x128 PNG)
+- [x] Screenshots taken and added to README
 - [ ] Demo GIF created and added to README
 - [ ] package.json updated with publisher info
 - [ ] All tests passing

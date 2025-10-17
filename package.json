@@ -6,7 +6,7 @@
   "publisher": "your-publisher-name",
   "icon": "images/icon.png",
   "galleryBanner": {
-    "color": "#1e1e1e",
+    "color": "#2d3748",
     "theme": "dark"
   },
   "bugs": {
@@ -14,7 +14,7 @@
   },
   "homepage": "https://github.com/jnahian/code-context-notes#readme",
   "engines": {
-    "vscode": "^1.80.0"
+    "vscode": "^1.105.0"
   },
   "categories": [
     "Other",
@@ -26,7 +26,12 @@
     "annotations",
     "comments",
     "context",
-    "documentation"
+    "documentation",
+    "markdown",
+    "codelens",
+    "history",
+    "tracking",
+    "code-notes"
   ],
   "activationEvents": [
     "onStartupFinished"
