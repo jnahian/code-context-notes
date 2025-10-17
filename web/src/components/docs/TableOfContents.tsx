@@ -79,7 +79,7 @@ export function TableOfContents() {
               key={item.id}
               onClick={() => scrollToSection(item.id)}
               className={cn(
-                "block w-full text-left text-sm py-1 px-2 rounded transition-colors hover:bg-brand-orange/10 hover:text-brand-orange",
+                "block w-full text-left text-sm py-1 px-2 rounded-xl transition-colors hover:bg-brand-orange/10 hover:text-brand-orange",
                 item.level === 2 && "ml-4 text-xs",
                 activeId === item.id
                   ? "text-brand-orange font-medium bg-brand-orange/10"

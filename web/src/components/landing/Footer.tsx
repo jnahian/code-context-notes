@@ -9,7 +9,7 @@ export function Footer() {
             <img
               src="/icon.png"
               alt="Code Context Notes"
-              className="h-6 w-6 rounded"
+              className="h-6 w-6 rounded-xl"
             />
             <span className="font-semibold text-brand-warm">
               Code Context Notes

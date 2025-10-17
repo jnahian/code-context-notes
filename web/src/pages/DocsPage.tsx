@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import {
   Card,
   CardContent,
@@ -7,8 +8,11 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TableOfContents } from "@/components/docs/TableOfContents";
 import { PageTransition } from "@/components/PageTransition";
+
+
+// Lazy load TableOfContents since it's not immediately visible on mobile
+const TableOfContents = lazy(() => import("@/components/docs/TableOfContents").then(module => ({ default: module.TableOfContents })));
 import {
   Download,
   Keyboard,
@@ -32,7 +36,15 @@ export function DocsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Table of Contents - Left Sidebar */}
         <div className="lg:col-span-1 order-2 lg:order-1">
-          <TableOfContents />
+          <Suspense fallback={
+            <div className="sticky top-8 space-y-2">
+              <div className="h-4 bg-gray-200 rounded-xl animate-pulse"></div>
+              <div className="h-3 bg-gray-200 rounded-xl animate-pulse w-3/4"></div>
+              <div className="h-3 bg-gray-200 rounded-xl animate-pulse w-1/2"></div>
+            </div>
+          }>
+            <TableOfContents />
+          </Suspense>
         </div>
 
         {/* Main Content */}
@@ -73,7 +85,7 @@ export function DocsPage() {
 
                 <div>
                   <h4 className="font-semibold mb-2">From Command Line</h4>
-                  <code className="block bg-brand-navy text-brand-warm p-3 rounded text-sm">
+                  <code className="block bg-brand-navy text-brand-warm p-3 rounded-xl text-sm">
                     code --install-extension jnahian.code-context-notes
                   </code>
                 </div>
@@ -120,11 +132,11 @@ export function DocsPage() {
                       <h4 className="font-semibold">Add Note</h4>
                       <p className="text-sm text-muted-foreground">
                         Press{" "}
-                        <code className="bg-brand-navy text-brand-warm px-1 rounded">
+                        <code className="bg-brand-navy text-brand-warm px-1 rounded-lg-lg">
                           Ctrl+Alt+N
                         </code>{" "}
                         (or{" "}
-                        <code className="bg-brand-navy text-brand-warm px-1 rounded">
+                        <code className="bg-brand-navy text-brand-warm px-1 rounded-lg-lg">
                           Cmd+Alt+N
                         </code>{" "}
                         on Mac)
@@ -297,7 +309,7 @@ export function DocsPage() {
                       <h4 className="font-semibold">Human-Readable Storage</h4>
                       <p className="text-sm text-muted-foreground">
                         Notes stored as markdown files in{" "}
-                        <code className="bg-brand-navy text-brand-warm px-1 rounded">
+                        <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">
                           .code-notes/
                         </code>{" "}
                         directory
@@ -388,7 +400,7 @@ export function DocsPage() {
                         Ctrl+B
                       </Badge>
                     </div>
-                    <code className="block bg-brand-navy text-brand-warm p-2 rounded text-sm">
+                    <code className="block bg-brand-navy text-brand-warm p-2 rounded-xl text-sm">
                       **bold text** or __bold text__
                     </code>
                   </div>
@@ -401,7 +413,7 @@ export function DocsPage() {
                         Ctrl+I
                       </Badge>
                     </div>
-                    <code className="block bg-brand-navy text-brand-warm p-2 rounded text-sm">
+                    <code className="block bg-brand-navy text-brand-warm p-2 rounded-xl text-sm">
                       *italic text* or _italic text_
                     </code>
                   </div>
@@ -414,7 +426,7 @@ export function DocsPage() {
                         Ctrl+Shift+C
                       </Badge>
                     </div>
-                    <code className="block bg-brand-navy text-brand-warm p-2 rounded text-sm">
+                    <code className="block bg-brand-navy text-brand-warm p-2 rounded-xl text-sm">
                       `inline code`
                     </code>
                   </div>
@@ -427,7 +439,7 @@ export function DocsPage() {
                         Ctrl+Shift+K
                       </Badge>
                     </div>
-                    <code className="block bg-brand-navy text-brand-warm p-2 rounded text-sm whitespace-pre">
+                    <code className="block bg-brand-navy text-brand-warm p-2 rounded-xl text-sm whitespace-pre">
                       ```javascript{"\n"}function example() {"{"}...{"}"}
                       {"\n"}```
                     </code>
@@ -441,7 +453,7 @@ export function DocsPage() {
                         Ctrl+K
                       </Badge>
                     </div>
-                    <code className="block bg-brand-navy text-brand-warm p-2 rounded text-sm">
+                    <code className="block bg-brand-navy text-brand-warm p-2 rounded-xl text-sm">
                       [link text](https://example.com)
                     </code>
                   </div>
@@ -451,7 +463,7 @@ export function DocsPage() {
                       <List className="h-4 w-4" />
                       <span className="font-semibold">Lists</span>
                     </div>
-                    <code className="block bg-brand-navy text-brand-warm p-2 rounded text-sm whitespace-pre">
+                    <code className="block bg-brand-navy text-brand-warm p-2 rounded-xl text-sm whitespace-pre">
                       - Unordered list{"\n"}1. Ordered list
                     </code>
                   </div>
@@ -473,13 +485,13 @@ export function DocsPage() {
               <CardContent className="space-y-4">
                 <div>
                   <h4 className="font-semibold mb-2">Storage Directory</h4>
-                  <code className="block bg-brand-navy text-brand-warm p-3 rounded text-sm mb-2">
+                  <code className="block bg-brand-navy text-brand-warm p-3 rounded-xl text-sm mb-2">
                     "codeContextNotes.storageDirectory": ".code-notes"
                   </code>
                   <p className="text-sm text-muted-foreground">
                     Directory where notes are stored (relative to workspace
                     root). Default:{" "}
-                    <code className="bg-brand-navy text-brand-warm px-1 rounded">
+                    <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">
                       .code-notes
                     </code>
                   </p>
@@ -487,7 +499,7 @@ export function DocsPage() {
 
                 <div>
                   <h4 className="font-semibold mb-2">Author Name</h4>
-                  <code className="block bg-brand-navy text-brand-warm p-3 rounded text-sm mb-2">
+                  <code className="block bg-brand-navy text-brand-warm p-3 rounded-xl text-sm mb-2">
                     "codeContextNotes.authorName": "Your Name"
                   </code>
                   <p className="text-sm text-muted-foreground">
@@ -498,13 +510,13 @@ export function DocsPage() {
 
                 <div>
                   <h4 className="font-semibold mb-2">Show CodeLens</h4>
-                  <code className="block bg-brand-navy text-brand-warm p-3 rounded text-sm mb-2">
+                  <code className="block bg-brand-navy text-brand-warm p-3 rounded-xl text-sm mb-2">
                     "codeContextNotes.showCodeLens": true
                   </code>
                   <p className="text-sm text-muted-foreground">
                     Enable/disable CodeLens indicators above code with notes.
                     Default:{" "}
-                    <code className="bg-brand-navy text-brand-warm px-1 rounded">
+                    <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">
                       true
                     </code>
                   </p>
@@ -545,12 +557,12 @@ export function DocsPage() {
                   </h4>
                   <p className="text-sm text-muted-foreground">
                     Notes are stored in{" "}
-                    <code className="bg-brand-navy text-brand-warm px-1 rounded">
+                    <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">
                       .code-notes/
                     </code>{" "}
                     directory. You can choose to commit them (to share with
                     team) or add to{" "}
-                    <code className="bg-brand-navy text-brand-warm px-1 rounded">
+                    <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">
                       .gitignore
                     </code>{" "}
                     (to keep them local).
@@ -563,7 +575,7 @@ export function DocsPage() {
                   </h4>
                   <p className="text-sm text-muted-foreground">
                     Commit the{" "}
-                    <code className="bg-brand-navy text-brand-warm px-1 rounded">
+                    <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">
                       .code-notes/
                     </code>{" "}
                     directory to your repository. Team members with the

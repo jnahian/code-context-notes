@@ -13,7 +13,7 @@ export function Navigation() {
             <img 
               src="/icon.png" 
               alt="Code Context Notes" 
-              className="h-8 w-8 rounded-lg"
+              className="h-8 w-8 rounded-2xl"
             />
             <span className="font-bold text-xl">Code Context Notes</span>
           </Link>

@@ -87,7 +87,7 @@ export function StatsSection() {
               <Card className="bg-white backdrop-blur-sm border-brand-orange/30 hover:bg-brand-warm/20 transition-all duration-300 group shadow-lg hover:-translate-y-1 h-full">
                 <CardContent className="p-6 text-center">
                   <div className="mb-4">
-                    <div className="w-16 h-16 mx-auto bg-brand-orange/20 rounded-full flex items-center justify-center group-hover:bg-brand-orange/30 transition-colors">
+                    <div className="w-16 h-16 mx-auto bg-brand-orange/20 rounded-2xl flex items-center justify-center group-hover:bg-brand-orange/30 transition-colors">
                       <stat.icon className="h-8 w-8 text-brand-orange" />
                     </div>
                   </div>
@@ -115,10 +115,10 @@ export function StatsSection() {
               delay={800 + index * 200}
               duration={600}
             >
-              <div className="bg-white/10 backdrop-blur-sm border border-brand-orange/20 rounded-xl p-6 hover:bg-white/15 transition-all duration-300 group hover:border-brand-orange/40">
+              <div className="bg-white backdrop-blur-sm border border-brand-orange/20 rounded-2xl p-6 hover:bg-white/15 transition-all duration-300 group hover:border-brand-orange/40 shadow-lg">
                 <div className="flex items-start space-x-4">
                   <div className="flex-shrink-0">
-                    <div className="w-10 h-10 bg-brand-orange rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <div className="w-10 h-10 bg-brand-orange rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                       <indicator.icon className="h-5 w-5 text-white" />
                     </div>
                   </div>

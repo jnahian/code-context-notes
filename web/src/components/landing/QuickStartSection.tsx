@@ -17,7 +17,7 @@ export function QuickStartSection() {
       description:
         "Highlight the lines of code you want to annotate. Works with any programming language and file type.",
       content: (
-        <div className="bg-brand-navy/5 rounded-lg p-4 border border-brand-navy/10">
+        <div className="bg-brand-navy/5 rounded-2xl p-4 border border-brand-navy/10">
           <div className="flex items-center space-x-2 text-sm">
             <div className="w-2 h-2 rounded-full bg-brand-orange"></div>
             <span className="text-brand-navy font-mono">
@@ -42,15 +42,15 @@ export function QuickStartSection() {
       content: (
         <div className="flex flex-col space-y-3">
           <div className="flex items-center justify-center space-x-2">
-            <kbd className="px-3 py-2 bg-brand-navy text-brand-warm rounded-lg font-mono text-sm shadow-sm">
+            <kbd className="px-3 py-2 bg-brand-navy text-brand-warm rounded-xl font-mono text-sm shadow-sm">
               Ctrl
             </kbd>
             <span className="text-brand-orange font-bold">+</span>
-            <kbd className="px-3 py-2 bg-brand-navy text-brand-warm rounded-lg font-mono text-sm shadow-sm">
+            <kbd className="px-3 py-2 bg-brand-navy text-brand-warm rounded-xl font-mono text-sm shadow-sm">
               Alt
             </kbd>
             <span className="text-brand-orange font-bold">+</span>
-            <kbd className="px-3 py-2 bg-brand-navy text-brand-warm rounded-lg font-mono text-sm shadow-sm">
+            <kbd className="px-3 py-2 bg-brand-navy text-brand-warm rounded-xl font-mono text-sm shadow-sm">
               N
             </kbd>
           </div>
@@ -66,7 +66,7 @@ export function QuickStartSection() {
       description:
         "Type your note with full markdown support, then save. Your note is now tracked with complete history.",
       content: (
-        <div className="bg-brand-warm/50 rounded-lg p-4 border border-brand-orange/20">
+        <div className="bg-brand-warm/50 rounded-2xl p-4 border border-brand-orange/20">
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
               <div className="w-1.5 h-1.5 rounded-full bg-brand-orange"></div>
@@ -97,7 +97,10 @@ export function QuickStartSection() {
   return (
     <section className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20">
       <div className="container py-24">
-        <AnimatedSection animation="fade-up" className="text-center space-y-4 mb-20">
+        <AnimatedSection
+          animation="fade-up"
+          className="text-center space-y-4 mb-20"
+        >
           <h2 className="text-3xl md:text-4xl font-bold">
             Get Started in Seconds
           </h2>
@@ -125,7 +128,7 @@ export function QuickStartSection() {
                   delay={400 + index * 200}
                   duration={600}
                 >
-                  <Card className="relative shadow-brand-drop hover:shadow-brand-glow transition-all duration-300 border-2 border-transparent hover:border-brand-orange/20 hover:-translate-y-2 h-full">
+                  <Card className="relative shadow-brand-drop hover:shadow-brand-glow transition-all duration-300 border-2 border-transparent hover:border-brand-orange/20 hover:-translate-y-2 h-full bg-white">
                     <CardHeader className="text-center pb-6">
                       <div className="relative mb-6">
                         <div className="w-16 h-16 rounded-full bg-brand-orange text-white flex items-center justify-center text-2xl font-bold mx-auto shadow-brand-glow relative z-10">
@@ -136,7 +139,9 @@ export function QuickStartSection() {
                           style={{ animationDelay: `${index * 0.5}s` }}
                         ></div>
                       </div>
-                      <CardTitle className="text-xl mb-3">{step.title}</CardTitle>
+                      <CardTitle className="text-xl mb-3">
+                        {step.title}
+                      </CardTitle>
                       <CardDescription className="text-base leading-relaxed">
                         {step.description}
                       </CardDescription>
@@ -148,11 +153,16 @@ export function QuickStartSection() {
             </div>
 
             {/* Bottom CTA */}
-            <AnimatedSection animation="fade-up" delay={1000} className="text-center mt-16">
-              <div className="inline-flex items-center space-x-2 bg-brand-orange/10 px-6 py-3 rounded-full border border-brand-orange/20">
+            <AnimatedSection
+              animation="fade-up"
+              delay={1000}
+              className="text-center mt-16"
+            >
+              <div className="inline-flex items-center space-x-2 bg-brand-orange/10 px-6 py-3 rounded-2xl border border-brand-orange/20">
                 <CheckCircle className="h-5 w-5 text-brand-orange" />
                 <span className="text-brand-navy font-medium">
-                  That's it! Your code is now annotated with intelligent tracking.
+                  That's it! Your code is now annotated with intelligent
+                  tracking.
                 </span>
               </div>
             </AnimatedSection>
