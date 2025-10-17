@@ -20,8 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Migrated to ES Modules (ESM)** from CommonJS for better compatibility with modern npm packages
 - Updated `package.json` with `"type": "module"`
 - Updated `tsconfig.json` to use `"module": "ES2022"` and `"moduleResolution": "bundler"`
-- Added `.js` extensions to all local import statements (required by ES module resolution)
+- Added `.js` extensions to all local import statements in TypeScript source files (6 files)
+- Converted build scripts to ES modules (`scripts/package.js` and `scripts/publish.js`)
+- Updated all test files with `.js` extensions in imports (4 test files)
+- Fixed test runners to use `import.meta.url` instead of `__dirname` (3 test runners)
 - Updated `.vscodeignore` to include production dependencies in packaged extension
+- All 41 unit tests passing with ES modules
 
 ### Fixed
 - Fixed `Cannot find module 'uuid'` error by migrating to ES modules (uuid v13.0.0 is ESM-only)

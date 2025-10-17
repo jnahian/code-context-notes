@@ -5,8 +5,8 @@
 
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { ContentHashTracker } from '../../contentHashTracker';
-import { LineRange } from '../../types';
+import { ContentHashTracker } from '../../contentHashTracker.js';
+import { LineRange } from '../../types.js';
 
 suite('ContentHashTracker Test Suite', () => {
 	let tracker: ContentHashTracker;

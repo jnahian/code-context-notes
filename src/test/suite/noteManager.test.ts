@@ -8,11 +8,11 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as vscode from 'vscode';
-import { NoteManager } from '../../noteManager';
-import { StorageManager } from '../../storageManager';
-import { ContentHashTracker } from '../../contentHashTracker';
-import { GitIntegration } from '../../gitIntegration';
-import { CreateNoteParams, UpdateNoteParams, LineRange } from '../../types';
+import { NoteManager } from '../../noteManager.js';
+import { StorageManager } from '../../storageManager.js';
+import { ContentHashTracker } from '../../contentHashTracker.js';
+import { GitIntegration } from '../../gitIntegration.js';
+import { CreateNoteParams, UpdateNoteParams, LineRange } from '../../types.js';
 
 suite('NoteManager Test Suite', () => {
 	let tempDir: string;

@@ -5,8 +5,8 @@
  * Creates a package and git tag for the current version
  */
 
-const { execSync } = require('child_process');
-const fs = require('fs');
+import { execSync } from 'child_process';
+import fs from 'fs';
 
 // Colors for console output
 const colors = {

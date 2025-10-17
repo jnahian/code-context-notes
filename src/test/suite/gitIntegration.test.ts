@@ -4,7 +4,7 @@
  */
 
 import * as assert from 'assert';
-import { GitIntegration } from '../../gitIntegration';
+import { GitIntegration } from '../../gitIntegration.js';
 
 suite('GitIntegration Test Suite', () => {
 	let gitIntegration: GitIntegration;

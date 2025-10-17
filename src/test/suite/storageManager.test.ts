@@ -8,8 +8,8 @@ import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as os from 'os';
-import { StorageManager } from '../../storageManager';
-import { Note } from '../../types';
+import { StorageManager } from '../../storageManager.js';
+import { Note } from '../../types.js';
 
 suite('StorageManager Test Suite', () => {
 	let tempDir: string;

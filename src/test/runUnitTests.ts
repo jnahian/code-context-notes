@@ -6,6 +6,11 @@
 import Mocha from 'mocha';
 import * as path from 'path';
 import { glob } from 'glob';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 async function main() {
 	// Create the mocha test

@@ -45,3 +45,26 @@
    - Migration notes for users
 
 3. **TODO.md** (this file) - Complete history of all changes made
+
+4. **scripts/package.js** - Converted from CommonJS to ES modules
+   - Changed `require()` to `import` statements
+   - Tested and working
+
+5. **scripts/publish.js** - Converted from CommonJS to ES modules
+   - Changed `require()` to `import` statements
+   - Tested and working
+
+6. **Test files (4 TypeScript test files)** - Updated imports for ES modules
+   - src/test/suite/storageManager.test.ts
+   - src/test/suite/gitIntegration.test.ts
+   - src/test/suite/contentHashTracker.test.ts
+   - src/test/suite/noteManager.test.ts
+   - Added `.js` extensions to all local imports
+
+7. **Test runners (3 files)** - Fixed `__dirname` for ES modules
+   - src/test/runUnitTests.ts
+   - src/test/runTest.ts
+   - src/test/suite/index.ts
+   - Added `fileURLToPath` and `dirname` imports from 'url' and 'path'
+   - Created `__dirname` constant using `import.meta.url`
+   - All 41 unit tests passing ✅
