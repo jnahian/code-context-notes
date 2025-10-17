@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { Note, NoteStorage, NoteMetadata } from './types';
+import { Note, NoteStorage, NoteMetadata } from './types.js';
 
 /**
  * StorageManager implements the NoteStorage interface

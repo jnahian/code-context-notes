@@ -3,12 +3,12 @@
  */
 
 import * as vscode from 'vscode';
-import { StorageManager } from './storageManager';
-import { ContentHashTracker } from './contentHashTracker';
-import { GitIntegration } from './gitIntegration';
-import { NoteManager } from './noteManager';
-import { CommentController } from './commentController';
-import { CodeNotesLensProvider } from './codeLensProvider';
+import { StorageManager } from './storageManager.js';
+import { ContentHashTracker } from './contentHashTracker.js';
+import { GitIntegration } from './gitIntegration.js';
+import { NoteManager } from './noteManager.js';
+import { CommentController } from './commentController.js';
+import { CodeNotesLensProvider } from './codeLensProvider.js';
 
 let noteManager: NoteManager;
 let commentController: CommentController;
@@ -23,11 +23,25 @@ const DEBOUNCE_DELAY = 500; // ms
  */
 export async function activate(context: vscode.ExtensionContext) {
 	console.log('Code Context Notes extension is activating...');
+	console.log('Code Context Notes: Extension version 0.1.3');
+
+	try {
+		// Always register all commands first (even without workspace)
+		// This ensures commands are available immediately
+		console.log('Code Context Notes: Registering all commands...');
+		registerAllCommands(context);
+		console.log('Code Context Notes: All commands registered successfully!');
+	} catch (error) {
+		console.error('Code Context Notes: FAILED to register commands:', error);
+		vscode.window.showErrorMessage(`Code Context Notes failed to activate: ${error}`);
+		throw error;
+	}
 
 	// Get workspace folder
 	const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
 	if (!workspaceFolder) {
-		vscode.window.showWarningMessage('Code Context Notes requires a workspace to be opened.');
+		console.log('Code Context Notes: No workspace folder found. Extension partially activated. Open a folder to use full functionality.');
+		vscode.window.showInformationMessage('Code Context Notes: Commands are available. Open a folder to use note features.');
 		return;
 	}
 
@@ -64,9 +78,6 @@ export async function activate(context: vscode.ExtensionContext) {
 		);
 		context.subscriptions.push(codeLensDisposable);
 	}
-
-	// Register commands
-	registerCommands(context);
 
 	// Set up event listeners
 	setupEventListeners(context);
@@ -149,12 +160,19 @@ const x = 1;
 
 /**
  * Register all extension commands
+ * Note: Commands are registered even without a workspace, but many will show
+ * error messages if workspace-dependent features (noteManager, commentController) are not initialized
  */
-function registerCommands(context: vscode.ExtensionContext) {
+function registerAllCommands(context: vscode.ExtensionContext) {
 	// Add Note to Selection (via command palette)
 	const addNoteCommand = vscode.commands.registerCommand(
 		'codeContextNotes.addNote',
 		async () => {
+			if (!noteManager || !commentController) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+
 			const editor = vscode.window.activeTextEditor;
 			if (!editor) {
 				vscode.window.showErrorMessage('No active editor');
@@ -193,6 +211,10 @@ function registerCommands(context: vscode.ExtensionContext) {
 	const addNoteViaCodeLensCommand = vscode.commands.registerCommand(
 		'codeContextNotes.addNoteViaCodeLens',
 		async (document: vscode.TextDocument, selection: vscode.Selection) => {
+			if (!commentController) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
 			try {
 				const range = new vscode.Range(selection.start.line, 0, selection.end.line, 0);
 				await commentController.openCommentEditor(document, range);
@@ -206,6 +228,10 @@ function registerCommands(context: vscode.ExtensionContext) {
 	const viewNoteCommand = vscode.commands.registerCommand(
 		'codeContextNotes.viewNote',
 		async (noteId: string, filePath: string) => {
+			if (!commentController) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
 			try {
 				// Focus and expand the comment thread instead of opening a new document
 				await commentController.focusNoteThread(noteId, filePath);
@@ -219,6 +245,11 @@ function registerCommands(context: vscode.ExtensionContext) {
 	const deleteNoteCommand = vscode.commands.registerCommand(
 		'codeContextNotes.deleteNote',
 		async () => {
+			if (!noteManager || !commentController) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+
 			const editor = vscode.window.activeTextEditor;
 			if (!editor) {
 				vscode.window.showErrorMessage('No active editor');

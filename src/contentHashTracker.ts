@@ -5,7 +5,7 @@
 
 import * as crypto from 'crypto';
 import * as vscode from 'vscode';
-import { LineRange, ContentHashResult } from './types';
+import { LineRange, ContentHashResult } from './types.js';
 
 /**
  * ContentHashTracker manages content-based note tracking

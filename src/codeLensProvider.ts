@@ -4,8 +4,8 @@
  */
 
 import * as vscode from 'vscode';
-import { Note } from './types';
-import { NoteManager } from './noteManager';
+import { Note } from './types.js';
+import { NoteManager } from './noteManager.js';
 
 /**
  * CodeLensProvider displays indicators above lines with notes

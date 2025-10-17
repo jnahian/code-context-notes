@@ -14,6 +14,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Note templates
 - Tags and categories
 
+## [0.1.1] - 2025-10-17
+
+### Fixed
+- Extension now activates properly when no workspace is initially open
+- Added graceful handling for commands when no workspace is available
+- Improved activation events for better responsiveness
+- Users now get helpful messages to open a workspace when needed
+
+### Added
+- Package testing script (`npm run test:package`)
+- Better error handling for workspace-dependent operations
+
+### Changed
+- Package size optimized to 79KB (down from 81KB)
+- More responsive activation events
+
 ## [0.1.0] - 2025-10-17
 
 ### 🎉 Initial Release - Published to Marketplaces!

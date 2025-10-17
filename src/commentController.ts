@@ -4,8 +4,8 @@
  */
 
 import * as vscode from 'vscode';
-import { Note, LineRange } from './types';
-import { NoteManager } from './noteManager';
+import { Note, LineRange } from './types.js';
+import { NoteManager } from './noteManager.js';
 
 /**
  * CommentController manages the comment UI for notes

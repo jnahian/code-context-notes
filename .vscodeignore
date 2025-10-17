@@ -5,12 +5,21 @@ tsconfig.json
 # Test files
 .nyc_output/**
 coverage/**
-node_modules/**
+
+# Include only production dependencies, exclude devDependencies
+node_modules/**/test/**
+node_modules/**/tests/**
+node_modules/**/*.md
+node_modules/**/.npmignore
+node_modules/**/.eslintrc*
+node_modules/**/tsconfig.json
+node_modules/**/@types/**
 
 # Development files
 .claude/**
 CLAUDE.md
 NEXT_STEPS.md
+PROJECT_COMPLETE.md
 scripts/**
 
 # Documentation (keep only essential)

@@ -5,10 +5,10 @@
 
 import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
-import { Note, CreateNoteParams, UpdateNoteParams, LineRange } from './types';
-import { StorageManager } from './storageManager';
-import { ContentHashTracker } from './contentHashTracker';
-import { GitIntegration } from './gitIntegration';
+import { Note, CreateNoteParams, UpdateNoteParams, LineRange } from './types.js';
+import { StorageManager } from './storageManager.js';
+import { ContentHashTracker } from './contentHashTracker.js';
+import { GitIntegration } from './gitIntegration.js';
 
 /**
  * NoteManager coordinates all note operations

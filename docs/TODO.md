@@ -894,3 +894,40 @@ All critical bugs have been fixed! The extension now works correctly for:
   - `src/commentController.ts` - removed `reactions` property from `createComment()` method (line 118)
   - `src/commentController.ts` - removed `reactions` property from history comments in `showHistoryInThread()` (line 410)
   - `src/commentController.ts` - removed `reactions` property from editable comments in `enableEditMode()` (line 446)
+
+**5. Fixed "command not found" errors in production VSIX (Initial attempt - v0.1.2)**
+
+- **Issue**: Commands like `codeContextNotes.insertCodeBlock` and `codeContextNotes.addNote` were not found when using the extension installed from VSIX
+- **Root Cause (Partial)**: The `activationEvents` in package.json included individual `onCommand` entries for only some commands
+- **Fix (Partial)**: Simplified `activationEvents` to only use `"onStartupFinished"`
+- **Location**: `package.json` - simplified `activationEvents` to only `["onStartupFinished"]` (line 36-38)
+- **Version**: v0.1.2 (Partial fix - still had issues)
+
+**6. Fixed "command not found" errors - Complete fix (v0.1.3)**
+
+- **Issue**: Even after v0.1.2, commands like `codeContextNotes.addNote` were still not found when extension was installed from VSIX
+- **Root Cause (The Real Problem)**: The `activate()` function had a fatal flaw:
+  ```typescript
+  if (!workspaceFolder) {
+      registerLimitedCommands(context);  // Only registered 4 commands
+      return;  // EARLY RETURN - never called registerCommands()!
+  }
+  // ... registerCommands() called here, but only if workspace exists
+  ```
+  When no workspace folder was detected (or before one was detected), the extension would call `registerLimitedCommands()` which only registered 4 stub commands, then RETURN early. This meant `registerCommands()` was NEVER called, so ALL commands were missing. Even worse, this could happen in production if the extension activated before the workspace was fully detected.
+- **Fix**:
+  1. Moved ALL command registration to the very beginning of `activate()` function, before any workspace checks
+  2. Renamed `registerCommands()` to `registerAllCommands()` and removed `registerLimitedCommands()`
+  3. Added workspace checks INSIDE each command that needs workspace features (noteManager, commentController)
+  4. Commands now show helpful error messages if workspace is not available, rather than failing to register
+- **Why this works**:
+  1. ALL commands are registered immediately when extension activates, regardless of workspace state
+  2. Commands are always available in command palette, keybindings, and menus
+  3. Individual commands check for required dependencies (noteManager, commentController) and show friendly error messages if not available
+  4. Works in ALL scenarios: with workspace, without workspace, before workspace detected, after workspace detected
+- **Location**:
+  - `src/extension.ts` - moved `registerAllCommands(context)` to line 29 (before workspace check)
+  - `src/extension.ts` - removed `registerLimitedCommands()` function
+  - `src/extension.ts` - renamed `registerCommands()` to `registerAllCommands()`
+  - `src/extension.ts` - added workspace checks to commands that need them (lines 161, 204, 221, 238, etc.)
+- **Version**: Fixed in v0.1.3

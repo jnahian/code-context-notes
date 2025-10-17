@@ -2,7 +2,8 @@
   "name": "code-context-notes",
   "displayName": "Code Context Notes - Smart Annotations",
   "description": "Add contextual notes to your code with full version history and intelligent tracking",
-  "version": "0.1.0",
+  "version": "0.1.4",
+  "type": "module",
   "publisher": "jnahian",
   "icon": "images/icon.png",
   "galleryBanner": {
@@ -270,7 +271,8 @@
     "publish:bash": "./scripts/publish.sh",
     "package": "node scripts/package.js",
     "package:simple": "vsce package",
-    "package:dev": "vsce package --no-git-tag-version"
+    "package:dev": "vsce package --no-git-tag-version",
+    "test:package": "node scripts/test-package.js"
   },
   "devDependencies": {
     "@types/chai": "^5.2.2",
