@@ -26,10 +26,6 @@ code --install-extension jnahian.code-context-notes
 ### From Open VSX (VS Codium)
 Available on [Open VSX Registry](https://open-vsx.org/extension/jnahian/code-context-notes) for VS Codium users.
 
-## Demo
-
-See Code Context Notes in action - add contextual notes that stay with your code!
-
 ## Features
 
 ### Native VSCode Integration
