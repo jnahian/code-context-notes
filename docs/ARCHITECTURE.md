@@ -513,13 +513,49 @@ interface Configuration {
 ### Dependencies
 
 **Runtime**:
-- `uuid` - Generate unique note IDs
+- `uuid` (v13.0.0) - Generate unique note IDs (ESM-only package)
 
 **Development**:
 - `typescript` - Type checking
 - `mocha` - Test framework
 - `chai` - Assertions
 - `nyc` - Coverage reporting
+
+### Module System (ES Modules)
+
+**Since v0.1.4**, this extension uses **ES Modules (ESM)** instead of CommonJS.
+
+**Configuration**:
+```json
+// package.json
+{
+  "type": "module"
+}
+
+// tsconfig.json
+{
+  "compilerOptions": {
+    "module": "ES2022",
+    "moduleResolution": "bundler"
+  }
+}
+```
+
+**Import Syntax Requirements**:
+- All local imports MUST include `.js` extension (even in TypeScript files)
+- Example: `import { NoteManager } from './noteManager.js'`
+- This is required by Node.js ES module resolution
+
+**Rationale**:
+- uuid v13.0.0 is ESM-only (dropped CommonJS support)
+- ES modules are the modern JavaScript standard
+- Better tree-shaking and optimization
+- Native browser compatibility
+
+**Migration Notes**:
+- All TypeScript source files updated with `.js` extensions in imports
+- `.vscodeignore` updated to include `node_modules/uuid` in packaged extension
+- No breaking changes to public API or extension functionality
 
 ## Future Enhancements
 

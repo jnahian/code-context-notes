@@ -14,6 +14,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Note templates
 - Tags and categories
 
+## [0.1.4] - 2025-10-17
+
+### Changed - ES Module Migration
+- **Migrated to ES Modules (ESM)** from CommonJS for better compatibility with modern npm packages
+- Updated `package.json` with `"type": "module"`
+- Updated `tsconfig.json` to use `"module": "ES2022"` and `"moduleResolution": "bundler"`
+- Added `.js` extensions to all local import statements (required by ES module resolution)
+- Updated `.vscodeignore` to include production dependencies in packaged extension
+
+### Fixed
+- Fixed `Cannot find module 'uuid'` error by migrating to ES modules (uuid v13.0.0 is ESM-only)
+- Fixed `Cannot find module './storageManager'` error by adding `.js` extensions to imports
+- Fixed `Cannot find package 'uuid'` error by updating packaging configuration to include dependencies
+
+### Technical
+- Now compatible with uuid v13.0.0 and other ESM-only packages
+- Better tree-shaking and optimization with ES modules
+- All TypeScript files compile to ES modules with proper import paths
+- Package size: 103KB (includes uuid dependency)
+
+### Migration Notes
+- No breaking changes to extension API or functionality
+- Extension continues to work with existing `.code-notes/` directories
+- All existing notes remain compatible
+
 ## [0.1.1] - 2025-10-17
 
 ### Fixed
