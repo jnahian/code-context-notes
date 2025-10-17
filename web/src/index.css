@@ -76,10 +76,13 @@
     color: #0B1220;
   }
   .text-brand-warm {
-    color: #F4F1E9;
+    color: #0B1220;
   }
   .text-brand-warm-muted {
     color: rgba(244, 241, 233, 0.8);
+  }
+  .text-brand-warm-bright {
+    color: #0B1220;
   }
   .border-brand-orange {
     border-color: #FF8A3D;
