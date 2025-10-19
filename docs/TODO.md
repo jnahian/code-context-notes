@@ -980,3 +980,17 @@ All critical bugs have been fixed! The extension now works correctly for:
 - ✅ Tests run using TypeScript compilation (compile:tsc) for easier debugging
 - ✅ Production extension uses esbuild for optimal bundle size and performance
 - ⚠️ Coverage reporting still needs adjustment for esbuild bundled output (low priority)
+
+**9. Fixed keyboard shortcut not opening comment editor (Post v0.1.4)**
+
+- **Issue**: The keyboard shortcut Ctrl+Alt+N (Cmd+Alt+N on Mac) for adding notes was using an old simple input box instead of opening the modern comment editor UI
+- **Root Cause**: The `addNote` command was implemented using `vscode.window.showInputBox()` which only provides a single-line text input, while the CodeLens "Add Note" command properly uses the comment editor UI with markdown support, Save/Cancel buttons, and formatting shortcuts
+- **Fix**: Updated the `addNote` command to use `commentController.openCommentEditor()` instead of `showInputBox()`, making it consistent with the CodeLens approach
+- **Why this works**:
+  1. The comment editor provides a better UX with multi-line input, markdown preview, and formatting toolbar
+  2. Users can use keyboard shortcuts (Ctrl/Cmd+B for bold, Ctrl/Cmd+I for italic, etc.) in the comment editor
+  3. Save and Cancel buttons give users control over the note creation process
+  4. Consistent behavior between keyboard shortcut and CodeLens "Add Note" command
+- **Location**:
+  - `src/extension.ts` - updated `addNote` command handler (lines 167-196)
+- **Version**: Fixed post-v0.1.4 (not yet released)

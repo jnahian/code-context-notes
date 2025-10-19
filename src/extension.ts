@@ -164,7 +164,7 @@ const x = 1;
  * error messages if workspace-dependent features (noteManager, commentController) are not initialized
  */
 function registerAllCommands(context: vscode.ExtensionContext) {
-	// Add Note to Selection (via command palette)
+	// Add Note to Selection (via command palette or keyboard shortcut)
 	const addNoteCommand = vscode.commands.registerCommand(
 		'codeContextNotes.addNote',
 		async () => {
@@ -185,24 +185,12 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 				return;
 			}
 
-			// Prompt for note content
-			const content = await vscode.window.showInputBox({
-				prompt: 'Enter your note',
-				placeHolder: 'Add context about this code...',
-				ignoreFocusOut: true
-			});
-
-			if (!content) {
-				return;
-			}
-
 			try {
+				// Open comment editor UI (modern approach)
 				const range = new vscode.Range(selection.start.line, 0, selection.end.line, 0);
-				await commentController.handleCreateNote(editor.document, range, content);
-				codeLensProvider.refresh();
-				vscode.window.showInformationMessage('Note added successfully!');
+				await commentController.openCommentEditor(editor.document, range);
 			} catch (error) {
-				vscode.window.showErrorMessage(`Failed to add note: ${error}`);
+				vscode.window.showErrorMessage(`Failed to open comment editor: ${error}`);
 			}
 		}
 	);
