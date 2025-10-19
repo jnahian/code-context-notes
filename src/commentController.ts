@@ -16,6 +16,7 @@ export class CommentController {
   private noteManager: NoteManager;
   private commentThreads: Map<string, vscode.CommentThread>; // noteId -> CommentThread
   private currentlyEditingNoteId: string | null = null; // Track which note is being edited
+  private currentlyCreatingThreadId: string | null = null; // Track temporary ID of thread being created
 
   constructor(noteManager: NoteManager, context: vscode.ExtensionContext) {
     this.noteManager = noteManager;
@@ -221,6 +222,7 @@ export class CommentController {
 
     // Clear editing state
     this.currentlyEditingNoteId = null;
+    this.currentlyCreatingThreadId = null;
   }
 
   /**
@@ -255,6 +257,9 @@ export class CommentController {
     (thread as any).tempId = tempId;
     (thread as any).sourceDocument = document;
     this.commentThreads.set(tempId, thread);
+
+    // Track that we're creating a new note
+    this.currentlyCreatingThreadId = tempId;
 
     return thread;
   }
@@ -327,6 +332,9 @@ export class CommentController {
     if (tempId) {
       this.commentThreads.delete(tempId);
     }
+
+    // Clear creating state
+    this.currentlyCreatingThreadId = null;
 
     // Create the real comment thread for the saved note
     this.createCommentThread(document, note);
@@ -535,6 +543,19 @@ export class CommentController {
     }
 
     return thread.comments[0];
+  }
+
+  /**
+   * Get the thread that is currently being used to create a new note
+   * Returns the thread object if a new note is being created, null otherwise
+   */
+  getCurrentlyCreatingThread(): vscode.CommentThread | null {
+    if (!this.currentlyCreatingThreadId) {
+      return null;
+    }
+
+    const thread = this.commentThreads.get(this.currentlyCreatingThreadId);
+    return thread || null;
   }
 
   /**

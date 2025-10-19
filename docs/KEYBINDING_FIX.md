@@ -104,7 +104,37 @@ The fix has been:
 - ✅ Built for production with esbuild
 - ✅ Ready for manual testing with the extension
 
+## Limitation: New Note Creation
+
+### Why cmd+enter doesn't work when creating NEW notes
+
+When creating a new note (typing in the reply box of an empty comment thread), the `cmd+enter` keybinding **cannot** be supported due to VS Code API limitations:
+
+1. **VS Code Keybinding Contexts**: The `commentEditorFocused` context is only active when editing an existing comment, not when typing in a reply input box.
+
+2. **Parameter Mismatch**: The `saveNewNote` command expects a `CommentReply` parameter (which includes the text being typed), but VS Code keybindings cannot pass this parameter - they only pass `undefined`.
+
+3. **No API Access**: There's no VS Code API to programmatically access the text currently being typed in a comment reply box until it's submitted.
+
+### Workaround for New Notes
+
+When creating a new note:
+- **Option 1**: Click the Save button in the comment thread UI
+- **Option 2**: VS Code may handle `cmd+enter` natively in some cases (extension-dependent behavior)
+- **Future**: We're tracking this as a feature request pending VS Code API improvements
+
+### What Works
+
+✅ **cmd+enter DOES work** when:
+- Editing an existing note (after clicking the edit button)
+- The comment is in edit mode (`commentEditorFocused` = true)
+
+❌ **cmd+enter DOES NOT work** when:
+- Creating a new note (typing in reply box for the first time)
+- The comment thread is empty
+
 ## Related
 - Package.json keybinding configuration: lines 196-200
-- CommentController tracking: lines 18, 223, 502, 549
+- CommentController tracking: lines 18-19, 224-225, 262, 337, 502, 549
 - Command handlers: extension.ts lines 364-427
+- VS Code limitation discussed: https://github.com/microsoft/vscode/issues/151739
