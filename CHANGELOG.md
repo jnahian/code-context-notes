@@ -14,6 +14,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Note templates
 - Tags and categories
 
+## [0.1.7] - 2025-10-19
+
+### Fixed
+- **Prevented unwanted scrolling when adding notes via CodeLens**
+  - Fixed issue where clicking "➕ Add Note" CodeLens button would cause the file to scroll slightly
+  - Added scroll position preservation logic that captures current viewport before creating thread
+  - Restores scroll position after thread creation with small delay to ensure smooth experience
+  - User's viewport now stays exactly where it was when adding notes
+  - Better UX with no jarring scrolling interruptions
+
+### Changed
+- **Removed automatic focus/scroll behavior when viewing notes**
+  - Removed automatic cursor movement to note location when viewing notes
+  - Removed automatic scrolling to center note in view
+  - Users now maintain full control of their cursor position and viewport
+  - Less disruptive experience - no unexpected cursor jumps or scrolling
+  - More predictable behavior when interacting with notes
+
+- **Removed cancel notification**
+  - Removed "Note creation cancelled" notification when canceling note creation
+  - Canceling is now a silent action - no unnecessary popup
+  - Reduces notification noise and interruptions
+  - Cleaner, quieter user experience
+
+### Technical
+- Updated `openCommentEditor()` with scroll position preservation (commentController.ts:246-279)
+- Updated `focusNoteThread()` to remove cursor movement and reveal logic (commentController.ts:441-463)
+- Updated `cancelNewNoteCommand` to remove notification (extension.ts:448-458)
+
 ## [0.1.6] - 2025-10-19
 
 ### Fixed
