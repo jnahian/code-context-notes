@@ -1214,3 +1214,115 @@ All critical bugs have been fixed! The extension now works correctly for:
 - `src/commentController.ts` - detailed label in `showHistoryInThread()` (lines 464-481)
 
 **Version**: v0.1.5
+
+---
+
+## Bug Fix: Prevent Unwanted Scrolling When Adding Notes via CodeLens
+
+**Task:** Stop file from scrolling when clicking the CodeLens "Add Note" (+ icon) button
+**Status:** COMPLETE
+**Date:** October 19, 2025
+
+**Issue:**
+- When clicking the CodeLens "➕ Add Note" button, the file would scroll slightly
+- This disrupted the user's current view and was jarring
+- Happened because VSCode automatically scrolls to expanded comment threads
+
+**Root Cause:**
+- When creating a new comment thread with `collapsibleState = Expanded`, VSCode automatically scrolls to bring it into view
+- The `closeAllCommentEditors()` call before creating the thread may also contribute to viewport adjustments
+
+**Fix:**
+Capture current scroll position before creating the thread and restore it after thread creation with a small delay.
+
+**Benefits:**
+- User's viewport stays exactly where it was
+- No jarring scrolling when adding notes
+- Better UX - user maintains context
+- Thread still opens expanded and ready for input
+
+**Testing:**
+- ✅ Code compiles successfully
+- ✅ No TypeScript errors
+- ✅ Build passes with esbuild
+
+**Location:**
+- `src/commentController.ts` - updated `openCommentEditor()` method (lines 246-279)
+
+**Version**: v0.1.7
+
+---
+
+## Enhancement: Remove Input Focus Logic
+
+**Task:** Remove automatic cursor movement and scroll-to-view logic when opening notes
+**Status:** COMPLETE
+**Date:** October 19, 2025
+
+**Change:**
+Removed the automatic focus logic from the `focusNoteThread()` method that would:
+- Move the cursor to the note location
+- Scroll the view to center the note
+
+**Why:**
+- Prevents unwanted cursor movement when viewing notes
+- Avoids disrupting user's current position in the file
+- Let users control their own cursor position and viewport
+- More predictable behavior
+
+**Benefits:**
+- ✅ No automatic cursor movement
+- ✅ No automatic scrolling to note location
+- ✅ User maintains full control of viewport
+- ✅ Less jarring experience when viewing notes
+
+**Testing:**
+- ✅ Code compiles successfully
+- ✅ No TypeScript errors
+- ✅ Build passes with esbuild
+
+**Location:**
+- `src/commentController.ts` - updated `focusNoteThread()` method (lines 441-463)
+
+**Version**: v0.1.7
+
+---
+
+## Enhancement: Remove Cancel Notification
+
+**Task:** Remove the "Note creation cancelled" notification when user cancels note creation
+**Status:** COMPLETE
+**Date:** October 19, 2025
+
+**Change:**
+Removed the information message that appeared when canceling note creation.
+
+**Before:**
+```typescript
+vscode.window.showInformationMessage('Note creation cancelled');
+```
+
+**After:**
+The notification has been removed - canceling is now a silent action.
+
+**Why:**
+- Canceling is a silent action - user already knows they canceled
+- Reduces unnecessary notification noise
+- No need to confirm an action the user explicitly took
+- Better UX with less interruption
+
+**Benefits:**
+- ✅ No notification spam
+- ✅ Quieter, less intrusive UX
+- ✅ User action is self-evident
+- ✅ Cleaner experience
+
+**Testing:**
+- ✅ Code compiles successfully
+- ✅ No TypeScript errors
+- ✅ Build passes with esbuild
+
+**Location:**
+- `src/extension.ts` - updated `cancelNewNoteCommand` (lines 448-458)
+
+**Version**: v0.1.7

@@ -454,8 +454,6 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 
 			// Dispose the temporary thread
 			thread.dispose();
-
-			vscode.window.showInformationMessage('Note creation cancelled');
 		}
 	);
 
