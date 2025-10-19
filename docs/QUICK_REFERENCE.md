@@ -2,6 +2,24 @@
 
 Quick reference for Code Context Notes extension commands and shortcuts.
 
+## What Problem Does This Solve?
+
+**The Problem:**
+- Code comments clutter source files and pollute git history
+- External documentation becomes outdated and disconnected from code
+- Important context gets lost over time
+
+**The Solution:**
+Code Context Notes provides contextual annotations that:
+- ✅ Live alongside your code without being part of it
+- ✅ Track code movement and refactoring automatically
+- ✅ Maintain complete version history
+- ✅ Integrate natively with VSCode's comment UI
+
+**Perfect for:** Technical debt documentation, onboarding notes, implementation decisions, and team knowledge sharing.
+
+For detailed explanation, see [PROBLEM_AND_SOLUTION.md](PROBLEM_AND_SOLUTION.md).
+
 ## Keyboard Shortcuts
 
 ### Note Operations

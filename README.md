@@ -10,19 +10,43 @@
   [![Downloads](https://img.shields.io/visual-studio-marketplace/d/jnahian.code-context-notes?style=for-the-badge)](https://marketplace.visualstudio.com/items?itemName=jnahian.code-context-notes)
 </div>
 
-## The Problem Solved
+## The Problem
 
-Ever found yourself working on a complex codebase and wished you could leave notes directly on the code? Traditional code comments clutter your source files and get lost in version control, while external documentation quickly becomes outdated.
+Working on complex codebases, developers face a common dilemma:
 
-**Code Context Notes** solves this by providing:
+**Traditional Code Comments:**
+- ❌ Clutter your source files with non-code content
+- ❌ Get committed to version control, polluting git history
+- ❌ Mix documentation with implementation
+- ❌ No version history for the comments themselves
+- ❌ Can't be easily filtered or searched separately
 
-- **Non-invasive annotations** - Notes are stored separately from your code in `.code-notes/` directory
-- **Intelligent tracking** - Notes follow your code even when you move or refactor it
-- **Complete history** - Every edit is preserved with timestamps and authors
-- **Team collaboration** - Share notes with your team by committing the `.code-notes/` directory
-- **Native VSCode integration** - Uses VSCode's comment UI for a familiar, seamless experience
+**External Documentation:**
+- ❌ Quickly becomes outdated as code changes
+- ❌ Disconnected from the actual code location
+- ❌ Requires context switching between editor and docs
+- ❌ Hard to maintain alignment with code
 
-Whether you're onboarding new developers, documenting technical debt, or keeping track of implementation decisions, Code Context Notes keeps your insights connected to your code without polluting your source files.
+**The result?** Important context gets lost, technical debt goes undocumented, and new team members struggle to understand why code exists the way it does.
+
+## The Solution
+
+**Code Context Notes** provides a third way: **contextual annotations that live alongside your code without being part of it.**
+
+✅ **Non-invasive** - Notes stored separately in `.code-notes/` directory, never touching your source files  
+✅ **Intelligent tracking** - Notes follow your code even when you move, rename, or refactor it  
+✅ **Complete history** - Every edit preserved with timestamps and authors  
+✅ **Team collaboration** - Share notes by committing `.code-notes/` or keep them local with `.gitignore`  
+✅ **Native integration** - Uses VSCode's comment UI for a familiar, seamless experience  
+✅ **Markdown support** - Rich formatting with keyboard shortcuts  
+✅ **Zero performance impact** - Efficient caching and content hash tracking  
+
+**Perfect for:**
+- 📝 Documenting technical debt and TODOs
+- 🎓 Onboarding new developers with contextual explanations
+- 💡 Recording implementation decisions and trade-offs
+- 🔍 Leaving breadcrumbs for future refactoring
+- 🤝 Team knowledge sharing without code pollution
 
 ## Installation
 
