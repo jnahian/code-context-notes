@@ -8,3 +8,5 @@ out
 .DS_Store
 coverage
 .nyc_output
+.claude
+.vscode

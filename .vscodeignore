@@ -41,16 +41,12 @@ scripts/**
 web/**
 app/**
 
-# Documentation (keep only essential)
-docs/TODO.md
-docs/ARCHITECTURE.md
-docs/TESTING*.md
-docs/DOCUMENTATION_SUMMARY.md
-docs/MARKETPLACE_PREP.md
-docs/RELEASE_CHECKLIST.md
+# Documentation
+docs
 
 # Git files
 .gitignore
+.github
 
 # Build artifacts
 *.vsix

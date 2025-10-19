@@ -38,18 +38,8 @@ export class CommentController {
 
     // Set up comment options to support markdown with formatting hints
     this.commentController.options = {
-      prompt: 'Add a note (supports markdown) - Press F1 or use shortcuts below',
-      placeHolder: 'Write your note here...\n\n' +
-        '💡 Keyboard Shortcuts:\n' +
-        '  Ctrl/Cmd+B = **bold**\n' +
-        '  Ctrl/Cmd+I = *italic*\n' +
-        '  Ctrl/Cmd+Shift+C = `code`\n' +
-        '  Ctrl/Cmd+Shift+K = ```code block```\n' +
-        '  Ctrl/Cmd+K = [link](url)\n\n' +
-        '📝 Markdown Syntax:\n' +
-        '  **bold** *italic* `code` [link](url)\n' +
-        '  ```language\\ncode\\n``` for code blocks\n' +
-        '  > quote | - list | # heading'
+      prompt: 'Add a note (supports markdown)',
+      placeHolder: 'Write your note here...'
     };
 
     // Disable reactions by not setting a reactionHandler
@@ -105,14 +95,24 @@ export class CommentController {
     markdownBody.isTrusted = true;
     markdownBody.supportHtml = true;
 
+    // Create a relevant label showing last update info
+    const createdDate = new Date(note.createdAt);
+    const lastUpdated = note.history && note.history.length > 0
+      ? new Date(note.history[note.history.length - 1].timestamp)
+      : createdDate;
+
+    const isUpdated = note.history && note.history.length > 0;
+    const label = isUpdated
+      ? `Last updated ${lastUpdated.toLocaleDateString()}`
+      : `Created ${createdDate.toLocaleDateString()}`;
+
     const comment: vscode.Comment = {
       body: markdownBody,
       mode: vscode.CommentMode.Preview,
       author: {
         name: note.author
       },
-      label: `Created ${new Date(note.createdAt).toLocaleDateString()}`,
-      // Add Edit button as a command
+      label: label,
       // @ts-ignore - VSCode API supports this but types might be incomplete
       contextValue: note.id
       // Don't set reactions property - leaving it undefined disables reactions UI
@@ -202,12 +202,33 @@ export class CommentController {
   }
 
   /**
+   * Close/hide all comment threads except the one being worked on
+   * This ensures only one note is visible at a time for better focus
+   * Completely disposes all threads to fully hide them from the editor
+   */
+  private closeAllCommentEditors(): void {
+    const threadsToDelete: string[] = [];
+
+    for (const [noteId, thread] of this.commentThreads.entries()) {
+      // Dispose the thread completely to hide it from the editor
+      thread.dispose();
+      threadsToDelete.push(noteId);
+    }
+
+    // Clear all threads from the map
+    threadsToDelete.forEach(id => this.commentThreads.delete(id));
+  }
+
+  /**
    * Open comment editor for creating a new note
    */
   async openCommentEditor(
     document: vscode.TextDocument,
     range: vscode.Range
   ): Promise<vscode.CommentThread> {
+    // Close all other comment editors first
+    this.closeAllCommentEditors();
+
     const lineRange: LineRange = {
       start: range.start.line,
       end: range.end.line
@@ -222,7 +243,7 @@ export class CommentController {
 
     thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
     thread.canReply = true;
-    thread.label = 'New Note';
+    thread.label = 'Add your note';
 
     // Store thread temporarily with range info for the input handler
     const tempId = `temp-${Date.now()}`;
@@ -242,9 +263,39 @@ export class CommentController {
     content: string
   ): Promise<void> {
     const tempId = (thread as any).tempId;
-    const document = (thread as any).sourceDocument as vscode.TextDocument;
 
-    if (!document || !content || !thread.range) {
+    // Get document - either from our custom property or find it by URI
+    let document: vscode.TextDocument | undefined = (thread as any).sourceDocument as vscode.TextDocument;
+
+    if (!document) {
+      // Thread was created by VSCode's + icon, not our openCommentEditor method
+      // Find the document by URI
+      const docs = vscode.workspace.textDocuments;
+      document = docs.find(d => d.uri.toString() === thread.uri.toString());
+
+      if (!document) {
+        // Try to open the document
+        try {
+          document = await vscode.workspace.openTextDocument(thread.uri);
+        } catch (error) {
+          vscode.window.showErrorMessage('Could not find the document for this note');
+          thread.dispose();
+          return;
+        }
+      }
+    }
+
+    // Final check - document must be defined at this point
+    if (!document) {
+      vscode.window.showErrorMessage('Could not find the document for this note');
+      thread.dispose();
+      if (tempId) {
+        this.commentThreads.delete(tempId);
+      }
+      return;
+    }
+
+    if (!content || !thread.range) {
       thread.dispose();
       if (tempId) {
         this.commentThreads.delete(tempId);
@@ -353,6 +404,9 @@ export class CommentController {
    * Focus and expand a comment thread for a note
    */
   async focusNoteThread(noteId: string, filePath: string): Promise<void> {
+    // Close all other comment editors first
+    this.closeAllCommentEditors();
+
     const thread = this.commentThreads.get(noteId);
     if (!thread) {
       vscode.window.showErrorMessage('Note thread not found');
@@ -397,16 +451,20 @@ export class CommentController {
     const historyComments: vscode.Comment[] = [mainComment];
 
     if (note.history && note.history.length > 0) {
-      for (const entry of note.history) {
+      for (let i = 0; i < note.history.length; i++) {
+        const entry = note.history[i];
+        const timestamp = new Date(entry.timestamp);
+        const label = `${entry.action} on ${timestamp.toLocaleDateString()} at ${timestamp.toLocaleTimeString()}`;
+
         const historyComment: vscode.Comment = {
           body: new vscode.MarkdownString(
-            `**${entry.action}**\n\n${entry.content || '*(no content)*'}`
+            `${entry.content || '*(no content)*'}`
           ),
           mode: vscode.CommentMode.Preview,
           author: {
             name: entry.author
           },
-          label: new Date(entry.timestamp).toLocaleString()
+          label: label
           // Don't set reactions property - leaving it undefined disables reactions UI
         };
         historyComments.push(historyComment);
@@ -425,6 +483,9 @@ export class CommentController {
    * Enable edit mode for a note
    */
   async enableEditMode(noteId: string, filePath: string): Promise<void> {
+    // Close all other comment editors first
+    this.closeAllCommentEditors();
+
     const note = await this.noteManager.getNoteById(noteId, filePath);
     if (!note) {
       vscode.window.showErrorMessage('Note not found');
@@ -435,6 +496,9 @@ export class CommentController {
     if (!thread) {
       return;
     }
+
+    // Expand the thread
+    thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
 
     // Switch comment to edit mode
     if (thread.comments.length > 0) {

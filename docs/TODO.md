@@ -972,7 +972,7 @@ All critical bugs have been fixed! The extension now works correctly for:
   3. All unit tests continue to pass (41 tests)
 - **Location**:
   - `.nycrc` - simplified configuration (lines 1-23)
-- **Version**: Fixed post-v0.1.4 (not yet released)
+- **Version**: Fixed in v0.1.5 (pending release)
 
 **Test Status After Fixes:**
 - ✅ 41 unit tests passing (storageManager: 22 tests, gitIntegration: 19 tests)
@@ -980,3 +980,224 @@ All critical bugs have been fixed! The extension now works correctly for:
 - ✅ Tests run using TypeScript compilation (compile:tsc) for easier debugging
 - ✅ Production extension uses esbuild for optimal bundle size and performance
 - ⚠️ Coverage reporting still needs adjustment for esbuild bundled output (low priority)
+
+**9. Fixed keyboard shortcuts not using modern comment UI (Post v0.1.4)**
+
+- **Issue**: Multiple keyboard shortcuts were using old UI patterns instead of the modern comment editor interface
+  1. Ctrl+Alt+N (Cmd+Alt+N) for adding notes used a simple input box
+  2. Ctrl+Alt+H (Cmd+Alt+H) for viewing history opened a separate markdown document
+- **Root Cause**:
+  1. The `addNote` command used `vscode.window.showInputBox()` instead of the comment editor
+  2. The `viewHistory` command used `vscode.window.showTextDocument()` instead of showing history in the comment thread
+  3. These were inconsistent with the modern UI used by buttons (which properly use comment threads)
+- **Fix**: Updated both commands to use the comment controller methods:
+  1. `addNote` now uses `commentController.openCommentEditor()` (same as CodeLens)
+  2. `viewHistory` now uses `commentController.showHistoryInThread()` (same as history button)
+- **Why this works**:
+  1. **For addNote**: Comment editor provides multi-line input, markdown support, formatting shortcuts (Ctrl/Cmd+B, I, K), and Save/Cancel buttons
+  2. **For viewHistory**: History displays inline in the comment thread, preserving context and allowing users to stay in their editor
+  3. Consistent UX across all interaction methods (keyboard shortcuts, buttons, and CodeLens)
+  4. Better integration with VSCode's native comment system
+- **Keyboard Shortcuts Status**:
+  - ✅ **Ctrl+Alt+N** - Add Note (now opens comment editor)
+  - ✅ **Ctrl+Alt+H** - View History (now shows in comment thread)
+  - ✅ **Ctrl+Alt+D** - Delete Note (already correct - shows confirmation dialog)
+  - ✅ **Ctrl+Alt+R** - Refresh Notes (already correct - refreshes UI)
+  - ✅ **Ctrl/Cmd+B, I, K, etc.** - Markdown formatting (only work in comment editor)
+- **Location**:
+  - `src/extension.ts` - updated `addNote` command (lines 167-196)
+  - `src/extension.ts` - updated `viewHistory` command (lines 282-318)
+- **Version**: Fixed in v0.1.5 (pending release)
+
+**10. Fixed + icon comment editor not saving notes (Post v0.1.4)**
+
+- **Issue**: When clicking the + icon in the editor gutter to add a comment without selecting code, the comment editor opens but clicking Save doesn't save the note
+- **Root Cause**: The `handleSaveNewNote` method expected threads to have custom properties (`tempId` and `sourceDocument`) that are only set by our `openCommentEditor()` method. When VSCode creates threads via the + icon, these properties don't exist, causing the method to fail silently because it couldn't find the document
+- **Fix**: Updated `handleSaveNewNote` to handle both cases:
+  1. Threads created by our code (via keyboard shortcuts or CodeLens) - uses the custom `sourceDocument` property
+  2. Threads created by VSCode's + icon - finds the document by matching URIs from `vscode.workspace.textDocuments`
+  3. Falls back to `vscode.workspace.openTextDocument(thread.uri)` if document not found in workspace
+  4. Shows error message if document still cannot be found
+- **Why this works**:
+  1. The thread always has a `uri` property regardless of how it was created
+  2. We can reliably find the document by matching its URI
+  3. Handles all thread creation scenarios: keyboard shortcuts, CodeLens, and VSCode's native + icon
+  4. Provides clear error messages if document cannot be found
+- **Location**:
+  - `src/commentController.ts` - updated `handleSaveNewNote` method (lines 240-298)
+- **Version**: Fixed in v0.1.5 (pending release)
+
+
+## Enhancement: Auto-Collapse All Other Notes
+
+**Task:** Auto-collapse all other notes when opening/editing/viewing a note
+**Status:** COMPLETE
+**Date:** October 19, 2025
+
+**Implementation:**
+
+1. **New Helper Method: `closeAllCommentEditors()`** (commentController.ts:198-220)
+   - Collapses ALL comment threads (not just expanded ones)
+   - Distinguishes between temporary threads (new notes) and editing threads
+   - Disposes temporary/editing threads completely
+   - Collapses all other threads regardless of current state
+   - Ensures only one note is visible at a time
+
+2. **Updated Methods:**
+   - ✅ `openCommentEditor()` - Collapses all others before opening new note editor
+   - ✅ `enableEditMode()` - Collapses all others before editing existing note
+   - ✅ `focusNoteThread()` - Collapses all others before viewing/expanding note
+
+3. **Behavior:**
+   - When adding a new note (keyboard/CodeLens) → ALL other notes collapse
+   - When editing an existing note → ALL other notes collapse
+   - When viewing a note → ALL other notes collapse
+   - Only one note visible at a time for better focus
+   - Cleaner, more focused editing experience with reduced visual clutter
+
+4. **Testing:**
+   - ✅ Code compiles successfully
+   - ✅ No TypeScript errors
+   - ✅ Build passes with esbuild
+
+**Location:**
+- `src/commentController.ts` - added `closeAllCommentEditors()` method (lines 198-220)
+- `src/commentController.ts` - updated `openCommentEditor()` (line 233)
+- `src/commentController.ts` - updated `enableEditMode()` (line 492)
+- `src/commentController.ts` - updated `focusNoteThread()` (line 420)
+
+**Version**: v0.1.5
+
+---
+
+## Enhancement: Full Note Hiding When Opening New Editor
+
+**Task:** Completely hide all note editors when opening a new one (not just collapse input)
+**Status:** COMPLETE
+**Date:** October 19, 2025
+
+**Implementation:**
+
+1. **Updated `closeAllCommentEditors()` Method** (commentController.ts:209-220)
+   - Changed behavior from selective collapse to complete disposal
+   - Now disposes ALL comment threads completely (temp, editing, expanded, and collapsed)
+   - Clears all threads from the tracking map
+   - Ensures complete hiding from the editor view
+
+2. **Previous Behavior:**
+   - Temporary/editing threads were disposed
+   - Expanded threads were collapsed
+   - Already collapsed threads stayed collapsed
+   - Result: Notes were still visible in collapsed state
+
+3. **New Behavior:**
+   - ALL threads disposed completely regardless of state
+   - All threads removed from tracking map
+   - Result: Full hiding - no notes visible in editor at all
+   - Only the new editor being opened will be visible
+
+4. **Why This Works:**
+   - Disposal completely removes threads from the UI (not just collapses them)
+   - Clearing the map ensures clean state
+   - When a note is saved, a new thread is created via `createCommentThread()`
+   - User sees only the one note they're working on at any time
+
+**Benefits:**
+- Cleaner, more focused editing experience
+- No visual clutter from collapsed notes
+- Improved concentration on current task
+- Better UX for note management
+
+**Testing:**
+- ✅ Code compiles successfully
+- ✅ No TypeScript errors
+- ✅ Build passes with esbuild
+
+**Location:**
+- `src/commentController.ts` - simplified `closeAllCommentEditors()` method (lines 209-220)
+
+**Version**: v0.1.5
+
+---
+
+## Enhancement: Ctrl+Enter Keyboard Shortcut for Saving Notes
+
+**Task:** Add Ctrl+Enter (Cmd+Enter on Mac) keyboard shortcut to save/update notes
+**Status:** COMPLETE
+**Date:** October 19, 2025
+
+**Implementation:**
+
+1. **New Keybinding Added** (package.json:195-200)
+   - Command: `codeContextNotes.saveNote`
+   - Key: `ctrl+enter` (Windows/Linux)
+   - Key: `cmd+enter` (macOS)
+   - Context: `commentEditorFocused` (only active in comment editor)
+
+2. **Behavior:**
+   - When creating a new note: Press Ctrl+Enter to save the note
+   - When editing an existing note: Press Ctrl+Enter to save changes
+   - Only works when focused in the comment editor input field
+   - Same command as the Save button in the UI
+
+3. **Benefits:**
+   - Faster workflow - no need to click the Save button
+   - Familiar keyboard shortcut (common in many apps)
+   - Consistent with VSCode's comment submission patterns
+   - Works for both new notes and updates
+
+**Testing:**
+- ✅ Code compiles successfully
+- ✅ No TypeScript errors
+- ✅ Build passes with esbuild
+
+**Location:**
+- `package.json` - added keybinding configuration (lines 195-200)
+
+**Version**: v0.1.5
+
+---
+
+## UI Improvement: Enhanced Labels with Relevant Information
+
+**Task:** Improve labels across all note views with more relevant, useful information
+**Status:** COMPLETE
+**Date:** October 19, 2025
+
+**Implementation:**
+
+1. **New Note Editor** (openCommentEditor - line 256)
+   - Label: `"Add your note"`
+   - Clearer call-to-action instead of generic "Start discussion"
+
+2. **View/Edit Notes** (createComment - lines 98-115)
+   - Smart label showing update status:
+     - If note has been edited: `"Last updated [date]"`
+     - If note is new (no history): `"Created [date]"`
+   - Automatically detects most recent change from history
+   - Provides at-a-glance information about note freshness
+
+3. **History Entries** (showHistoryInThread - lines 464-481)
+   - Descriptive label: `"[Action] on [date] at [time]"`
+   - Example: `"Updated on 10/19/2025 at 2:30:00 PM"`
+   - Shows action type (Created, Updated, Deleted) with full timestamp
+   - Content in body (without action prefix for cleaner display)
+
+**Benefits:**
+- More informative labels that provide useful context
+- Users can quickly see when notes were last modified
+- History entries clearly show what action was taken and when
+- Better UX with actionable and informative labels
+- Maintains clean UI while adding valuable information
+
+**Testing:**
+- ✅ Code compiles successfully
+- ✅ No TypeScript errors
+- ✅ Build passes with esbuild
+
+**Location:**
+- `src/commentController.ts` - enhanced label in `openCommentEditor()` (line 256)
+- `src/commentController.ts` - smart label logic in `createComment()` (lines 98-115)
+- `src/commentController.ts` - detailed label in `showHistoryInThread()` (lines 464-481)
+
+**Version**: v0.1.5
