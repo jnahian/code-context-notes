@@ -981,16 +981,30 @@ All critical bugs have been fixed! The extension now works correctly for:
 - ✅ Production extension uses esbuild for optimal bundle size and performance
 - ⚠️ Coverage reporting still needs adjustment for esbuild bundled output (low priority)
 
-**9. Fixed keyboard shortcut not opening comment editor (Post v0.1.4)**
+**9. Fixed keyboard shortcuts not using modern comment UI (Post v0.1.4)**
 
-- **Issue**: The keyboard shortcut Ctrl+Alt+N (Cmd+Alt+N on Mac) for adding notes was using an old simple input box instead of opening the modern comment editor UI
-- **Root Cause**: The `addNote` command was implemented using `vscode.window.showInputBox()` which only provides a single-line text input, while the CodeLens "Add Note" command properly uses the comment editor UI with markdown support, Save/Cancel buttons, and formatting shortcuts
-- **Fix**: Updated the `addNote` command to use `commentController.openCommentEditor()` instead of `showInputBox()`, making it consistent with the CodeLens approach
+- **Issue**: Multiple keyboard shortcuts were using old UI patterns instead of the modern comment editor interface
+  1. Ctrl+Alt+N (Cmd+Alt+N) for adding notes used a simple input box
+  2. Ctrl+Alt+H (Cmd+Alt+H) for viewing history opened a separate markdown document
+- **Root Cause**:
+  1. The `addNote` command used `vscode.window.showInputBox()` instead of the comment editor
+  2. The `viewHistory` command used `vscode.window.showTextDocument()` instead of showing history in the comment thread
+  3. These were inconsistent with the modern UI used by buttons (which properly use comment threads)
+- **Fix**: Updated both commands to use the comment controller methods:
+  1. `addNote` now uses `commentController.openCommentEditor()` (same as CodeLens)
+  2. `viewHistory` now uses `commentController.showHistoryInThread()` (same as history button)
 - **Why this works**:
-  1. The comment editor provides a better UX with multi-line input, markdown preview, and formatting toolbar
-  2. Users can use keyboard shortcuts (Ctrl/Cmd+B for bold, Ctrl/Cmd+I for italic, etc.) in the comment editor
-  3. Save and Cancel buttons give users control over the note creation process
-  4. Consistent behavior between keyboard shortcut and CodeLens "Add Note" command
+  1. **For addNote**: Comment editor provides multi-line input, markdown support, formatting shortcuts (Ctrl/Cmd+B, I, K), and Save/Cancel buttons
+  2. **For viewHistory**: History displays inline in the comment thread, preserving context and allowing users to stay in their editor
+  3. Consistent UX across all interaction methods (keyboard shortcuts, buttons, and CodeLens)
+  4. Better integration with VSCode's native comment system
+- **Keyboard Shortcuts Status**:
+  - ✅ **Ctrl+Alt+N** - Add Note (now opens comment editor)
+  - ✅ **Ctrl+Alt+H** - View History (now shows in comment thread)
+  - ✅ **Ctrl+Alt+D** - Delete Note (already correct - shows confirmation dialog)
+  - ✅ **Ctrl+Alt+R** - Refresh Notes (already correct - refreshes UI)
+  - ✅ **Ctrl/Cmd+B, I, K, etc.** - Markdown formatting (only work in comment editor)
 - **Location**:
-  - `src/extension.ts` - updated `addNote` command handler (lines 167-196)
+  - `src/extension.ts` - updated `addNote` command (lines 167-196)
+  - `src/extension.ts` - updated `viewHistory` command (lines 282-318)
 - **Version**: Fixed post-v0.1.4 (not yet released)

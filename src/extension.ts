@@ -279,10 +279,15 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		}
 	);
 
-	// View Note History
+	// View Note History (via keyboard shortcut)
 	const viewHistoryCommand = vscode.commands.registerCommand(
 		'codeContextNotes.viewHistory',
 		async () => {
+			if (!noteManager || !commentController) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+
 			const editor = vscode.window.activeTextEditor;
 			if (!editor) {
 				vscode.window.showErrorMessage('No active editor');
@@ -304,17 +309,8 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 			}
 
 			try {
-				const history = await noteManager.getNoteHistory(note.id, filePath);
-				const historyText = history.map(h =>
-					`${new Date(h.timestamp).toLocaleString()} - ${h.author} - ${h.action}\n${h.content}\n`
-				).join('\n---\n\n');
-
-				const doc = await vscode.workspace.openTextDocument({
-					content: `# Note History\n\n${historyText}`,
-					language: 'markdown'
-				});
-
-				await vscode.window.showTextDocument(doc);
+				// Show history in comment thread (same as the button)
+				await commentController.showHistoryInThread(note.id, filePath);
 			} catch (error) {
 				vscode.window.showErrorMessage(`Failed to view history: ${error}`);
 			}
