@@ -3,9 +3,9 @@
  * Manages VSCode comment threads for note UI
  */
 
-import * as vscode from 'vscode';
-import { Note, LineRange } from './types.js';
+import * as vscode from "vscode";
 import { NoteManager } from './noteManager.js';
+import { LineRange, Note } from "./types.js";
 
 /**
  * CommentController manages the comment UI for notes
@@ -24,15 +24,15 @@ export class CommentController {
 
     // Create the comment controller
     this.commentController = vscode.comments.createCommentController(
-      'codeContextNotes',
-      'Code Context Notes'
+      "codeContextNotes",
+      "Code Context Notes"
     );
 
     this.commentController.commentingRangeProvider = {
       provideCommentingRanges: (document: vscode.TextDocument) => {
         // Allow commenting on any line
         return [new vscode.Range(0, 0, document.lineCount - 1, 0)];
-      }
+      },
     };
 
     // Register for disposal
@@ -40,8 +40,8 @@ export class CommentController {
 
     // Set up comment options to support markdown with formatting hints
     this.commentController.options = {
-      prompt: 'Add a note (supports markdown)',
-      placeHolder: 'Write your note here...'
+      prompt: "Add a note (supports markdown)",
+      placeHolder: "Write your note here...",
     };
 
     // Disable reactions by not setting a reactionHandler
@@ -99,9 +99,10 @@ export class CommentController {
 
     // Create a relevant label showing last update info
     const createdDate = new Date(note.createdAt);
-    const lastUpdated = note.history && note.history.length > 0
-      ? new Date(note.history[note.history.length - 1].timestamp)
-      : createdDate;
+    const lastUpdated =
+      note.history && note.history.length > 0
+        ? new Date(note.history[note.history.length - 1].timestamp)
+        : createdDate;
 
     const isUpdated = note.history && note.history.length > 0;
     const label = isUpdated
@@ -112,11 +113,11 @@ export class CommentController {
       body: markdownBody,
       mode: vscode.CommentMode.Preview,
       author: {
-        name: note.author
+        name: note.author,
       },
       label: label,
       // @ts-ignore - VSCode API supports this but types might be incomplete
-      contextValue: note.id
+      contextValue: note.id,
       // Don't set reactions property - leaving it undefined disables reactions UI
     };
 
@@ -177,7 +178,9 @@ export class CommentController {
   /**
    * Refresh comment threads for a document
    */
-  async refreshCommentsForDocument(document: vscode.TextDocument): Promise<void> {
+  async refreshCommentsForDocument(
+    document: vscode.TextDocument
+  ): Promise<void> {
     const filePath = document.uri.fsPath;
 
     // Clear existing threads for this document
@@ -200,7 +203,7 @@ export class CommentController {
       }
     }
 
-    threadsToDelete.forEach(id => this.commentThreads.delete(id));
+    threadsToDelete.forEach((id) => this.commentThreads.delete(id));
   }
 
   /**
@@ -224,13 +227,16 @@ export class CommentController {
     }
 
     // Clear all threads from the map
-    threadsToDelete.forEach(id => this.commentThreads.delete(id));
+    threadsToDelete.forEach((id) => this.commentThreads.delete(id));
 
     // Clear editing state only if we're not keeping a specific thread
     if (!exceptNoteId) {
       this.currentlyEditingNoteId = null;
       this.currentlyCreatingThreadId = null;
-    } else if (this.currentlyEditingNoteId && this.currentlyEditingNoteId !== exceptNoteId) {
+    } else if (
+      this.currentlyEditingNoteId &&
+      this.currentlyEditingNoteId !== exceptNoteId
+    ) {
       // Clear editing state if the editing note is being closed
       this.currentlyEditingNoteId = null;
     }
@@ -248,7 +254,7 @@ export class CommentController {
 
     const lineRange: LineRange = {
       start: range.start.line,
-      end: range.end.line
+      end: range.end.line,
     };
 
     // Create a temporary comment thread to collect input
@@ -260,7 +266,7 @@ export class CommentController {
 
     thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
     thread.canReply = true;
-    thread.label = 'Add your note';
+    thread.label = "Add your note";
 
     // Store thread temporarily with range info for the input handler
     const tempId = `temp-${Date.now()}`;
@@ -285,20 +291,23 @@ export class CommentController {
     const tempId = (thread as any).tempId;
 
     // Get document - either from our custom property or find it by URI
-    let document: vscode.TextDocument | undefined = (thread as any).sourceDocument as vscode.TextDocument;
+    let document: vscode.TextDocument | undefined = (thread as any)
+      .sourceDocument as vscode.TextDocument;
 
     if (!document) {
       // Thread was created by VSCode's + icon, not our openCommentEditor method
       // Find the document by URI
       const docs = vscode.workspace.textDocuments;
-      document = docs.find(d => d.uri.toString() === thread.uri.toString());
+      document = docs.find((d) => d.uri.toString() === thread.uri.toString());
 
       if (!document) {
         // Try to open the document
         try {
           document = await vscode.workspace.openTextDocument(thread.uri);
         } catch (error) {
-          vscode.window.showErrorMessage('Could not find the document for this note');
+          vscode.window.showErrorMessage(
+            "Could not find the document for this note"
+          );
           thread.dispose();
           return;
         }
@@ -307,7 +316,9 @@ export class CommentController {
 
     // Final check - document must be defined at this point
     if (!document) {
-      vscode.window.showErrorMessage('Could not find the document for this note');
+      vscode.window.showErrorMessage(
+        "Could not find the document for this note"
+      );
       thread.dispose();
       if (tempId) {
         this.commentThreads.delete(tempId);
@@ -325,7 +336,7 @@ export class CommentController {
 
     const lineRange: LineRange = {
       start: thread.range.start.line,
-      end: thread.range.end.line
+      end: thread.range.end.line,
     };
 
     // Create the actual note
@@ -333,7 +344,7 @@ export class CommentController {
       {
         filePath: document.uri.fsPath,
         lineRange,
-        content
+        content,
       },
       document
     );
@@ -361,14 +372,14 @@ export class CommentController {
   ): Promise<Note> {
     const lineRange: LineRange = {
       start: range.start.line,
-      end: range.end.line
+      end: range.end.line,
     };
 
     const note = await this.noteManager.createNote(
       {
         filePath: document.uri.fsPath,
         lineRange,
-        content
+        content,
       },
       document
     );
@@ -390,7 +401,7 @@ export class CommentController {
     const note = await this.noteManager.updateNote(
       {
         id: noteId,
-        content
+        content,
       },
       document
     );
@@ -440,7 +451,7 @@ export class CommentController {
       // Thread doesn't exist, need to get the note and create it
       const note = await this.noteManager.getNoteById(noteId, filePath);
       if (!note) {
-        vscode.window.showErrorMessage('Note not found');
+        vscode.window.showErrorMessage("Note not found");
         return;
       }
       thread = this.createCommentThread(document, note);
@@ -448,13 +459,6 @@ export class CommentController {
 
     // Expand the comment thread
     thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
-
-    // Move cursor to the note location
-    if (thread.range) {
-      const position = new vscode.Position(thread.range.start.line, 0);
-      editor.selection = new vscode.Selection(position, position);
-      editor.revealRange(thread.range, vscode.TextEditorRevealType.InCenter);
-    }
   }
 
   /**
@@ -463,7 +467,7 @@ export class CommentController {
   async showHistoryInThread(noteId: string, filePath: string): Promise<void> {
     const note = await this.noteManager.getNoteById(noteId, filePath);
     if (!note) {
-      vscode.window.showErrorMessage('Note not found');
+      vscode.window.showErrorMessage("Note not found");
       return;
     }
 
@@ -485,17 +489,19 @@ export class CommentController {
       for (let i = 0; i < note.history.length; i++) {
         const entry = note.history[i];
         const timestamp = new Date(entry.timestamp);
-        const label = `${entry.action} on ${timestamp.toLocaleDateString()} at ${timestamp.toLocaleTimeString()}`;
+        const label = `${
+          entry.action
+        } on ${timestamp.toLocaleDateString()} at ${timestamp.toLocaleTimeString()}`;
 
         const historyComment: vscode.Comment = {
           body: new vscode.MarkdownString(
-            `${entry.content || '*(no content)*'}`
+            `${entry.content || "*(no content)*"}`
           ),
           mode: vscode.CommentMode.Preview,
           author: {
-            name: entry.author
+            name: entry.author,
           },
-          label: label
+          label: label,
           // Don't set reactions property - leaving it undefined disables reactions UI
         };
         historyComments.push(historyComment);
@@ -519,7 +525,7 @@ export class CommentController {
 
     const note = await this.noteManager.getNoteById(noteId, filePath);
     if (!note) {
-      vscode.window.showErrorMessage('Note not found');
+      vscode.window.showErrorMessage("Note not found");
       return;
     }
 
@@ -543,7 +549,7 @@ export class CommentController {
       const editableComment: vscode.Comment = {
         ...comment,
         mode: vscode.CommentMode.Editing,
-        body: note.content // Plain text for editing
+        body: note.content, // Plain text for editing
         // Don't set reactions property - leaving it undefined disables reactions UI
       };
       thread.comments = [editableComment];
@@ -594,11 +600,14 @@ export class CommentController {
   /**
    * Save edited note by ID (finds the correct file automatically)
    */
-  async saveEditedNoteById(noteId: string, newContent: string): Promise<boolean> {
+  async saveEditedNoteById(
+    noteId: string,
+    newContent: string
+  ): Promise<boolean> {
     // Get the comment thread to find the file
     const thread = this.commentThreads.get(noteId);
     if (!thread) {
-      vscode.window.showErrorMessage('Note thread not found');
+      vscode.window.showErrorMessage("Note thread not found");
       return false;
     }
 
