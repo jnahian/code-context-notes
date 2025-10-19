@@ -1070,6 +1070,94 @@ All critical bugs have been fixed! The extension now works correctly for:
 
 ---
 
+## Enhancement: Full Note Hiding When Opening New Editor
+
+**Task:** Completely hide all note editors when opening a new one (not just collapse input)
+**Status:** COMPLETE
+**Date:** October 19, 2025
+
+**Implementation:**
+
+1. **Updated `closeAllCommentEditors()` Method** (commentController.ts:209-220)
+   - Changed behavior from selective collapse to complete disposal
+   - Now disposes ALL comment threads completely (temp, editing, expanded, and collapsed)
+   - Clears all threads from the tracking map
+   - Ensures complete hiding from the editor view
+
+2. **Previous Behavior:**
+   - Temporary/editing threads were disposed
+   - Expanded threads were collapsed
+   - Already collapsed threads stayed collapsed
+   - Result: Notes were still visible in collapsed state
+
+3. **New Behavior:**
+   - ALL threads disposed completely regardless of state
+   - All threads removed from tracking map
+   - Result: Full hiding - no notes visible in editor at all
+   - Only the new editor being opened will be visible
+
+4. **Why This Works:**
+   - Disposal completely removes threads from the UI (not just collapses them)
+   - Clearing the map ensures clean state
+   - When a note is saved, a new thread is created via `createCommentThread()`
+   - User sees only the one note they're working on at any time
+
+**Benefits:**
+- Cleaner, more focused editing experience
+- No visual clutter from collapsed notes
+- Improved concentration on current task
+- Better UX for note management
+
+**Testing:**
+- ✅ Code compiles successfully
+- ✅ No TypeScript errors
+- ✅ Build passes with esbuild
+
+**Location:**
+- `src/commentController.ts` - simplified `closeAllCommentEditors()` method (lines 209-220)
+
+**Version**: v0.1.5
+
+---
+
+## Enhancement: Ctrl+Enter Keyboard Shortcut for Saving Notes
+
+**Task:** Add Ctrl+Enter (Cmd+Enter on Mac) keyboard shortcut to save/update notes
+**Status:** COMPLETE
+**Date:** October 19, 2025
+
+**Implementation:**
+
+1. **New Keybinding Added** (package.json:195-200)
+   - Command: `codeContextNotes.saveNote`
+   - Key: `ctrl+enter` (Windows/Linux)
+   - Key: `cmd+enter` (macOS)
+   - Context: `commentEditorFocused` (only active in comment editor)
+
+2. **Behavior:**
+   - When creating a new note: Press Ctrl+Enter to save the note
+   - When editing an existing note: Press Ctrl+Enter to save changes
+   - Only works when focused in the comment editor input field
+   - Same command as the Save button in the UI
+
+3. **Benefits:**
+   - Faster workflow - no need to click the Save button
+   - Familiar keyboard shortcut (common in many apps)
+   - Consistent with VSCode's comment submission patterns
+   - Works for both new notes and updates
+
+**Testing:**
+- ✅ Code compiles successfully
+- ✅ No TypeScript errors
+- ✅ Build passes with esbuild
+
+**Location:**
+- `package.json` - added keybinding configuration (lines 195-200)
+
+**Version**: v0.1.5
+
+---
+
 ## UI Improvement: Enhanced Labels with Relevant Information
 
 **Task:** Improve labels across all note views with more relevant, useful information

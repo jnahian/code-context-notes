@@ -202,31 +202,21 @@ export class CommentController {
   }
 
   /**
-   * Close/collapse all comment threads except the one being worked on
+   * Close/hide all comment threads except the one being worked on
    * This ensures only one note is visible at a time for better focus
+   * Completely disposes all threads to fully hide them from the editor
    */
   private closeAllCommentEditors(): void {
-    for (const thread of this.commentThreads.values()) {
-      // Check if this is a temporary thread (being created)
-      const isTempThread = (thread as any).tempId !== undefined;
+    const threadsToDelete: string[] = [];
 
-      // Check if any comment is in edit mode
-      const hasEditingComment = thread.comments.some(
-        comment => comment.mode === vscode.CommentMode.Editing
-      );
-
-      if (isTempThread || hasEditingComment) {
-        // For temporary or editing threads, dispose them completely
-        const tempId = (thread as any).tempId;
-        thread.dispose();
-        if (tempId) {
-          this.commentThreads.delete(tempId);
-        }
-      } else {
-        // For all other threads (expanded or collapsed), ensure they are collapsed
-        thread.collapsibleState = vscode.CommentThreadCollapsibleState.Collapsed;
-      }
+    for (const [noteId, thread] of this.commentThreads.entries()) {
+      // Dispose the thread completely to hide it from the editor
+      thread.dispose();
+      threadsToDelete.push(noteId);
     }
+
+    // Clear all threads from the map
+    threadsToDelete.forEach(id => this.commentThreads.delete(id));
   }
 
   /**
