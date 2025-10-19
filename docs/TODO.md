@@ -1326,3 +1326,326 @@ The notification has been removed - canceling is now a silent action.
 - `src/extension.ts` - updated `cancelNewNoteCommand` (lines 448-458)
 
 **Version**: v0.1.7
+
+---
+
+## Architecture Analysis & Planning Phase
+
+**Task:** Comprehensive analysis of current architecture for migration planning
+**Status:** COMPLETE
+**Date:** October 19, 2025
+
+### Documentation Created
+
+**File:** `/Users/nahian/Projects/code-notes/docs/CURRENT-ARCHITECTURE-ANALYSIS.md`
+
+Comprehensive 500+ line analysis document covering:
+
+1. **Current Storage System**
+   - Location: `.code-notes/` directory with individual `.md` files per note
+   - File naming: `{noteId}.md` (UUID-based)
+   - Flat directory structure (all notes mixed in one folder)
+   - Linear O(N) search performance when loading notes for specific file
+
+2. **Data Model**
+   - Note interface with id, content, author, filePath, lineRange, contentHash
+   - LineRange: 0-based start/end line numbers
+   - NoteHistoryEntry: tracks all changes with timestamp and author
+   - Soft delete approach (marked with isDeleted flag)
+
+3. **Note-to-Code Association**
+   - File path: absolute path to source file
+   - Line range: contiguous line numbers
+   - Content hash: SHA-256 for tracking when code moves
+
+4. **Gutter Decorations & UI**
+   - CodeLens indicators above lines with notes
+   - VSCode native comment threads
+   - Comment thread shows: content, author, buttons (Edit, Delete, History)
+   - CodeLens preview: first 50 chars of note with markdown stripped
+
+5. **Command Architecture**
+   - 20+ commands for managing notes
+   - Add, view, edit, save, delete, history commands
+   - Markdown formatting shortcuts (Ctrl/Cmd+B, I, K, etc.)
+   - All registered in extension.ts with error handling
+
+6. **Key Components**
+   - NoteManager: central coordinator
+   - StorageManager: persistence layer
+   - CommentController: UI coordination
+   - CodeNotesLensProvider: visual indicators
+   - ContentHashTracker: code movement tracking
+   - GitIntegration: author name detection
+
+7. **Current Limitation: Single Note Per Line**
+   - CRITICAL FINDING: System designed for ONE note per line range
+   - Evidence: `find()` returns first match, comment thread per note ID
+   - Multiple notes on same line would be "hidden" (only first visible)
+   - Finding by cursor returns only one note, not multiple
+
+8. **Data Flow Diagrams**
+   - Creating a note: selection → editor → create → save → display
+   - Loading notes: open file → load from storage → cache → display
+   - Updating position: text change → validate hash → find new location → update
+
+9. **Storage Performance**
+   - Current: O(N) linear search through all notes
+   - Bottleneck: must read/parse ALL note files to find ones for specific file
+   - Cache helps but invalidates on document change
+   - Recommendation: Consider nested directory structure by file hash
+
+10. **Summary Table**
+    - Storage strategy: Flat .md files
+    - Query performance: O(N) linear
+    - Cache strategy: In-memory by filePath
+    - History: Complete change log per note
+    - Deletion: Soft delete
+    - Code tracking: SHA-256 hash + sliding window search
+    - UI: VSCode comments + CodeLens
+
+### Next Steps for Migration
+
+To support multiple notes per line, the following areas need changes:
+
+1. **Query Methods**: Return ALL notes for line range, not just first
+2. **Comment Thread Display**: Show multiple threads or tab interface
+3. **Finding by Cursor**: Handle ambiguity when multiple notes at cursor
+4. **Storage Optimization**: Consider organizing by file path (not just flat)
+5. **UI/UX**: Design for showing multiple notes (suggestions: tabs, list, toggle)
+
+### Files Analyzed
+
+Core source files reviewed:
+- `/Users/nahian/Projects/code-notes/src/types.ts` - All type definitions
+- `/Users/nahian/Projects/code-notes/src/storageManager.ts` - Persistence layer
+- `/Users/nahian/Projects/code-notes/src/noteManager.ts` - Central coordinator
+- `/Users/nahian/Projects/code-notes/src/commentController.ts` - UI coordination (675 lines)
+- `/Users/nahian/Projects/code-notes/src/codeLensProvider.ts` - Visual indicators
+- `/Users/nahian/Projects/code-notes/src/contentHashTracker.ts` - Code tracking
+- `/Users/nahian/Projects/code-notes/src/gitIntegration.ts` - Author detection
+- `/Users/nahian/Projects/code-notes/src/extension.ts` - Entry point (739 lines)
+
+**Total Lines Analyzed:** 3,000+ lines of code
+
+**Analysis Depth:** Architecture-level understanding including:
+- Data flow
+- Component interactions
+- Performance characteristics
+- Current limitations
+- Upgrade paths
+
+**Version**: v0.1.7+
+
+---
+
+## Feature Implementation: Multiple Notes Per Line (GitHub Issue #6)
+
+**Task:** Implement support for multiple context notes on a single line of code
+**Status:** COMPLETE (Core functionality implemented, ready for testing)
+**Date:** October 19, 2025
+**GitHub Issue:** #6 - [FEATURE] Support multiple notes on a single line
+
+### Implementation Overview
+
+Successfully implemented the ability to attach multiple notes to a single line of code, addressing a major limitation where users could only add one note per line.
+
+### Phase 1: Backend & Data Model Updates ✅ COMPLETE
+
+1. **NoteManager Query Methods** (src/noteManager.ts)
+   - ✅ Added `getNotesAtPosition(filePath, line)` - returns ALL notes at a position
+   - ✅ Added `getNotesInRange(filePath, lineRange)` - returns ALL notes in a range
+   - ✅ Added `hasNotesAtPosition(filePath, line)` - checks if line has any notes
+   - ✅ Added `countNotesAtPosition(filePath, line)` - counts notes at position
+   - ✅ Existing methods already return arrays, ready for multi-note support
+
+2. **Type Definitions** (src/types.ts)
+   - ✅ Added `MultiNoteThreadState` interface for managing thread state:
+     - `noteIds: string[]` - array of note IDs at position
+     - `currentIndex: number` - which note is currently displayed
+     - `lineRange: LineRange` - shared line range for all notes
+     - `filePath: string` - file path for the thread
+
+3. **Storage Layer** (src/storageManager.ts)
+   - ✅ No changes needed - already stores each note independently
+   - ✅ Multiple notes at same position already supported
+
+### Phase 2: UI & Thread Management ✅ COMPLETE
+
+1. **CommentController Multi-Note Support** (src/commentController.ts)
+   - ✅ Changed thread key from `noteId` to `filePath:lineStart` (one thread per line)
+   - ✅ Added `threadStates: Map<string, MultiNoteThreadState>` for state tracking
+   - ✅ Updated `createCommentThread()` to handle multiple notes per line
+   - ✅ Added `updateThreadDisplay()` to render current note with navigation
+   - ✅ Updated `createComment()` to add navigation header for multiple notes
+   - ✅ Added `createNavigationHeader()` with Previous/Next/Add Note buttons
+   - ✅ Added `navigateNextNote()` for cycling to next note
+   - ✅ Added `navigatePreviousNote()` for cycling to previous note
+   - ✅ Added `getCurrentNoteId()` to get currently displayed note
+   - ✅ Updated `updateCommentThread()` to refresh multi-note display
+   - ✅ Updated `deleteCommentThread()` to remove note or entire thread
+   - ✅ Updated `loadCommentsForDocument()` to group notes by line
+   - ✅ Updated `clearThreadsForDocument()` to clean up thread states
+
+2. **CodeLens Provider Updates** (src/codeLensProvider.ts)
+   - ✅ Updated `provideCodeLenses()` to group notes by line
+   - ✅ Updated `formatCodeLensTitle()` to show note count:
+     - Single note: "📝 Note: preview (author)"
+     - Multiple notes: "📝 Notes (3): preview... (author1, author2)"
+   - ✅ Shows unique authors when multiple notes exist
+   - ✅ Truncates author list if > 2 authors
+
+3. **Navigation UI Features**
+   - ✅ Thread label shows "Note 1 of 3" for multi-note threads
+   - ✅ Navigation header with clickable command links:
+     - Previous button (disabled on first note)
+     - Next button (disabled on last note)
+     - Add Note button to create another note at same line
+   - ✅ Markdown separator (---) between navigation and content
+   - ✅ Theme icons support for better visual appearance
+
+### Phase 3: Commands & Integration ✅ COMPLETE
+
+1. **New Commands** (src/extension.ts)
+   - ✅ `codeContextNotes.nextNote` - navigate to next note in thread
+   - ✅ `codeContextNotes.previousNote` - navigate to previous note in thread
+   - ✅ `codeContextNotes.addNoteToLine` - add another note to existing line
+   - ✅ All commands registered in context.subscriptions
+   - ✅ Error handling for all commands
+
+2. **Command Arguments**
+   - ✅ Navigation commands receive `{ threadKey: string }`
+   - ✅ Add note command receives `{ filePath: string, lineStart: number }`
+   - ✅ Arguments passed via command URI encoding in markdown
+
+### Technical Details
+
+**Thread Key Format:**
+```typescript
+threadKey = `${filePath}:${lineStart}`
+// Example: "/Users/project/src/main.ts:42"
+```
+
+**Thread State Management:**
+```typescript
+interface MultiNoteThreadState {
+  noteIds: ["uuid-1", "uuid-2", "uuid-3"],  // All notes at this line
+  currentIndex: 0,                           // Currently displaying first note
+  lineRange: { start: 42, end: 42 },        // Shared line range
+  filePath: "/Users/project/src/main.ts"    // File path
+}
+```
+
+**Navigation Flow:**
+1. User clicks "Next" button in note
+2. Command URI triggers `codeContextNotes.nextNote` with threadKey
+3. `navigateNextNote()` increments currentIndex
+4. `updateThreadDisplay()` refreshes comment with new note
+5. Thread label updates to "Note 2 of 3"
+
+**Delete Behavior:**
+- If multiple notes: Removes one note, keeps thread, adjusts index
+- If last note: Disposes thread completely and removes from state
+
+### Benefits & Features
+
+1. **Multiple Annotations Per Line**
+   - Add different types of notes (TODO, BUG, REFERENCE, NOTE)
+   - Multiple team members can annotate same line
+   - No conflicts or overwrites
+
+2. **Intuitive Navigation**
+   - Clear "Note X of Y" indicator
+   - Previous/Next buttons with visual state
+   - Quick add button for convenience
+   - Wrap-around navigation (disabled at boundaries)
+
+3. **Visual Clarity**
+   - CodeLens shows note count badge
+   - All authors displayed (truncated if many)
+   - Separation between navigation and content
+   - Theme-aware icon support
+
+4. **Backward Compatible**
+   - Existing single notes work unchanged
+   - No data migration needed
+   - Storage format unchanged
+   - All existing features preserved
+
+### Testing Status
+
+**Compilation:**
+- ✅ TypeScript compilation successful (0 errors)
+- ✅ esbuild bundling successful
+- ✅ No type errors or warnings
+
+**Manual Testing Needed:**
+- [ ] Create 2+ notes on same line
+- [ ] Navigate between notes using buttons
+- [ ] Add note to line with existing notes
+- [ ] Delete note from multi-note thread
+- [ ] Delete last note in thread
+- [ ] Verify CodeLens shows count
+- [ ] Test with code movement/refactoring
+- [ ] Test across file reload
+- [ ] Test keyboard shortcuts (if any)
+- [ ] Performance test with 10+ notes per line
+
+### Documentation Updates Needed
+
+- [ ] Update README.md with multi-note feature
+- [ ] Add screenshots showing note counter
+- [ ] Document navigation buttons
+- [ ] Update CHANGELOG.md for v0.2.0
+- [ ] Create GIF demo of navigation
+- [ ] Update QUICK_REFERENCE.md
+
+### Future Enhancements (Post-MVP)
+
+Potential improvements for future versions:
+
+1. **Note Categories** (v0.3.0)
+   - Add `category` field: TODO, BUG, REFERENCE, NOTE, QUESTION
+   - Color coding by category
+   - Filter/sort by category
+
+2. **Note List Sidebar** (v0.4.0)
+   - Tree view showing all notes
+   - Group by file, line, or category
+   - Quick navigation to notes
+   - Search/filter capabilities
+
+3. **Performance Optimization** (v1.0.0)
+   - Nested storage by file hash
+   - Metadata indexing for faster lookups
+   - Lazy loading for large note sets
+
+### Implementation Plan Document
+
+**File:** `/Users/nahian/Projects/code-notes/docs/MULTI-NOTE-IMPLEMENTATION-PLAN.md`
+
+Complete 500+ line implementation plan created with:
+- Executive summary
+- Current architecture constraints
+- Phased implementation strategy
+- UI/UX design decisions
+- Migration & compatibility plan
+- Testing strategy
+- Timeline estimates
+- Risk assessment
+- Success metrics
+
+### Version Planning
+
+**Target Version:** v0.2.0 (Next release)
+**Type:** Minor version (new feature, backward compatible)
+**Release Date:** TBD (after testing and documentation)
+
+### Related GitHub Issue
+
+**Issue:** #6 - [FEATURE] Support multiple notes on a single line
+**URL:** https://github.com/yourusername/code-notes/issues/6
+**Status:** Implementation complete, ready for testing
+
+---
+

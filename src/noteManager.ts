@@ -333,6 +333,43 @@ export class NoteManager {
   }
 
   /**
+   * Get all notes at a specific line position (supports multiple notes per line)
+   */
+  async getNotesAtPosition(filePath: string, line: number): Promise<Note[]> {
+    const notes = await this.getNotesForFile(filePath);
+    return notes.filter(note =>
+      line >= note.lineRange.start && line <= note.lineRange.end
+    );
+  }
+
+  /**
+   * Get all notes that overlap with a line range (supports multiple notes per line)
+   */
+  async getNotesInRange(filePath: string, lineRange: LineRange): Promise<Note[]> {
+    const notes = await this.getNotesForFile(filePath);
+    return notes.filter(note =>
+      // Check if ranges overlap
+      !(note.lineRange.end < lineRange.start || note.lineRange.start > lineRange.end)
+    );
+  }
+
+  /**
+   * Check if a line has any notes
+   */
+  async hasNotesAtPosition(filePath: string, line: number): Promise<boolean> {
+    const notes = await this.getNotesAtPosition(filePath, line);
+    return notes.length > 0;
+  }
+
+  /**
+   * Count notes at a specific line position
+   */
+  async countNotesAtPosition(filePath: string, line: number): Promise<number> {
+    const notes = await this.getNotesAtPosition(filePath, line);
+    return notes.length;
+  }
+
+  /**
    * Get the history of a note
    */
   async getNoteHistory(noteId: string, filePath: string): Promise<Note['history']> {

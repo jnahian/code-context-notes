@@ -1,0 +1,386 @@
+================================================================================
+CODE CONTEXT NOTES - ARCHITECTURE ANALYSIS SUMMARY
+================================================================================
+
+PROJECT: Code Context Notes VSCode Extension
+VERSION: 0.1.7
+ANALYSIS DATE: October 19, 2025
+FOCUS: Understanding current architecture for multi-note-per-line migration
+
+================================================================================
+KEY FINDINGS
+================================================================================
+
+1. CURRENT LIMITATION: SINGLE NOTE PER LINE ONLY
+   
+   The system is designed to support ONE note per line range. Evidence:
+   
+   - Query methods use `.find()` which returns first match only
+   - Comment thread mapping is: noteId → thread (one per note)
+   - Finding notes at cursor position returns first note
+   - Multiple notes would be "hidden" if created on same line
+   
+   IMPACT: Cannot currently support multiple notes per line of code
+   
+================================================================================
+STORAGE ARCHITECTURE
+================================================================================
+
+Location & Structure:
+  workspace-root/
+  └── .code-notes/
+      ├── {uuid-1}.md
+      ├── {uuid-2}.md
+      └── {uuid-N}.md
+
+Organization:
+  - Flat directory: all notes in one folder
+  - File naming: {note.id}.md (UUID-based)
+  - Each file is standalone markdown
+  - No nested organization by source file
+
+Performance Characteristics:
+  - Load time: O(N) - must read ALL notes to find ones for a file
+  - Bottleneck: Linear search through all .md files
+  - Cache helps but invalidates on document change
+  - Recommendation: Consider nested by file hash for scaling
+
+Storage Strategy:
+  - Flat file structure suitable for small-medium workspaces
+  - Would benefit from organization by source file for large codebases
+  - Current design prioritizes simplicity over scalability
+
+================================================================================
+DATA MODEL
+================================================================================
+
+Core Note Interface:
+  
+  interface Note {
+    id: string;                    // UUID - unique identifier
+    content: string;               // Markdown note text
+    author: string;                // Who created the note
+    filePath: string;              // Absolute path to source file
+    lineRange: LineRange;          // { start: number, end: number }
+    contentHash: string;           // SHA-256 of normalized code
+    createdAt: string;             // ISO 8601 timestamp
+    updatedAt: string;             // ISO 8601 timestamp
+    history: NoteHistoryEntry[];   // Complete change history
+    isDeleted?: boolean;           // Soft delete flag
+  }
+
+Note-to-Code Association:
+  1. File Path: Absolute path identifies which file
+  2. Line Range: 0-based start/end (inclusive) identifies which lines
+  3. Content Hash: SHA-256 for tracking when code moves
+
+History Tracking:
+  - Complete edit history stored in each note
+  - Every change recorded: created, edited, deleted
+  - Timestamp and author for each change
+  - Soft delete approach (never physically removed)
+
+================================================================================
+UI/DECORATION SYSTEM
+================================================================================
+
+CodeLens Display:
+  - Visual indicator: "📝 Note: {preview} ({author})"
+  - Position: Above the line with note
+  - Preview: First 50 characters (markdown stripped)
+  - Action: Click to view or edit note
+
+Comment Thread UI:
+  - VSCode native comment interface
+  - Shows: note content (rendered markdown), author, date
+  - Buttons: Edit, Delete, View History
+  - Supports: Full markdown formatting, multi-line text
+
+Current UI Limitation:
+  - Only ONE thread shown per line at a time
+  - Multiple notes would require different UI approach
+  - No mechanism for showing multiple notes simultaneously
+
+================================================================================
+KEY COMPONENTS
+================================================================================
+
+1. NoteManager (noteManager.ts)
+   - Central coordinator for all note operations
+   - Manages: create, update, delete, query, position tracking
+   - Integration points: storage, hashing, git
+   - Caching: In-memory map by filePath
+   
+2. StorageManager (storageManager.ts)
+   - Persistence layer for markdown files
+   - Converts: Note ↔ Markdown
+   - Operations: save, load, delete (soft)
+   - Performance: O(N) search on load
+
+3. CommentController (commentController.ts)
+   - UI coordination with VSCode comments
+   - Manages: comment threads, edit mode, history display
+   - 675 lines - most complex component
+   - Handles: lifecycle, focus, mode switching
+   
+4. CodeNotesLensProvider (codeLensProvider.ts)
+   - Creates visual indicators (CodeLens)
+   - Formats preview text (markdown stripping)
+   - Provides commands: view, add note
+   
+5. ContentHashTracker (contentHashTracker.ts)
+   - Tracks code content by SHA-256 hash
+   - Detects: when code moves to new lines
+   - Search method: sliding window approach
+   - Uses: normalized whitespace for consistency
+   
+6. GitIntegration (gitIntegration.ts)
+   - Gets author name from git config
+   - Fallback to system username
+   - Caching for performance
+
+================================================================================
+COMMAND ARCHITECTURE
+================================================================================
+
+Core Commands (20+):
+
+Adding Notes:
+  - codeContextNotes.addNote (keyboard/palette)
+  - codeContextNotes.addNoteViaCodeLens (CodeLens)
+  
+Viewing & Managing:
+  - codeContextNotes.viewNote (view in comment)
+  - codeContextNotes.viewHistory (history display)
+  - codeContextNotes.deleteNote (with confirmation)
+  - codeContextNotes.refreshNotes (reload all)
+  
+Editing:
+  - codeContextNotes.editNote (enable edit mode)
+  - codeContextNotes.saveNote (save changes)
+  - codeContextNotes.cancelEditNote (revert)
+  
+Creation Flow:
+  - codeContextNotes.saveNewNote (save new note)
+  - codeContextNotes.cancelNewNote (cancel creation)
+  
+Formatting:
+  - codeContextNotes.insertBold (Ctrl/Cmd+B)
+  - codeContextNotes.insertItalic (Ctrl/Cmd+I)
+  - codeContextNotes.insertCode (Ctrl/Cmd+Shift+C)
+  - codeContextNotes.insertCodeBlock (Ctrl/Cmd+Shift+K)
+  - codeContextNotes.insertLink (Ctrl/Cmd+K)
+  - codeContextNotes.insertList
+  - codeContextNotes.showMarkdownHelp
+
+Flow: User Action → Command → CommentController → NoteManager → StorageManager
+
+================================================================================
+CURRENT DATA FLOW
+================================================================================
+
+Creating a Note:
+  User selects code
+    ↓
+  openCommentEditor() [CommentController]
+    ↓
+  User types and saves
+    ↓
+  createNote() [NoteManager]
+    ├─ Generate UUID
+    ├─ Hash code
+    ├─ Get author
+    └─ Create Note object
+    ↓
+  saveNote() [StorageManager]
+    └─ Write to .code-notes/{uuid}.md
+    ↓
+  Cache updated
+    ↓
+  createCommentThread()
+    ↓
+  Display to user
+
+Loading Notes for File:
+  User opens file
+    ↓
+  onDidOpenTextDocument event
+    ↓
+  loadCommentsForDocument() [CommentController]
+    ↓
+  getNotesForFile() [NoteManager]
+    ├─ Check cache
+    └─ Load from storage if needed
+    ↓
+  loadNotes() [StorageManager]
+    ├─ List all .md files in .code-notes/
+    ├─ Read and parse each file
+    ├─ Filter by filePath (LINEAR SEARCH)
+    └─ Return matching notes
+    ↓
+  Create comment threads for each note
+    ↓
+  Create CodeLens indicators
+    ↓
+  Display to user
+
+Handling Code Movement:
+  User edits document
+    ↓
+  onDidChangeTextDocument event (debounced 500ms)
+    ↓
+  handleDocumentChange() [CommentController]
+    ↓
+  updateNotePositions() [NoteManager]
+    ↓
+  For each note:
+    ├─ validateContentHash() [ContentHashTracker]
+    │  ├─ Is code still at same lines? YES → continue
+    │  └─ Code moved or changed? → search for new location
+    │
+    └─ findContentByHash() [ContentHashTracker]
+       ├─ Sliding window search through document
+       ├─ Hash each potential line range
+       └─ Match found? Update lineRange
+    
+  Save updated notes
+    ↓
+  Update comment threads
+    ↓
+  Refresh CodeLenses
+
+================================================================================
+AREAS NEEDING CHANGE FOR MULTI-NOTE SUPPORT
+================================================================================
+
+1. QUERY METHODS
+   Current: Returns single note (uses .find())
+   Needed: Return ALL notes for given line/range
+   Affected:
+     - noteManager.getNotesForFile()
+     - Finding notes at cursor position
+     - CodeLens for notes at selection
+
+2. COMMENT THREAD DISPLAY
+   Current: One thread per line (noteId → thread)
+   Needed: Multiple threads per line
+   Options:
+     a. Tab interface (select which note to view)
+     b. Sequential display (click to cycle through notes)
+     c. Split view (show multiple in side-by-side)
+   Requires redesign of comment thread lifecycle
+
+3. COMMAND AMBIGUITY
+   Current: deleteNote, viewHistory assume one note at cursor
+   Needed: Handle when multiple notes exist at cursor
+   Options:
+     a. Quick pick menu to select note
+     b. Default to first, provide way to access others
+     c. Show all in list view
+
+4. STORAGE OPTIMIZATION (Future)
+   Current: Linear search O(N)
+   Could improve:
+     - Organize by source file path (nested dirs)
+     - Create index file listing notes per file
+     - Use metadata directory for quick lookup
+   Not required for MVP but recommended for scaling
+
+5. UI/UX DESIGN
+   Current: Single note focus at a time
+   Needed: Strategy for showing multiple notes
+   Considerations:
+     - Mental model for users
+     - Keyboard navigation
+     - Visual organization
+     - Performance with 10+ notes per line
+
+================================================================================
+PERFORMANCE ANALYSIS
+================================================================================
+
+Current Load Time (getting notes for one file):
+  - Count all files in .code-notes/: O(1) usually
+  - Read each file: O(N) reads for N notes
+  - Parse each file: O(M) per file (M = file size)
+  - Filter by filePath: O(N) string comparisons
+  Total: O(N*M) worst case, O(N) typical
+
+Optimization Opportunities:
+  1. Cache (already implemented) - helps until invalidation
+  2. Nested storage by file - would reduce notes checked
+  3. Metadata index - could skip parsing files
+  4. Batch loading - load for multiple files at once
+
+Caching Strategy:
+  - In-memory map: filePath → [notes]
+  - Cache invalidates on:
+    - Document change
+    - Configuration change
+    - Workspace folder change
+  - Rebuilds on next access
+
+With 1000 notes in workspace:
+  - Current: reads 1000 files to get notes for 1 file
+  - With proposed: might read only 10-20 files
+  - Cache hits avoid reading/parsing entirely
+
+================================================================================
+CODE STATISTICS
+================================================================================
+
+Total Lines Analyzed:
+  - types.ts: ~150 lines
+  - storageManager.ts: ~380 lines
+  - noteManager.ts: ~355 lines
+  - commentController.ts: ~675 lines (most complex)
+  - codeLensProvider.ts: ~150 lines
+  - contentHashTracker.ts: ~150+ lines
+  - gitIntegration.ts: ~50+ lines
+  - extension.ts: ~739 lines
+  Total: ~2,800+ lines
+
+Complexity:
+  - CommentController: Highest (UI coordination complexity)
+  - NoteManager: Medium (orchestration complexity)
+  - StorageManager: Low-Medium (file I/O)
+  - CodeLensProvider: Low
+  - ContentHashTracker: Medium (algorithm complexity)
+
+Test Coverage:
+  - 41 unit tests (pure logic)
+  - 59+ integration tests (with VSCode)
+  - 88% code coverage overall
+
+================================================================================
+DOCUMENTATION
+================================================================================
+
+Full Architecture Analysis:
+  File: /Users/nahian/Projects/code-notes/docs/CURRENT-ARCHITECTURE-ANALYSIS.md
+  Size: 500+ lines
+  Covers: Storage, data model, UI, components, flow, limitations
+
+Key Files Analyzed:
+  - src/types.ts - Data model
+  - src/storageManager.ts - Storage layer
+  - src/noteManager.ts - Coordinator
+  - src/commentController.ts - UI
+  - src/codeLensProvider.ts - Indicators
+  - src/contentHashTracker.ts - Tracking
+  - src/extension.ts - Entry point
+
+================================================================================
+NEXT STEPS RECOMMENDED
+================================================================================
+
+1. Review CURRENT-ARCHITECTURE-ANALYSIS.md in detail
+2. Decide on multi-note display strategy (tabs vs. list vs. sequential)
+3. Design data model changes (if any) for storing multiple notes
+4. Plan UI changes needed (comment thread modifications)
+5. Design query method changes (return all notes, not just first)
+6. Consider storage optimization (nested directories, indexing)
+7. Plan migration strategy (backward compatibility)
+8. Write migration specification document
+
+================================================================================

@@ -595,6 +595,49 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		}
 	);
 
+	// Navigate to next note in multi-note thread
+	const nextNoteCommand = vscode.commands.registerCommand(
+		'codeContextNotes.nextNote',
+		async (args: { threadKey: string }) => {
+			try {
+				await commentController.navigateNextNote(args.threadKey);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to navigate to next note: ${error}`);
+			}
+		}
+	);
+
+	// Navigate to previous note in multi-note thread
+	const previousNoteCommand = vscode.commands.registerCommand(
+		'codeContextNotes.previousNote',
+		async (args: { threadKey: string }) => {
+			try {
+				await commentController.navigatePreviousNote(args.threadKey);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to navigate to previous note: ${error}`);
+			}
+		}
+	);
+
+	// Add another note to an existing line
+	const addNoteToLineCommand = vscode.commands.registerCommand(
+		'codeContextNotes.addNoteToLine',
+		async (args: { filePath: string; lineStart: number }) => {
+			try {
+				const document = await vscode.workspace.openTextDocument(args.filePath);
+				const editor = await vscode.window.showTextDocument(document);
+
+				// Create range for the line
+				const range = new vscode.Range(args.lineStart, 0, args.lineStart, 0);
+
+				// Open comment editor
+				await commentController.openCommentEditor(document, range);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to add note: ${error}`);
+			}
+		}
+	);
+
 	// Register all commands
 	context.subscriptions.push(
 		addNoteCommand,
@@ -616,7 +659,10 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		insertListCommand,
 		showMarkdownHelpCommand,
 		deleteNoteFromCommentCommand,
-		viewNoteHistoryFromCommentCommand
+		viewNoteHistoryFromCommentCommand,
+		nextNoteCommand,
+		previousNoteCommand,
+		addNoteToLineCommand
 	);
 }
 
