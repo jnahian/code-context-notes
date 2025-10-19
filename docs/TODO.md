@@ -15,15 +15,14 @@
 - ✅ Package optimized (77KB)
 
 **Recent Updates:**
+- ✅ Removed cmd+enter keybinding due to inconsistent behavior
+  - VS Code API limitations prevent reliable cmd+enter support for both adding and editing notes
+  - Users should use the Save button in the comment UI for consistent behavior
+  - See docs/KEYBINDING_REMOVAL.md for detailed explanation
 - ✅ Fixed "Note thread not found" error when viewing note history
   - Modified closeAllCommentEditors to accept optional exceptNoteId parameter
   - Updated focusNoteThread, enableEditMode, and showHistoryInThread to recreate threads if they don't exist
   - Fixed thread lifecycle management to preserve threads when needed
-- ✅ Fixed cmd+enter keybinding error when saving/editing existing notes (Cannot read properties of undefined)
-  - Added tracking for currently editing comment in CommentController
-  - Updated saveNote command to handle missing comment parameter from keybindings
-  - Updated cancelEditNote command to handle missing comment parameter
-  - ⚠️ Note: cmd+enter for NEW notes is not supported due to VS Code API limitations (see docs/KEYBINDING_FIX.md)
 - ✅ README updated with "The Problem Solved" section explaining the value proposition
 - ✅ Enhanced problem statement highlighting non-invasive annotations and intelligent tracking
 - ✅ Added use cases for onboarding, technical debt, and implementation decisions

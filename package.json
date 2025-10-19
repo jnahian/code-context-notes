@@ -191,12 +191,6 @@
         "key": "ctrl+k",
         "mac": "cmd+k",
         "when": "commentEditorFocused"
-      },
-      {
-        "command": "codeContextNotes.saveNote",
-        "key": "ctrl+enter",
-        "mac": "cmd+enter",
-        "when": "commentEditorFocused"
       }
     ],
     "menus": {

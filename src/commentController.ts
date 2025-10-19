@@ -553,6 +553,8 @@ export class CommentController {
   /**
    * Get the comment that is currently being edited
    * Returns the comment object if a note is being edited, null otherwise
+   * Note: VS Code updates the comment body in the thread as the user types,
+   * so this should return the latest content
    */
   getCurrentlyEditingComment(): vscode.Comment | null {
     if (!this.currentlyEditingNoteId) {
@@ -564,7 +566,16 @@ export class CommentController {
       return null;
     }
 
-    return thread.comments[0];
+    // Get the first comment from the thread
+    // VS Code should update this comment's body as the user types in edit mode
+    const comment = thread.comments[0];
+
+    // Verify it's in edit mode
+    if (comment.mode !== vscode.CommentMode.Editing) {
+      return null;
+    }
+
+    return comment;
   }
 
   /**
