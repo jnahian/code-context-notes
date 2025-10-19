@@ -24,14 +24,13 @@ export function HeroSection() {
           </Badge>
 
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight max-w-4xl animate-in slide-in-from-bottom-6 duration-700 delay-400">
-            Smart Code Annotations with{" "}
-            <span className="text-brand-orange">Full History</span>
+            Code Annotations Without the{" "}
+            <span className="text-brand-orange">Code Pollution</span>
           </h1>
 
           <p className="text-xl text-muted-foreground max-w-2xl animate-in fade-in-0 duration-700 delay-500">
-            Add contextual notes to your code that stay with your code even when
-            line numbers change. Complete version history and intelligent
-            tracking included.
+            Stop cluttering your source files with comments. Add contextual notes that live alongside your code, 
+            track automatically through refactoring, and maintain complete version history.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 animate-in slide-in-from-bottom-4 duration-700 delay-600">

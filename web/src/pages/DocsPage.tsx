@@ -59,6 +59,84 @@ export function DocsPage() {
               </p>
             </div>
 
+            {/* Problem & Solution Overview */}
+            <Card id="overview" className="shadow-brand-drop bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-900 border-2 border-brand-orange">
+              <CardHeader>
+                <CardTitle className="text-2xl">What Problem Does This Solve?</CardTitle>
+                <CardDescription className="text-base">
+                  Understanding the core challenge and how Code Context Notes addresses it
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <h4 className="font-semibold mb-3 text-red-600 dark:text-red-400">The Problem</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-start space-x-2">
+                      <span className="text-red-500 font-bold">✗</span>
+                      <span className="text-muted-foreground">
+                        <strong>Code comments</strong> clutter source files and pollute git history
+                      </span>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <span className="text-red-500 font-bold">✗</span>
+                      <span className="text-muted-foreground">
+                        <strong>External documentation</strong> becomes outdated and disconnected from code
+                      </span>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <span className="text-red-500 font-bold">✗</span>
+                      <span className="text-muted-foreground">
+                        <strong>Important context</strong> gets lost over time
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-3 text-green-600 dark:text-green-400">The Solution</h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Code Context Notes provides contextual annotations that:
+                  </p>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-start space-x-2">
+                      <span className="text-green-500 font-bold">✓</span>
+                      <span className="text-muted-foreground">
+                        Live alongside your code without being part of it
+                      </span>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <span className="text-green-500 font-bold">✓</span>
+                      <span className="text-muted-foreground">
+                        Track code movement and refactoring automatically
+                      </span>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <span className="text-green-500 font-bold">✓</span>
+                      <span className="text-muted-foreground">
+                        Maintain complete version history
+                      </span>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <span className="text-green-500 font-bold">✓</span>
+                      <span className="text-muted-foreground">
+                        Integrate natively with VSCode's comment UI
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-brand-orange">
+                  <h4 className="font-semibold mb-2 text-brand-orange">Perfect For:</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>📝 Technical debt documentation</li>
+                    <li>🎓 Onboarding new developers</li>
+                    <li>💡 Implementation decisions</li>
+                    <li>🤝 Team knowledge sharing</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Installation */}
             <Card id="installation" className="shadow-brand-drop bg-white">
               <CardHeader>

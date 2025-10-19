@@ -12,6 +12,7 @@ export function TableOfContents() {
   const [tocItems, setTocItems] = useState<TOCItem[]>([]);
 
   const sections = [
+    { id: "overview", title: "Problem & Solution", level: 1 },
     { id: "installation", title: "Installation", level: 1 },
     { id: "quick-start", title: "Quick Start", level: 1 },
     { id: "keyboard-shortcuts", title: "Keyboard Shortcuts", level: 1 },

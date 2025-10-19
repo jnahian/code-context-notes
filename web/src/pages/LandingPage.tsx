@@ -4,6 +4,11 @@ import { PageTransition } from "@/components/PageTransition";
 import { LazySection } from "@/components/LazySection";
 
 // Lazy load sections that are below the fold
+const ProblemSolutionSection = lazy(() =>
+  import("@/components/landing").then((module) => ({
+    default: module.ProblemSolutionSection,
+  }))
+);
 const FeaturesSection = lazy(() =>
   import("@/components/landing").then((module) => ({
     default: module.FeaturesSection,
@@ -30,6 +35,10 @@ export function LandingPage() {
     <PageTransition>
       <div className="flex flex-col">
         <HeroSection />
+
+        <LazySection>
+          <ProblemSolutionSection />
+        </LazySection>
 
         <LazySection>
           <FeaturesSection />
