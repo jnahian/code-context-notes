@@ -972,7 +972,7 @@ All critical bugs have been fixed! The extension now works correctly for:
   3. All unit tests continue to pass (41 tests)
 - **Location**:
   - `.nycrc` - simplified configuration (lines 1-23)
-- **Version**: Fixed post-v0.1.4 (not yet released)
+- **Version**: Fixed in v0.1.5 (pending release)
 
 **Test Status After Fixes:**
 - ✅ 41 unit tests passing (storageManager: 22 tests, gitIntegration: 19 tests)
@@ -1007,7 +1007,7 @@ All critical bugs have been fixed! The extension now works correctly for:
 - **Location**:
   - `src/extension.ts` - updated `addNote` command (lines 167-196)
   - `src/extension.ts` - updated `viewHistory` command (lines 282-318)
-- **Version**: Fixed post-v0.1.4 (not yet released)
+- **Version**: Fixed in v0.1.5 (pending release)
 
 **10. Fixed + icon comment editor not saving notes (Post v0.1.4)**
 
@@ -1025,4 +1025,91 @@ All critical bugs have been fixed! The extension now works correctly for:
   4. Provides clear error messages if document cannot be found
 - **Location**:
   - `src/commentController.ts` - updated `handleSaveNewNote` method (lines 240-298)
-- **Version**: Fixed post-v0.1.4 (not yet released)
+- **Version**: Fixed in v0.1.5 (pending release)
+
+
+## Enhancement: Auto-Collapse All Other Notes
+
+**Task:** Auto-collapse all other notes when opening/editing/viewing a note
+**Status:** COMPLETE
+**Date:** October 19, 2025
+
+**Implementation:**
+
+1. **New Helper Method: `closeAllCommentEditors()`** (commentController.ts:198-220)
+   - Collapses ALL comment threads (not just expanded ones)
+   - Distinguishes between temporary threads (new notes) and editing threads
+   - Disposes temporary/editing threads completely
+   - Collapses all other threads regardless of current state
+   - Ensures only one note is visible at a time
+
+2. **Updated Methods:**
+   - ✅ `openCommentEditor()` - Collapses all others before opening new note editor
+   - ✅ `enableEditMode()` - Collapses all others before editing existing note
+   - ✅ `focusNoteThread()` - Collapses all others before viewing/expanding note
+
+3. **Behavior:**
+   - When adding a new note (keyboard/CodeLens) → ALL other notes collapse
+   - When editing an existing note → ALL other notes collapse
+   - When viewing a note → ALL other notes collapse
+   - Only one note visible at a time for better focus
+   - Cleaner, more focused editing experience with reduced visual clutter
+
+4. **Testing:**
+   - ✅ Code compiles successfully
+   - ✅ No TypeScript errors
+   - ✅ Build passes with esbuild
+
+**Location:**
+- `src/commentController.ts` - added `closeAllCommentEditors()` method (lines 198-220)
+- `src/commentController.ts` - updated `openCommentEditor()` (line 233)
+- `src/commentController.ts` - updated `enableEditMode()` (line 492)
+- `src/commentController.ts` - updated `focusNoteThread()` (line 420)
+
+**Version**: v0.1.5
+
+---
+
+## UI Improvement: Enhanced Labels with Relevant Information
+
+**Task:** Improve labels across all note views with more relevant, useful information
+**Status:** COMPLETE
+**Date:** October 19, 2025
+
+**Implementation:**
+
+1. **New Note Editor** (openCommentEditor - line 256)
+   - Label: `"Add your note"`
+   - Clearer call-to-action instead of generic "Start discussion"
+
+2. **View/Edit Notes** (createComment - lines 98-115)
+   - Smart label showing update status:
+     - If note has been edited: `"Last updated [date]"`
+     - If note is new (no history): `"Created [date]"`
+   - Automatically detects most recent change from history
+   - Provides at-a-glance information about note freshness
+
+3. **History Entries** (showHistoryInThread - lines 464-481)
+   - Descriptive label: `"[Action] on [date] at [time]"`
+   - Example: `"Updated on 10/19/2025 at 2:30:00 PM"`
+   - Shows action type (Created, Updated, Deleted) with full timestamp
+   - Content in body (without action prefix for cleaner display)
+
+**Benefits:**
+- More informative labels that provide useful context
+- Users can quickly see when notes were last modified
+- History entries clearly show what action was taken and when
+- Better UX with actionable and informative labels
+- Maintains clean UI while adding valuable information
+
+**Testing:**
+- ✅ Code compiles successfully
+- ✅ No TypeScript errors
+- ✅ Build passes with esbuild
+
+**Location:**
+- `src/commentController.ts` - enhanced label in `openCommentEditor()` (line 256)
+- `src/commentController.ts` - smart label logic in `createComment()` (lines 98-115)
+- `src/commentController.ts` - detailed label in `showHistoryInThread()` (lines 464-481)
+
+**Version**: v0.1.5
