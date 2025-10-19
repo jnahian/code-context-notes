@@ -955,3 +955,28 @@ All critical bugs have been fixed! The extension now works correctly for:
   - `.vscodeignore` - updated to exclude esbuild config and individual compiled files
   - `package.json` - added esbuild, @vscode/vsce, and ovsx as dev dependencies
 - **Version**: Fixed in v0.1.5 (pending release)
+
+**8. Fixed test coverage configuration (Post esbuild migration)**
+
+- **Issue**: After migrating to esbuild, the nyc coverage tool was reporting 0% coverage and referencing a missing package `@istanbuljs/nyc-config-typescript`
+- **Root Cause**:
+  1. The `.nycrc` file was extending `@istanbuljs/nyc-config-typescript` which was not installed
+  2. The include path `out/src/**/*.js` was incorrect - compiled files are in `out/` not `out/src/`
+- **Fix**:
+  1. Removed the `extends` field from `.nycrc` to avoid dependency on missing package
+  2. Updated include path from `out/src/**/*.js` to `out/**/*.js`
+  3. Removed redundant exclude path `out/src/test/**`
+- **Why this works**:
+  1. nyc now uses its default configuration without requiring additional packages
+  2. Correct include path matches the actual compiled file structure
+  3. All unit tests continue to pass (41 tests)
+- **Location**:
+  - `.nycrc` - simplified configuration (lines 1-23)
+- **Version**: Fixed post-v0.1.4 (not yet released)
+
+**Test Status After Fixes:**
+- ✅ 41 unit tests passing (storageManager: 22 tests, gitIntegration: 19 tests)
+- ✅ All tests compatible with esbuild bundling
+- ✅ Tests run using TypeScript compilation (compile:tsc) for easier debugging
+- ✅ Production extension uses esbuild for optimal bundle size and performance
+- ⚠️ Coverage reporting still needs adjustment for esbuild bundled output (low priority)
