@@ -1,14 +1,28 @@
 <div align="center">
   <img src="images/icon.png" alt="Code Context Notes" width="128" height="128">
-  
+
   # Code Context Notes
-  
+
   Add contextual notes to your code with full version history and intelligent tracking. Notes stay with your code even when line numbers change.
 
   [![VSCode Marketplace](https://img.shields.io/visual-studio-marketplace/v/jnahian.code-context-notes?style=for-the-badge&logo=visual-studio-code&label=VS%20Code)](https://marketplace.visualstudio.com/items?itemName=jnahian.code-context-notes)
   [![Open VSX](https://img.shields.io/open-vsx/v/jnahian/code-context-notes?style=for-the-badge&logo=eclipse-ide&label=Open%20VSX)](https://open-vsx.org/extension/jnahian/code-context-notes)
   [![Downloads](https://img.shields.io/visual-studio-marketplace/d/jnahian.code-context-notes?style=for-the-badge)](https://marketplace.visualstudio.com/items?itemName=jnahian.code-context-notes)
 </div>
+
+## The Problem Solved
+
+Ever found yourself working on a complex codebase and wished you could leave notes directly on the code? Traditional code comments clutter your source files and get lost in version control, while external documentation quickly becomes outdated.
+
+**Code Context Notes** solves this by providing:
+
+- **Non-invasive annotations** - Notes are stored separately from your code in `.code-notes/` directory
+- **Intelligent tracking** - Notes follow your code even when you move or refactor it
+- **Complete history** - Every edit is preserved with timestamps and authors
+- **Team collaboration** - Share notes with your team by committing the `.code-notes/` directory
+- **Native VSCode integration** - Uses VSCode's comment UI for a familiar, seamless experience
+
+Whether you're onboarding new developers, documenting technical debt, or keeping track of implementation decisions, Code Context Notes keeps your insights connected to your code without polluting your source files.
 
 ## Installation
 
