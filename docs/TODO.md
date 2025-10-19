@@ -15,6 +15,10 @@
 - ✅ Package optimized (77KB)
 
 **Recent Updates:**
+- ✅ Fixed "Note thread not found" error when viewing note history
+  - Modified closeAllCommentEditors to accept optional exceptNoteId parameter
+  - Updated focusNoteThread, enableEditMode, and showHistoryInThread to recreate threads if they don't exist
+  - Fixed thread lifecycle management to preserve threads when needed
 - ✅ Fixed cmd+enter keybinding error when saving/editing existing notes (Cannot read properties of undefined)
   - Added tracking for currently editing comment in CommentController
   - Updated saveNote command to handle missing comment parameter from keybindings
