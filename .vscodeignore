@@ -1,6 +1,21 @@
 # Source files
 src/**
 tsconfig.json
+esbuild.config.js
+
+# Test files
+out/test/**
+out/**/*.map
+out/**/*.js.map
+
+# Exclude individual compiled files (we use bundled extension.js)
+out/codeLensProvider.js
+out/commentController.js
+out/contentHashTracker.js
+out/gitIntegration.js
+out/noteManager.js
+out/storageManager.js
+out/types.js
 
 # Test files
 .nyc_output/**
@@ -21,6 +36,10 @@ CLAUDE.md
 NEXT_STEPS.md
 PROJECT_COMPLETE.md
 scripts/**
+
+# Web and app directories (not part of VSCode extension)
+web/**
+app/**
 
 # Documentation (keep only essential)
 docs/TODO.md

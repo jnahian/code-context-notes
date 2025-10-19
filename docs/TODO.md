@@ -932,3 +932,26 @@ All critical bugs have been fixed! The extension now works correctly for:
   - `src/extension.ts` - renamed `registerCommands()` to `registerAllCommands()`
   - `src/extension.ts` - added workspace checks to commands that need them (lines 161, 204, 221, 238, etc.)
 - **Version**: Fixed in v0.1.3
+
+**7. Fixed "Cannot find package 'vscode'" error in Cursor (v0.1.5)**
+
+- **Issue**: Extension installed from Open VSX registry in Cursor failed with error: `Error: Cannot find package 'vscode' imported from /Users/nahian/.cursor/extensions/jnahian.code-context-notes-0.1.4-universal/out/extension.js`
+- **Root Cause**: The extension was using ES modules (`"type": "module"` in package.json) and compiling TypeScript to individual .js files, but VSCode extensions need to be bundled as CommonJS with the `vscode` module externalized. The `vscode` module is not a real npm package - it's provided by the VSCode/Cursor runtime and must be properly externalized during bundling.
+- **Fix**:
+  1. Installed esbuild as dev dependency for proper bundling
+  2. Created `esbuild.config.js` with CommonJS output format and `vscode` as external
+  3. Updated package.json scripts to use esbuild for compilation (`npm run compile`)
+  4. Removed `"type": "module"` from package.json (CommonJS is default)
+  5. Updated `.vscodeignore` to exclude source files and build config
+  6. Extension now bundles to a single 32KB `out/extension.js` file in CommonJS format
+- **Why this works**:
+  1. esbuild bundles all TypeScript code into a single CommonJS file
+  2. The `vscode` module is marked as external, so it's not bundled but imported at runtime
+  3. CommonJS format is the standard for VSCode extensions and works in all editors (VSCode, Cursor, etc.)
+  4. Bundling reduces package size and improves load performance
+- **Location**:
+  - `esbuild.config.js` - new file with bundling configuration
+  - `package.json` - updated scripts (compile, watch) and removed "type": "module"
+  - `.vscodeignore` - updated to exclude esbuild config and individual compiled files
+  - `package.json` - added esbuild, @vscode/vsce, and ovsx as dev dependencies
+- **Version**: Fixed in v0.1.5 (pending release)
