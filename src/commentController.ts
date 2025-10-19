@@ -242,9 +242,39 @@ export class CommentController {
     content: string
   ): Promise<void> {
     const tempId = (thread as any).tempId;
-    const document = (thread as any).sourceDocument as vscode.TextDocument;
 
-    if (!document || !content || !thread.range) {
+    // Get document - either from our custom property or find it by URI
+    let document: vscode.TextDocument | undefined = (thread as any).sourceDocument as vscode.TextDocument;
+
+    if (!document) {
+      // Thread was created by VSCode's + icon, not our openCommentEditor method
+      // Find the document by URI
+      const docs = vscode.workspace.textDocuments;
+      document = docs.find(d => d.uri.toString() === thread.uri.toString());
+
+      if (!document) {
+        // Try to open the document
+        try {
+          document = await vscode.workspace.openTextDocument(thread.uri);
+        } catch (error) {
+          vscode.window.showErrorMessage('Could not find the document for this note');
+          thread.dispose();
+          return;
+        }
+      }
+    }
+
+    // Final check - document must be defined at this point
+    if (!document) {
+      vscode.window.showErrorMessage('Could not find the document for this note');
+      thread.dispose();
+      if (tempId) {
+        this.commentThreads.delete(tempId);
+      }
+      return;
+    }
+
+    if (!content || !thread.range) {
       thread.dispose();
       if (tempId) {
         this.commentThreads.delete(tempId);

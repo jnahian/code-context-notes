@@ -1008,3 +1008,21 @@ All critical bugs have been fixed! The extension now works correctly for:
   - `src/extension.ts` - updated `addNote` command (lines 167-196)
   - `src/extension.ts` - updated `viewHistory` command (lines 282-318)
 - **Version**: Fixed post-v0.1.4 (not yet released)
+
+**10. Fixed + icon comment editor not saving notes (Post v0.1.4)**
+
+- **Issue**: When clicking the + icon in the editor gutter to add a comment without selecting code, the comment editor opens but clicking Save doesn't save the note
+- **Root Cause**: The `handleSaveNewNote` method expected threads to have custom properties (`tempId` and `sourceDocument`) that are only set by our `openCommentEditor()` method. When VSCode creates threads via the + icon, these properties don't exist, causing the method to fail silently because it couldn't find the document
+- **Fix**: Updated `handleSaveNewNote` to handle both cases:
+  1. Threads created by our code (via keyboard shortcuts or CodeLens) - uses the custom `sourceDocument` property
+  2. Threads created by VSCode's + icon - finds the document by matching URIs from `vscode.workspace.textDocuments`
+  3. Falls back to `vscode.workspace.openTextDocument(thread.uri)` if document not found in workspace
+  4. Shows error message if document still cannot be found
+- **Why this works**:
+  1. The thread always has a `uri` property regardless of how it was created
+  2. We can reliably find the document by matching its URI
+  3. Handles all thread creation scenarios: keyboard shortcuts, CodeLens, and VSCode's native + icon
+  4. Provides clear error messages if document cannot be found
+- **Location**:
+  - `src/commentController.ts` - updated `handleSaveNewNote` method (lines 240-298)
+- **Version**: Fixed post-v0.1.4 (not yet released)
