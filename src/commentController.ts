@@ -15,6 +15,7 @@ export class CommentController {
   private commentController: vscode.CommentController;
   private noteManager: NoteManager;
   private commentThreads: Map<string, vscode.CommentThread>; // noteId -> CommentThread
+  private currentlyEditingNoteId: string | null = null; // Track which note is being edited
 
   constructor(noteManager: NoteManager, context: vscode.ExtensionContext) {
     this.noteManager = noteManager;
@@ -217,6 +218,9 @@ export class CommentController {
 
     // Clear all threads from the map
     threadsToDelete.forEach(id => this.commentThreads.delete(id));
+
+    // Clear editing state
+    this.currentlyEditingNoteId = null;
   }
 
   /**
@@ -497,6 +501,9 @@ export class CommentController {
       return;
     }
 
+    // Track which note is being edited
+    this.currentlyEditingNoteId = noteId;
+
     // Expand the thread
     thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
 
@@ -511,6 +518,23 @@ export class CommentController {
       };
       thread.comments = [editableComment];
     }
+  }
+
+  /**
+   * Get the comment that is currently being edited
+   * Returns the comment object if a note is being edited, null otherwise
+   */
+  getCurrentlyEditingComment(): vscode.Comment | null {
+    if (!this.currentlyEditingNoteId) {
+      return null;
+    }
+
+    const thread = this.commentThreads.get(this.currentlyEditingNoteId);
+    if (!thread || thread.comments.length === 0) {
+      return null;
+    }
+
+    return thread.comments[0];
   }
 
   /**
@@ -537,6 +561,9 @@ export class CommentController {
 
     // Update thread back to preview mode
     this.updateCommentThread(updatedNote, document);
+
+    // Clear editing state
+    this.currentlyEditingNoteId = null;
 
     return true;
   }

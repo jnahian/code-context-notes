@@ -363,7 +363,18 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 	// Save Note
 	const saveNoteCommand = vscode.commands.registerCommand(
 		'codeContextNotes.saveNote',
-		async (comment: vscode.Comment) => {
+		async (comment?: vscode.Comment) => {
+			// If comment is not provided (e.g., when triggered by keybinding),
+			// get the currently editing comment from the controller
+			if (!comment) {
+				const currentComment = commentController.getCurrentlyEditingComment();
+				if (!currentComment) {
+					vscode.window.showErrorMessage('No note is currently being edited');
+					return;
+				}
+				comment = currentComment;
+			}
+
 			const noteId = comment.contextValue;
 			if (!noteId) {
 				return;
@@ -387,10 +398,20 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 	// Cancel Edit Note
 	const cancelEditNoteCommand = vscode.commands.registerCommand(
 		'codeContextNotes.cancelEditNote',
-		async (comment: vscode.Comment) => {
+		async (comment?: vscode.Comment) => {
 			const editor = vscode.window.activeTextEditor;
 			if (!editor) {
 				return;
+			}
+
+			// If comment is not provided (e.g., when triggered by keybinding),
+			// get the currently editing comment from the controller
+			if (!comment) {
+				const currentComment = commentController.getCurrentlyEditingComment();
+				if (!currentComment) {
+					return;
+				}
+				comment = currentComment;
 			}
 
 			const noteId = comment.contextValue;
