@@ -531,6 +531,9 @@
 - [x] Write tests for contentHashTracker (19 tests - integration tests)
 - [x] Write tests for gitIntegration (19 tests)
 - [x] Write tests for noteManager (40+ tests - integration tests)
+- [x] Write tests for commentController (14 test suites, 40+ tests)
+- [x] Write tests for codeLensProvider (11 test suites, 50+ tests)
+- [x] Write tests for extension activation (12 test suites, 40+ tests)
 - [x] Write tests for markdown serialization (included in storageManager tests)
 - [x] Achieve >80% code coverage (88% achieved!)
 - [x] Add coverage reporting with nyc
@@ -538,9 +541,12 @@
 
 **Acceptance Criteria:**
 
-- [x] All core logic covered by tests (41 unit tests + 59+ integration tests)
+- [x] All core logic covered by tests (41 unit tests + 59+ integration tests + 130+ new tests)
 - [x] Tests pass consistently (100% pass rate)
 - [x] Coverage reports generated (HTML + text output)
+- [x] CommentController fully tested (14 test suites)
+- [x] CodeLensProvider fully tested (11 test suites)
+- [x] Extension activation fully tested (12 test suites)
 
 ---
 
@@ -556,17 +562,18 @@
 - [x] Write ContentHashTracker integration tests (19 tests)
 - [x] Write NoteManager integration tests (40+ tests)
 - [x] Test multi-file scenarios (covered in NoteManager tests)
-- [ ] Test note creation through comment UI
-- [ ] Test CodeLens rendering
-- [ ] Test document change handling
-- [ ] Test configuration changes
-- [ ] Test activation/deactivation
+- [x] Test note creation through comment UI (CommentController tests)
+- [x] Test CodeLens rendering (CodeLensProvider tests)
+- [x] Test document change handling (CommentController tests)
+- [x] Test configuration changes (Extension tests)
+- [x] Test activation/deactivation (Extension tests)
 
 **Acceptance Criteria:**
 
 - [x] Integration test framework ready
 - [x] Core logic integration tests complete (59+ tests)
-- [ ] UI interaction tests (future work)
+- [x] UI interaction tests (CommentController + CodeLensProvider + Extension tests - 130+ tests)
+- [x] All major components tested comprehensively
 - [ ] Tests automated in CI (future work)
 
 ---
@@ -766,8 +773,11 @@
 - ✅ GitIntegration unit tests (19 tests, 74% coverage)
 - ✅ ContentHashTracker tests (19 tests - requires VSCode integration)
 - ✅ NoteManager tests (40+ tests - requires VSCode integration)
-- ✅ Total: 41 pure unit tests + 59+ integration tests (100 total)
-- ✅ Code coverage: 88% overall (exceeds 80% target)
+- ✅ Total: 41 pure unit tests + 59+ integration tests + 130+ new tests (230+ total)
+- ✅ Code coverage: Comprehensive test coverage across all components
+- ✅ CommentController: 14 test suites covering thread management, CRUD, edit mode, history
+- ✅ CodeLensProvider: 11 test suites covering rendering, markdown stripping, formatting
+- ✅ Extension: 12 test suites covering activation, commands, configuration, lifecycle
 - ✅ Coverage reports: HTML + text output
 - ✅ Test documentation created (docs/TESTING.md)
 - ✅ Integration tests available and working
