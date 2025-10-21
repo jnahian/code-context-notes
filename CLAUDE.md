@@ -1,1 +1,1 @@
-- always update the docs/TODO.md after making any changes
+- Always write tasks for feature/improvement/bug-fixes to docs/TODO.md file, don't write for documentation or non functional changes
