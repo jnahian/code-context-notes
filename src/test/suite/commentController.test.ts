@@ -136,7 +136,7 @@ suite('CommentController Test Suite', () => {
 			}, document);
 
 			// Create comment thread
-			const thread = commentController.createCommentThread(document, note);
+			const thread = await commentController.createCommentThread(document, note);
 
 			assert.ok(thread, 'Thread should be created');
 			assert.strictEqual(thread.comments.length, 1, 'Thread should have one comment');
@@ -155,8 +155,8 @@ suite('CommentController Test Suite', () => {
 				content: 'Test note'
 			}, document);
 
-			const thread1 = commentController.createCommentThread(document, note);
-			const thread2 = commentController.createCommentThread(document, note);
+			const thread1 = await commentController.createCommentThread(document, note);
+			const thread2 = await commentController.createCommentThread(document, note);
 
 			assert.strictEqual(thread1, thread2, 'Should return same thread for same note');
 		});
@@ -172,7 +172,7 @@ suite('CommentController Test Suite', () => {
 				content: '**Bold** and *italic* text'
 			}, document);
 
-			const thread = commentController.createCommentThread(document, note);
+			const thread = await commentController.createCommentThread(document, note);
 			const comment = thread.comments[0];
 
 			assert.ok(comment.body instanceof vscode.MarkdownString);
@@ -194,7 +194,7 @@ suite('CommentController Test Suite', () => {
 				content: 'Original content'
 			}, document);
 
-			const thread = commentController.createCommentThread(document, note);
+			const thread = await commentController.createCommentThread(document, note);
 			const originalComment = thread.comments[0];
 			assert.ok((originalComment.body as vscode.MarkdownString).value.includes('Original content'));
 
@@ -222,13 +222,14 @@ suite('CommentController Test Suite', () => {
 				content: 'Test note'
 			}, document);
 
-			commentController.createCommentThread(document, note);
+			await commentController.createCommentThread(document, note);
 
 			// Delete thread - this should not throw
-			commentController.deleteCommentThread(note.id);
+			await commentController.deleteCommentThread(note.id, testFile);
 
 			// Verify thread is deleted by trying to get it
-			const noteId = commentController.getNoteIdFromThread(commentController.createCommentThread(document, note));
+			const newThread = await commentController.createCommentThread(document, note);
+			const noteId = commentController.getNoteIdFromThread(newThread);
 			assert.ok(noteId, 'Should be able to create new thread after deletion');
 		});
 
@@ -500,7 +501,7 @@ suite('CommentController Test Suite', () => {
 				content: 'Test note'
 			}, document);
 
-			const thread = commentController.createCommentThread(document, note);
+			const thread = await commentController.createCommentThread(document, note);
 			const comment = thread.comments[0];
 
 			assert.ok(comment.label);
@@ -518,7 +519,7 @@ suite('CommentController Test Suite', () => {
 				content: ''
 			}, document);
 
-			const thread = commentController.createCommentThread(document, note);
+			const thread = await commentController.createCommentThread(document, note);
 			assert.ok(thread);
 			assert.strictEqual(thread.comments.length, 1);
 		});
@@ -535,7 +536,7 @@ suite('CommentController Test Suite', () => {
 				content: specialContent
 			}, document);
 
-			const thread = commentController.createCommentThread(document, note);
+			const thread = await commentController.createCommentThread(document, note);
 			const comment = thread.comments[0];
 			assert.strictEqual((comment.body as vscode.MarkdownString).value, specialContent);
 		});

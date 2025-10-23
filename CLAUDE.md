@@ -1,3 +1,4 @@
 - Always write tasks for feature/improvement/bug-fixes to docs/TODO.md file, don't write for documentation or non functional changes
 - while updating changelog make sure to add one item for multiple todos of same features/improvements/fixes in a single release version
 - do not try to commit without my consent
+- call the test-writer when i ask for writing tests
