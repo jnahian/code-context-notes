@@ -678,35 +678,65 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 	// Add another note to an existing line
 	const addNoteToLineCommand = vscode.commands.registerCommand(
 		'codeContextNotes.addNoteToLine',
-		async (comment: vscode.Comment) => {
-			const contextValue = comment.contextValue;
-			if (!contextValue) {
-				return;
-			}
+		async (arg: vscode.Comment | { filePath: string; lineStart: number }) => {
+			let filePath: string | undefined;
+			let lineStart: number | undefined;
 
-			// Extract note ID (remove :multi suffix if present)
-			const noteId = contextValue.replace(/:multi$/, '');
+			// Detect argument shape: vscode.Comment has contextValue, CodeLens payload has filePath
+			if ('contextValue' in arg && arg.contextValue) {
+				// Called from comment button - arg is vscode.Comment
+				const contextValue = arg.contextValue;
 
-			const editor = vscode.window.activeTextEditor;
-			if (!editor) {
-				vscode.window.showErrorMessage('No active editor');
-				return;
-			}
+				// Extract note ID (remove :multi suffix if present)
+				const noteId = contextValue.replace(/:multi$/, '');
 
-			const filePath = editor.document.uri.fsPath;
-
-			try {
-				// Get note to find line range
-				const note = await noteManager.getNoteById(noteId, filePath);
-				if (!note) {
+				const editor = vscode.window.activeTextEditor;
+				if (!editor) {
+					vscode.window.showErrorMessage('No active editor');
 					return;
 				}
 
+				filePath = editor.document.uri.fsPath;
+
+				try {
+					// Get note to find line range
+					const note = await noteManager.getNoteById(noteId, filePath);
+					if (!note) {
+						return;
+					}
+
+					lineStart = note.lineRange.start;
+				} catch (error) {
+					vscode.window.showErrorMessage(`Failed to find note: ${error}`);
+					return;
+				}
+			} else if ('filePath' in arg && 'lineStart' in arg) {
+				// Called from CodeLens - arg is { filePath, lineStart }
+				filePath = arg.filePath;
+				lineStart = arg.lineStart;
+			} else {
+				// Fallback: use active editor
+				const editor = vscode.window.activeTextEditor;
+				if (!editor) {
+					vscode.window.showErrorMessage('No active editor');
+					return;
+				}
+				filePath = editor.document.uri.fsPath;
+				lineStart = editor.selection.active.line;
+			}
+
+			// Ensure we have both filePath and lineStart
+			if (!filePath || lineStart === undefined) {
+				vscode.window.showErrorMessage('Unable to determine file path or line number');
+				return;
+			}
+
+			try {
 				const document = await vscode.workspace.openTextDocument(filePath);
 				await vscode.window.showTextDocument(document);
 
 				// Create range for the line
-				const range = new vscode.Range(note.lineRange.start, 0, note.lineRange.start, 0);
+				const range = new vscode.Range(lineStart, 0, lineStart, 0);
 
 				// Open comment editor
 				await commentController.openCommentEditor(document, range);

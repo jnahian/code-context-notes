@@ -129,7 +129,28 @@ export class CommentController {
       return;
     }
 
-    // Get current note
+    // Validate noteIds array is not empty
+    if (!state.noteIds || state.noteIds.length === 0) {
+      return;
+    }
+
+    // Bounds checking for currentIndex
+    if (!Number.isFinite(state.currentIndex) ||
+        !Number.isInteger(state.currentIndex) ||
+        state.currentIndex < 0 ||
+        state.currentIndex >= state.noteIds.length) {
+      // Clamp to valid range and persist corrected value
+      if (state.currentIndex < 0 || !Number.isFinite(state.currentIndex)) {
+        state.currentIndex = 0;
+      } else if (state.currentIndex >= state.noteIds.length) {
+        state.currentIndex = state.noteIds.length - 1;
+      } else {
+        // Non-integer, round to nearest valid index
+        state.currentIndex = Math.max(0, Math.min(Math.round(state.currentIndex), state.noteIds.length - 1));
+      }
+    }
+
+    // Get current note using validated index
     const currentNoteId = state.noteIds[state.currentIndex];
     const currentNote = await this.noteManager.getNoteById(currentNoteId, state.filePath);
 
@@ -142,7 +163,7 @@ export class CommentController {
     const comment = this.createComment(currentNote, isMultiNote);
     thread.comments = [comment];
 
-    // Update thread label
+    // Update thread label using validated index
     if (isMultiNote) {
       thread.label = `Note ${state.currentIndex + 1} of ${state.noteIds.length}`;
     } else {
