@@ -10,6 +10,7 @@ import { Note, CreateNoteParams, UpdateNoteParams, LineRange } from './types.js'
 import { StorageManager } from './storageManager.js';
 import { ContentHashTracker } from './contentHashTracker.js';
 import { GitIntegration } from './gitIntegration.js';
+import { SearchManager } from './searchManager.js';
 
 /**
  * NoteManager coordinates all note operations
@@ -19,6 +20,7 @@ export class NoteManager extends EventEmitter {
   private storage: StorageManager;
   private hashTracker: ContentHashTracker;
   private gitIntegration: GitIntegration;
+  private searchManager?: SearchManager; // optional to avoid circular dependency
   private noteCache: Map<string, Note[]>; // filePath -> notes
   private workspaceNotesCache: Note[] | null = null; // cache for all notes
   private workspaceNotesByFileCache: Map<string, Note[]> | null = null; // cache for notes grouped by file
@@ -37,6 +39,13 @@ export class NoteManager extends EventEmitter {
 
     // Initialize default author
     this.initializeDefaultAuthor();
+  }
+
+  /**
+   * Set the search manager (called after both managers are created to avoid circular dependency)
+   */
+  setSearchManager(searchManager: SearchManager): void {
+    this.searchManager = searchManager;
   }
 
   /**
@@ -91,6 +100,11 @@ export class NoteManager extends EventEmitter {
     // Update cache
     this.addNoteToCache(note);
 
+    // Update search index
+    if (this.searchManager) {
+      await this.searchManager.updateIndex(note);
+    }
+
     // Clear workspace cache and emit events
     this.clearWorkspaceCache();
     this.emit('noteCreated', note);
@@ -142,6 +156,11 @@ export class NoteManager extends EventEmitter {
     // Update cache
     this.updateNoteInCache(note);
 
+    // Update search index
+    if (this.searchManager) {
+      await this.searchManager.updateIndex(note);
+    }
+
     // Clear workspace cache and emit events
     this.clearWorkspaceCache();
     this.emit('noteUpdated', note);
@@ -182,6 +201,11 @@ export class NoteManager extends EventEmitter {
 
     // Remove from cache
     this.removeNoteFromCache(noteId, filePath);
+
+    // Remove from search index
+    if (this.searchManager) {
+      await this.searchManager.removeFromIndex(noteId);
+    }
 
     // Clear workspace cache and emit events
     this.clearWorkspaceCache();
