@@ -683,8 +683,12 @@ export class CommentController {
       thread = await this.createCommentThread(document, note);
     }
 
-    // Create the main comment
-    const mainComment = this.createComment(note);
+    // Get thread state to check if multi-note
+    const state = this.threadStates.get(threadKey);
+    const isMultiNote = state ? state.noteIds.length > 1 : false;
+
+    // Create the main comment with multi-note state for navigation buttons
+    const mainComment = this.createComment(note, isMultiNote);
 
     // Create history reply comments
     const historyComments: vscode.Comment[] = [mainComment];
