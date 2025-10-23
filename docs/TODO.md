@@ -1970,5 +1970,13 @@ Updated all commands to extract note ID from contextValue:
 **Type:** Patch (bug fixes + UI enhancement)
 **Priority:** Medium (UI improvement)
 
+### Changelog
+
+**Updated:** CHANGELOG.md with version 0.1.8 entry
+- Grouped multiple related changes into single items per user instruction
+- Fixed section: Multiple note creation and navigation (GitHub Issue #6)
+- Changed section: Conditional navigation buttons with icon-only UI
+- Technical section: Detailed file changes and line numbers
+
 ---
 
