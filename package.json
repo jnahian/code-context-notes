@@ -135,6 +135,24 @@
         "title": "View History",
         "icon": "$(history)",
         "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.previousNote",
+        "title": "Previous Note",
+        "icon": "$(chevron-left)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.nextNote",
+        "title": "Next Note",
+        "icon": "$(chevron-right)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.addNoteToLine",
+        "title": "Add Note",
+        "icon": "$(add)",
+        "category": "Code Notes"
       }
     ],
     "keybindings": [
@@ -208,19 +226,34 @@
       ],
       "comments/comment/title": [
         {
-          "command": "codeContextNotes.editNote",
+          "command": "codeContextNotes.previousNote",
           "group": "inline@1",
-          "when": "commentController == codeContextNotes && comment =~ /^[a-f0-9-]+$/"
+          "when": "commentController == codeContextNotes && comment =~ /:multi$/"
+        },
+        {
+          "command": "codeContextNotes.nextNote",
+          "group": "inline@2",
+          "when": "commentController == codeContextNotes && comment =~ /:multi$/"
+        },
+        {
+          "command": "codeContextNotes.addNoteToLine",
+          "group": "inline@3",
+          "when": "commentController == codeContextNotes && comment =~ /^[a-f0-9-]+/"
+        },
+        {
+          "command": "codeContextNotes.editNote",
+          "group": "inline@4",
+          "when": "commentController == codeContextNotes && comment =~ /^[a-f0-9-]+/"
         },
         {
           "command": "codeContextNotes.viewNoteHistory",
-          "group": "inline@2",
-          "when": "commentController == codeContextNotes && comment =~ /^[a-f0-9-]+$/"
+          "group": "inline@5",
+          "when": "commentController == codeContextNotes && comment =~ /^[a-f0-9-]+/"
         },
         {
           "command": "codeContextNotes.deleteNoteFromComment",
-          "group": "inline@3",
-          "when": "commentController == codeContextNotes && comment =~ /^[a-f0-9-]+$/"
+          "group": "inline@6",
+          "when": "commentController == codeContextNotes && comment =~ /^[a-f0-9-]+/"
         }
       ],
       "comments/comment/context": [

@@ -11,11 +11,18 @@ import {
   Code,
   FileText,
   Users,
+  Layers,
 } from "lucide-react";
 import { AnimatedSection } from "@/components/AnimatedSection";
 
 export function FeaturesSection() {
   const features = [
+    {
+      icon: Layers,
+      title: "Multiple Notes Per Line",
+      description:
+        "Add unlimited annotations to the same code location with smart navigation between notes",
+    },
     {
       icon: Zap,
       title: "Intelligent Tracking",
