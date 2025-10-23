@@ -27,6 +27,10 @@ import {
   List,
   Bold,
   Italic,
+  Layers,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
 } from "lucide-react";
 
 export function DocsPage() {
@@ -114,6 +118,12 @@ export function DocsPage() {
                       <span className="text-green-500 font-bold">✓</span>
                       <span className="text-muted-foreground">
                         Maintain complete version history
+                      </span>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <span className="text-green-500 font-bold">✓</span>
+                      <span className="text-muted-foreground">
+                        Support multiple annotations on the same code location
                       </span>
                     </div>
                     <div className="flex items-start space-x-2">
@@ -429,6 +439,58 @@ export function DocsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                <div id="multiple-notes" className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-4 rounded-xl border-2 border-brand-orange">
+                  <h4 className="font-semibold mb-3 flex items-center space-x-2">
+                    <Layers className="h-5 w-5 text-brand-orange" />
+                    <span className="text-lg">Multiple Notes Per Line</span>
+                    <Badge className="bg-brand-orange">New</Badge>
+                  </h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Add unlimited annotations to the same code location with smart navigation between notes.
+                  </p>
+
+                  <div className="space-y-3">
+                    <div>
+                      <h5 className="font-semibold text-sm mb-2">Adding Multiple Notes</h5>
+                      <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+                        <li>Click the "➕ Add Note" CodeLens button on a line with existing notes</li>
+                        <li>Or click the <Plus className="inline h-3 w-3" /> button in the comment thread</li>
+                        <li>Each line can have unlimited notes with unique perspectives</li>
+                      </ol>
+                    </div>
+
+                    <div>
+                      <h5 className="font-semibold text-sm mb-2">Navigating Between Notes</h5>
+                      <ul className="space-y-1 text-sm text-muted-foreground">
+                        <li className="flex items-center space-x-2">
+                          <ChevronLeft className="h-3 w-3" />
+                          <span><strong>Previous button:</strong> Navigate to the previous note</span>
+                        </li>
+                        <li className="flex items-center space-x-2">
+                          <ChevronRight className="h-3 w-3" />
+                          <span><strong>Next button:</strong> Navigate to the next note</span>
+                        </li>
+                        <li className="flex items-center space-x-2">
+                          <Eye className="h-3 w-3" />
+                          <span><strong>Indicator:</strong> Shows "Note X of Y" to track position</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h5 className="font-semibold text-sm mb-2">Button Layout</h5>
+                      <div className="space-y-2">
+                        <div className="bg-white dark:bg-slate-800 p-2 rounded-xl text-xs">
+                          <strong>Single note:</strong> <code className="bg-brand-navy text-brand-warm px-1 rounded">[+] [Edit] [History] [Delete]</code>
+                        </div>
+                        <div className="bg-white dark:bg-slate-800 p-2 rounded-xl text-xs">
+                          <strong>Multiple notes:</strong> <code className="bg-brand-navy text-brand-warm px-1 rounded">[&lt;] [&gt;] [+] [Edit] [History] [Delete]</code>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div id="editing-notes">
                   <h4 className="font-semibold mb-3 flex items-center space-x-2">
                     <Edit className="h-4 w-4" />

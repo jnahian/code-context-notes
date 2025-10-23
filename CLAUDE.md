@@ -1,2 +1,3 @@
 - always update the docs/TODO.md after making any changes
 - while updating changelog make sure to add one item for multiple todos of same features/improvements/fixes in a single release version
+- do not try to commit without my consent

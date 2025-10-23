@@ -33,12 +33,13 @@ Working on complex codebases, developers face a common dilemma:
 
 **Code Context Notes** provides a third way: **contextual annotations that live alongside your code without being part of it.**
 
-✅ **Non-invasive** - Notes stored separately in `.code-notes/` directory, never touching your source files  
-✅ **Intelligent tracking** - Notes follow your code even when you move, rename, or refactor it  
-✅ **Complete history** - Every edit preserved with timestamps and authors  
-✅ **Team collaboration** - Share notes by committing `.code-notes/` or keep them local with `.gitignore`  
-✅ **Native integration** - Uses VSCode's comment UI for a familiar, seamless experience  
-✅ **Markdown support** - Rich formatting with keyboard shortcuts  
+✅ **Non-invasive** - Notes stored separately in `.code-notes/` directory, never touching your source files
+✅ **Intelligent tracking** - Notes follow your code even when you move, rename, or refactor it
+✅ **Multiple notes per line** - Add multiple annotations to the same code with easy navigation
+✅ **Complete history** - Every edit preserved with timestamps and authors
+✅ **Team collaboration** - Share notes by committing `.code-notes/` or keep them local with `.gitignore`
+✅ **Native integration** - Uses VSCode's comment UI for a familiar, seamless experience
+✅ **Markdown support** - Rich formatting with keyboard shortcuts
 ✅ **Zero performance impact** - Efficient caching and content hash tracking  
 
 **Perfect for:**
@@ -70,6 +71,8 @@ Available on [Open VSX Registry](https://open-vsx.org/extension/jnahian/code-con
 
 - Add notes using VSCode's native comment UI
 - CodeLens indicators show where notes exist
+- **Multiple notes per line** - Add unlimited annotations to the same code location
+- Icon-only navigation buttons for switching between multiple notes
 - Markdown formatting with keyboard shortcuts (Ctrl/Cmd+B, I, K)
 - Inline editing with Save/Cancel buttons
 
@@ -127,8 +130,10 @@ That's it! A CodeLens indicator appears above your code.
 **Method 3: CodeLens**
 
 1. Select the line(s) of code
-2. Click "Add Note" in the CodeLens that appears
+2. Click "➕ Add Note" in the CodeLens that appears above your code
 3. Enter your note and click Save
+
+> **💡 Tip:** You can add multiple notes to the same line! Just click the "➕ Add Note" CodeLens or button again to create additional annotations.
 
 ### Markdown Formatting
 
@@ -147,6 +152,10 @@ Notes support full markdown with keyboard shortcuts:
 - **CodeLens**: Click the indicator above annotated code to expand the note
 - **Inline**: Notes appear as comment threads in your editor
 - **Preview**: CodeLens shows a preview of the note content
+- **Multiple Notes**: When there are multiple notes on the same line:
+  - CodeLens shows "📝 Note 1 of N" to indicate multiple annotations
+  - Use Previous (`<`) and Next (`>`) buttons to navigate between notes
+  - Each note displays its position (e.g., "Note 2 of 3")
 
 ### Editing Notes
 
@@ -156,6 +165,13 @@ Notes support full markdown with keyboard shortcuts:
 4. Or click Cancel to discard changes
 
 Each edit creates a new history entry with timestamp and author.
+
+**Button Layout:**
+- **Single note**: `[+] [Edit] [History] [Delete]`
+- **Multiple notes**: `[<] [>] [+] [Edit] [History] [Delete]`
+  - `[<]` and `[>]` - Navigate between notes
+  - `[+]` - Add another note to the same line
+  - `[Edit]`, `[History]`, `[Delete]` - Standard actions
 
 ### Viewing History
 

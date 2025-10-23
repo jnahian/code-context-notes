@@ -1978,5 +1978,19 @@ Updated all commands to extract note ID from contextValue:
 - Changed section: Conditional navigation buttons with icon-only UI
 - Technical section: Detailed file changes and line numbers
 
+### Documentation Updates
+
+**Updated:** README.md, Landing Page, and Documentation Site
+- Added "Multiple notes per line" to key features in README (lines 38, 74-75)
+- Added tip about adding multiple notes to same line (line 136)
+- Added "Viewing Notes" section for multiple notes with navigation instructions (lines 155-158)
+- Added "Button Layout" documentation showing single vs multi-note UI (lines 169-174)
+- Updated FeaturesSection.tsx with "Multiple Notes Per Line" feature card (lines 20-25)
+- Added comprehensive "Multiple Notes Per Line" section to DocsPage.tsx (lines 442-492)
+  - Instructions for adding multiple notes
+  - Navigation between notes with icon descriptions
+  - Button layout comparison for single vs multiple notes
+- Added "Support multiple annotations" to solution overview in DocsPage (lines 123-128)
+
 ---
 
