@@ -1,11 +1,7 @@
 - Always create a user story based TODO file for a new feature or an improvement. Save it under `docs/{feature-title or improvement-title}/`
+- while creating a user story, follow the template provided in `docs/USER_STORY_TEMPLATE.md`
 - Always create a changelog entry for every feature, improvement, or bug fix. Save it under `docs/changelogs/`
-- while creating a changelog entry, make sure to include:
-  - title
-  - description
-  - type (feature, improvement, bug fix)
-  - related user story TODO file path
-- while creating a changelog entry, make sure to follow the template provided in `docs/changelogs/CHANGELOG_TEMPLATE.md`
-- while updating changelog make sure to add one item for multiple todos of same features/improvements/fixes in a single release version
-- do not try to commit without my consent
-- call the test-writer when i ask for writing tests
+- While creating a changelog entry, make sure to follow the template provided in `docs/changelogs/CHANGELOG_TEMPLATE.md`
+- Don't add changelog entry for repeated bugs in a feature or improvement in the same release.
+- Always request explicit permission before committing any changes to the repository
+- When requested to write tests, invoke the test-writer agent
