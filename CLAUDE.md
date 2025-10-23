@@ -1,4 +1,11 @@
-- Always write tasks for feature/improvement/bug-fixes to docs/TODO.md file, don't write for documentation or non functional changes
+- Always create a user story based TODO file for a new feature or an improvement. Save it under `docs/{feature-title or improvement-title}/`
+- Always create a changelog entry for every feature, improvement, or bug fix. Save it under `docs/changelogs/`
+- while creating a changelog entry, make sure to include:
+  - title
+  - description
+  - type (feature, improvement, bug fix)
+  - related user story TODO file path
+- while creating a changelog entry, make sure to follow the template provided in `docs/changelogs/CHANGELOG_TEMPLATE.md`
 - while updating changelog make sure to add one item for multiple todos of same features/improvements/fixes in a single release version
 - do not try to commit without my consent
 - call the test-writer when i ask for writing tests
