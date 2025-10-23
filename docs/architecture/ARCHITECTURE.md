@@ -5,38 +5,40 @@ This document describes the technical architecture of the Code Context Notes ext
 ## High-Level Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        VSCode UI Layer                       │
-│  ┌──────────────────┐              ┌────────────────────┐  │
-│  │ Comment Threads  │              │   CodeLens Items   │  │
-│  └────────┬─────────┘              └─────────┬──────────┘  │
-└───────────┼────────────────────────────────────┼────────────┘
-            │                                    │
-┌───────────┼────────────────────────────────────┼────────────┐
-│           │      Extension Core Layer          │            │
-│  ┌────────▼─────────┐              ┌──────────▼─────────┐  │
-│  │ CommentController│              │  CodeLensProvider  │  │
-│  └────────┬─────────┘              └──────────┬─────────┘  │
-│           │                                    │            │
-│           └────────────┬───────────────────────┘            │
-│                        │                                    │
-│                 ┌──────▼──────────┐                        │
-│                 │   NoteManager   │                        │
-│                 └──────┬──────────┘                        │
-│                        │                                    │
-│        ┌───────────────┼───────────────┐                   │
-│        │               │               │                   │
-│  ┌─────▼──────┐ ┌─────▼──────┐ ┌─────▼──────────┐        │
-│  │  Storage   │ │  Content   │ │      Git       │        │
-│  │  Manager   │ │   Hash     │ │  Integration   │        │
-│  │            │ │  Tracker   │ │                │        │
-│  └─────┬──────┘ └────────────┘ └────────────────┘        │
-└────────┼───────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────┐
+│                         VSCode UI Layer                            │
+│  ┌──────────────┐  ┌─────────────┐  ┌──────────────────────┐    │
+│  │   Comment    │  │  CodeLens   │  │   Sidebar TreeView   │    │
+│  │   Threads    │  │    Items    │  │  (Activity Bar)      │    │
+│  └──────┬───────┘  └──────┬──────┘  └──────────┬───────────┘    │
+└─────────┼──────────────────┼────────────────────┼────────────────┘
+          │                  │                    │
+┌─────────┼──────────────────┼────────────────────┼────────────────┐
+│         │    Extension Core Layer              │                 │
+│  ┌──────▼──────┐  ┌────────▼─────────┐  ┌──────▼──────────────┐ │
+│  │  Comment    │  │   CodeLens       │  │   Sidebar           │ │
+│  │  Controller │  │   Provider       │  │   Provider          │ │
+│  └──────┬──────┘  └────────┬─────────┘  └──────┬──────────────┘ │
+│         │                  │                    │                 │
+│         └──────────────────┼────────────────────┘                 │
+│                            │                                      │
+│                     ┌──────▼──────────┐                          │
+│                     │   NoteManager   │ ◄─── EventEmitter        │
+│                     └──────┬──────────┘      (noteChanged events)│
+│                            │                                      │
+│        ┌───────────────────┼───────────────────┐                 │
+│        │                   │                   │                 │
+│  ┌─────▼────────┐  ┌───────▼──────┐  ┌────────▼──────────┐     │
+│  │   Storage    │  │   Content    │  │       Git         │     │
+│  │   Manager    │  │    Hash      │  │   Integration     │     │
+│  │              │  │   Tracker    │  │                   │     │
+│  └─────┬────────┘  └──────────────┘  └───────────────────┘     │
+└────────┼────────────────────────────────────────────────────────┘
          │
-┌────────▼────────────────────────────────────────────────────┐
-│                    File System Layer                         │
-│                    .code-notes/*.md                          │
-└──────────────────────────────────────────────────────────────┘
+┌────────▼──────────────────────────────────────────────────────────┐
+│                      File System Layer                             │
+│                      .code-notes/*.md                              │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Core Components
@@ -289,6 +291,74 @@ For each hash:
 - Graceful handling if git not installed
 - Graceful handling if not in git repo
 - Always returns a username (never fails)
+
+### 8. Sidebar Provider (`notesSidebarProvider.ts`)
+
+**Responsibility**: Workspace-wide tree view of all notes
+
+**Key Methods**:
+- `getChildren(element?)` - Get tree children (lazy loading)
+- `getTreeItem(element)` - Convert to VSCode TreeItem
+- `refresh()` - Trigger tree refresh (debounced 300ms)
+
+**Tree Structure**:
+```
+RootTreeItem: "Code Notes (N)"
+  ├─ FileTreeItem: "src/app.ts (3)"
+  │   ├─ NoteTreeItem: "Line 10: Preview text..."
+  │   ├─ NoteTreeItem: "Line 25: Another note..."
+  │   └─ NoteTreeItem: "Line 50: Third note..."
+  └─ FileTreeItem: "src/utils.ts (1)"
+      └─ NoteTreeItem: "Line 5: Utility note..."
+```
+
+**Event Handling**:
+- Listens to `noteChanged` event from NoteManager
+- Listens to `noteFileChanged` event for external file changes
+- Automatically refreshes on note create/update/delete
+
+**Sorting**:
+- Sort by file path (alphabetically) - default
+- Sort by date (most recent first)
+- Sort by author (alphabetically)
+- Configurable via `codeContextNotes.sidebar.sortBy`
+
+**Configuration**:
+- `sidebar.previewLength` - Preview text length (20-200, default 50)
+- `sidebar.autoExpand` - Auto-expand file nodes (default false)
+- `sidebar.sortBy` - Sorting mode (file/date/author)
+
+### 9. Note Tree Items (`noteTreeItem.ts`)
+
+**Responsibility**: Tree item classes for sidebar structure
+
+**Classes**:
+
+**RootTreeItem**:
+- Label: "Code Notes (N)"
+- Collapsed state: Expanded
+- Icon: Folder
+- Context value: "rootNode"
+
+**FileTreeItem**:
+- Label: "{relative_path} ({note_count})"
+- Collapsed state: Collapsed (default)
+- Icon: Language-specific file icon
+- Context value: "fileNode"
+- Stores notes array
+
+**NoteTreeItem**:
+- Label: "Line {line}: {preview}"
+- Description: Author name (right-aligned)
+- Collapsed state: None (leaf node)
+- Icon: Note
+- Context value: "noteNode"
+- Command: Opens note on click
+- Tooltip: Full note content with metadata
+
+**Utility Methods**:
+- `stripMarkdown(text)` - Remove markdown formatting from preview
+- `truncateText(text, length)` - Truncate with ellipsis
 
 ## Data Flow
 
