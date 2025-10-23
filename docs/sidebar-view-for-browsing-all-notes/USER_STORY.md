@@ -10,50 +10,76 @@
 
 ---
 
+## Progress Summary
+
+### Status: 🚀 MOSTLY COMPLETE (75% done)
+
+**Completed Phases:**
+- ✅ Phase 1: Backend & Data Layer (8/8 tasks)
+- ✅ Phase 2: Tree Data Provider (12/12 tasks)
+- ✅ Phase 3: Sidebar Registration (9/9 tasks)
+
+**In Progress:**
+- ⏳ Phase 4: Navigation & Commands (8/14 tasks) - Core navigation working
+- ⏳ Phase 5: Features & Polish (9/11 tasks) - Most polish features done
+
+**Pending:**
+- 📋 Phase 6: Testing (0/15 tasks)
+- 📋 Phase 7: Documentation (0/7 tasks)
+
+**Recent Updates (Latest Session):**
+- 🆕 Moved sidebar from Explorer to dedicated Activity Bar icon
+- 🆕 Added "+" button to sidebar toolbar for quick note creation
+- 🆕 Updated add note command to work without text selection (uses cursor line)
+
+---
+
 ## Tasks
 
-### Phase 1: Backend & Data Layer
-- [ ] Add `getAllNotes(): Promise<Note[]>` to NoteManager
-- [ ] Add `getNotesByFile(): Promise<Map<string, Note[]>>` to NoteManager
-- [ ] Add `getNoteCount(): Promise<number>` to NoteManager
-- [ ] Add `getFileCount(): Promise<number>` to NoteManager
-- [ ] Implement caching for workspace-wide note queries
-- [ ] Add file watcher for `.code-notes/` directory
-- [ ] Emit events on note create/update/delete
-- [ ] Trigger sidebar refresh on note changes
+### Phase 1: Backend & Data Layer ✅ COMPLETED
+- [x] Add `getAllNotes(): Promise<Note[]>` to NoteManager
+- [x] Add `getNotesByFile(): Promise<Map<string, Note[]>>` to NoteManager
+- [x] Add `getNoteCount(): Promise<number>` to NoteManager
+- [x] Add `getFileCount(): Promise<number>` to NoteManager
+- [x] Implement caching for workspace-wide note queries
+- [x] Add file watcher for `.code-notes/` directory
+- [x] Emit events on note create/update/delete
+- [x] Trigger sidebar refresh on note changes
 
-### Phase 2: Tree Data Provider
-- [ ] Create `src/notesSidebarProvider.ts` with TreeDataProvider implementation
-- [ ] Create `src/noteTreeItem.ts` with tree item classes
-- [ ] Implement `getChildren()` method for tree structure
-- [ ] Implement `getTreeItem()` method for node rendering
-- [ ] Create RootNode showing workspace note count
-- [ ] Create FileNode showing file path and note count
-- [ ] Create NoteNode showing line, preview, and author
-- [ ] Add tree item icons (folder, file, note)
-- [ ] Implement tree item tooltips with full paths/content
-- [ ] Add context values for conditional menus
-- [ ] Strip markdown from note previews
-- [ ] Truncate preview text to configurable length (default 50 chars)
+### Phase 2: Tree Data Provider ✅ COMPLETED
+- [x] Create `src/notesSidebarProvider.ts` with TreeDataProvider implementation
+- [x] Create `src/noteTreeItem.ts` with tree item classes
+- [x] Implement `getChildren()` method for tree structure
+- [x] Implement `getTreeItem()` method for node rendering
+- [x] Create RootNode showing workspace note count
+- [x] Create FileNode showing file path and note count
+- [x] Create NoteNode showing line, preview, and author
+- [x] Add tree item icons (folder, file, note)
+- [x] Implement tree item tooltips with full paths/content
+- [x] Add context values for conditional menus
+- [x] Strip markdown from note previews
+- [x] Truncate preview text to configurable length (default 50 chars)
 
-### Phase 3: Sidebar Registration
-- [ ] Add sidebar view contribution to package.json
-- [ ] Configure view ID: `codeContextNotes.sidebarView`
-- [ ] Set view name: "Code Notes"
-- [ ] Add view icon (note/comment icon)
-- [ ] Configure view location: "explorer" sidebar
-- [ ] Add viewsWelcome contribution for empty state
-- [ ] Register TreeDataProvider in extension.ts activate()
-- [ ] Add sidebar provider to context.subscriptions
-- [ ] Connect note change events to sidebar refresh
+### Phase 3: Sidebar Registration ✅ COMPLETED
+- [x] Add sidebar view contribution to package.json
+- [x] Configure view ID: `codeContextNotes.sidebarView`
+- [x] Set view name: "Code Notes"
+- [x] Add view icon (note/comment icon)
+- [x] Configure view location: Activity Bar (changed from "explorer" to dedicated Activity Bar icon)
+- [x] Add viewsWelcome contribution for empty state
+- [x] Register TreeDataProvider in extension.ts activate()
+- [x] Add sidebar provider to context.subscriptions
+- [x] Connect note change events to sidebar refresh
 
-### Phase 4: Navigation & Commands
-- [ ] Create `codeContextNotes.openNoteFromSidebar` command
-- [ ] Implement file opening in editor
-- [ ] Implement line range reveal and scroll
-- [ ] Implement comment thread focus
-- [ ] Add `codeContextNotes.refreshSidebar` command
-- [ ] Add refresh button to sidebar title bar
+### Phase 4: Navigation & Commands ⏳ IN PROGRESS
+- [x] Create `codeContextNotes.openNoteFromSidebar` command
+- [x] Implement file opening in editor
+- [x] Implement line range reveal and scroll
+- [x] Implement comment thread focus
+- [x] Add `codeContextNotes.refreshSidebar` command
+- [x] Add refresh button to sidebar title bar
+- [x] Add "+" button to add note without selection (NEW FEATURE)
+- [x] Update add note command to work without selection
 - [ ] Add "Go to Note" context menu for NoteNode
 - [ ] Add "Edit Note" context menu for NoteNode
 - [ ] Add "Delete Note" context menu for NoteNode
@@ -61,18 +87,18 @@
 - [ ] Add "Open File" context menu for FileNode
 - [ ] Add "Refresh" context menu for FileNode
 
-### Phase 5: Features & Polish
-- [ ] Implement collapsible file nodes (collapsed by default)
-- [ ] Add note count badges to file nodes
-- [ ] Add total note count to root node
-- [ ] Create empty state with helpful message
-- [ ] Add "Add Your First Note" action in empty state
+### Phase 5: Features & Polish ⏳ IN PROGRESS
+- [x] Implement collapsible file nodes (collapsed by default)
+- [x] Add note count badges to file nodes
+- [x] Add total note count to root node
+- [x] Create empty state with helpful message
+- [x] Add "Add Your First Note" action in empty state
 - [ ] Add "Collapse All" command in sidebar title
-- [ ] Implement lazy loading for file nodes
-- [ ] Add debouncing for refresh calls (300ms)
-- [ ] Add configuration option: `sidebar.sortBy` (file, date, author)
-- [ ] Add configuration option: `sidebar.previewLength` (default 50)
-- [ ] Add configuration option: `sidebar.autoExpand` (default false)
+- [x] Implement lazy loading for file nodes
+- [x] Add debouncing for refresh calls (300ms)
+- [ ] Add configuration option: `sidebar.sortBy` (file, date, author) - Partially implemented (config exists but sorting not fully implemented)
+- [x] Add configuration option: `sidebar.previewLength` (default 50)
+- [x] Add configuration option: `sidebar.autoExpand` (default false)
 
 ### Phase 6: Testing
 - [ ] Write unit tests for NotesSidebarProvider

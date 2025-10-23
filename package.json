@@ -299,7 +299,7 @@
         {
           "id": "codeContextNotes",
           "title": "Code Notes",
-          "icon": "images/icon.png"
+          "icon": "images/task.png"
         }
       ]
     },
@@ -350,7 +350,11 @@
         },
         "codeContextNotes.sidebar.sortBy": {
           "type": "string",
-          "enum": ["file", "date", "author"],
+          "enum": [
+            "file",
+            "date",
+            "author"
+          ],
           "default": "file",
           "description": "Sort notes by: file path, date, or author (file path only in v0.2.0)"
         }
