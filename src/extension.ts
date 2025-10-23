@@ -9,10 +9,12 @@ import { GitIntegration } from './gitIntegration.js';
 import { NoteManager } from './noteManager.js';
 import { CommentController } from './commentController.js';
 import { CodeNotesLensProvider } from './codeLensProvider.js';
+import { NotesSidebarProvider } from './notesSidebarProvider.js';
 
 let noteManager: NoteManager;
 let commentController: CommentController;
 let codeLensProvider: CodeNotesLensProvider;
+let sidebarProvider: NotesSidebarProvider;
 
 // Debounce timers for performance optimization
 const documentChangeTimers: Map<string, NodeJS.Timeout> = new Map();
@@ -25,23 +27,32 @@ export async function activate(context: vscode.ExtensionContext) {
 	console.log('Code Context Notes extension is activating...');
 	console.log('Code Context Notes: Extension version 0.1.3');
 
-	try {
-		// Always register all commands first (even without workspace)
-		// This ensures commands are available immediately
-		console.log('Code Context Notes: Registering all commands...');
-		registerAllCommands(context);
-		console.log('Code Context Notes: All commands registered successfully!');
-	} catch (error) {
-		console.error('Code Context Notes: FAILED to register commands:', error);
-		vscode.window.showErrorMessage(`Code Context Notes failed to activate: ${error}`);
-		throw error;
-	}
-
 	// Get workspace folder
 	const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
 	if (!workspaceFolder) {
 		console.log('Code Context Notes: No workspace folder found. Extension partially activated. Open a folder to use full functionality.');
-		vscode.window.showInformationMessage('Code Context Notes: Commands are available. Open a folder to use note features.');
+
+		// Still register sidebar view (will show empty state)
+		// Create a minimal tree provider that returns empty
+		const emptyProvider: vscode.TreeDataProvider<any> = {
+			getTreeItem: (element: any) => element,
+			getChildren: () => []
+		};
+		const treeView = vscode.window.createTreeView('codeContextNotes.sidebarView', {
+			treeDataProvider: emptyProvider
+		});
+		context.subscriptions.push(treeView);
+
+		// Register commands (they will show error messages if called without workspace)
+		try {
+			console.log('Code Context Notes: Registering commands...');
+			registerAllCommands(context);
+			console.log('Code Context Notes: Commands registered!');
+		} catch (error) {
+			console.error('Code Context Notes: FAILED to register commands:', error);
+		}
+
+		vscode.window.showInformationMessage('Code Context Notes: Open a folder to use note features.');
 		return;
 	}
 
@@ -79,6 +90,14 @@ export async function activate(context: vscode.ExtensionContext) {
 		context.subscriptions.push(codeLensDisposable);
 	}
 
+	// Initialize and register Sidebar provider
+	sidebarProvider = new NotesSidebarProvider(noteManager, workspaceRoot, context);
+	const treeView = vscode.window.createTreeView('codeContextNotes.sidebarView', {
+		treeDataProvider: sidebarProvider,
+		showCollapseAll: true
+	});
+	context.subscriptions.push(treeView);
+
 	// Set up event listeners
 	setupEventListeners(context);
 
@@ -93,6 +112,17 @@ export async function activate(context: vscode.ExtensionContext) {
 	vscode.window.onDidChangeTextEditorSelection((event) => {
 		codeLensProvider.refresh();
 	}, null, context.subscriptions);
+
+	// Register all commands AFTER providers are initialized
+	try {
+		console.log('Code Context Notes: Registering all commands...');
+		registerAllCommands(context);
+		console.log('Code Context Notes: All commands registered successfully!');
+	} catch (error) {
+		console.error('Code Context Notes: FAILED to register commands:', error);
+		vscode.window.showErrorMessage(`Code Context Notes failed to activate: ${error}`);
+		throw error;
+	}
 
 	console.log('Code Context Notes extension is now active!');
 }
@@ -180,14 +210,19 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 			}
 
 			const selection = editor.selection;
+			let range: vscode.Range;
+
 			if (selection.isEmpty) {
-				vscode.window.showErrorMessage('Please select the code you want to annotate');
-				return;
+				// No selection: use current cursor line
+				const cursorLine = selection.active.line;
+				range = new vscode.Range(cursorLine, 0, cursorLine, 0);
+			} else {
+				// Has selection: use selected lines
+				range = new vscode.Range(selection.start.line, 0, selection.end.line, 0);
 			}
 
 			try {
 				// Open comment editor UI (modern approach)
-				const range = new vscode.Range(selection.start.line, 0, selection.end.line, 0);
 				await commentController.openCommentEditor(editor.document, range);
 			} catch (error) {
 				vscode.window.showErrorMessage(`Failed to open comment editor: ${error}`);
@@ -746,6 +781,50 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		}
 	);
 
+	// Open Note from Sidebar
+	const openNoteFromSidebarCommand = vscode.commands.registerCommand(
+		'codeContextNotes.openNoteFromSidebar',
+		async (note) => {
+			if (!noteManager || !commentController) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+
+			try {
+				// Open the document
+				const document = await vscode.workspace.openTextDocument(note.filePath);
+				const editor = await vscode.window.showTextDocument(document);
+
+				// Scroll to and reveal the line range
+				const range = new vscode.Range(
+					note.lineRange.start,
+					0,
+					note.lineRange.end,
+					0
+				);
+				editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+				editor.selection = new vscode.Selection(range.start, range.start);
+
+				// Focus the comment thread for this note
+				await commentController.focusNoteThread(note.id, note.filePath);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to open note: ${error}`);
+			}
+		}
+	);
+
+	// Refresh Sidebar
+	const refreshSidebarCommand = vscode.commands.registerCommand(
+		'codeContextNotes.refreshSidebar',
+		() => {
+			if (!sidebarProvider) {
+				return;
+			}
+			sidebarProvider.refresh();
+			vscode.window.showInformationMessage('Sidebar refreshed!');
+		}
+	);
+
 	// Register all commands
 	context.subscriptions.push(
 		addNoteCommand,
@@ -770,7 +849,9 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		viewNoteHistoryFromCommentCommand,
 		nextNoteCommand,
 		previousNoteCommand,
-		addNoteToLineCommand
+		addNoteToLineCommand,
+		openNoteFromSidebarCommand,
+		refreshSidebarCommand
 	);
 }
 
