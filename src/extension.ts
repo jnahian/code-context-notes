@@ -860,7 +860,47 @@ function setupEventListeners(context: vscode.ExtensionContext) {
 		vscode.window.showInformationMessage('Workspace folders changed. Notes reloaded.');
 	});
 
-	context.subscriptions.push(changeDisposable, openDisposable, configDisposable, workspaceFoldersDisposable);
+	// File watcher for .code-notes/ directory
+	// This will trigger sidebar refresh when notes are created/updated/deleted externally
+	const config = vscode.workspace.getConfiguration('codeContextNotes');
+	const storageDirectory = config.get<string>('storageDirectory', '.code-notes');
+	const fileWatcherPattern = new vscode.RelativePattern(
+		vscode.workspace.workspaceFolders![0],
+		`${storageDirectory}/**/*.md`
+	);
+	const fileWatcher = vscode.workspace.createFileSystemWatcher(fileWatcherPattern);
+
+	// When a note file is created
+	fileWatcher.onDidCreate((uri) => {
+		console.log(`Note file created: ${uri.fsPath}`);
+		// Clear workspace cache and emit event for sidebar refresh
+		noteManager.clearAllCache();
+		noteManager.emit('noteFileChanged', { type: 'created', uri });
+	});
+
+	// When a note file is changed
+	fileWatcher.onDidChange((uri) => {
+		console.log(`Note file changed: ${uri.fsPath}`);
+		// Clear workspace cache and emit event for sidebar refresh
+		noteManager.clearAllCache();
+		noteManager.emit('noteFileChanged', { type: 'changed', uri });
+	});
+
+	// When a note file is deleted
+	fileWatcher.onDidDelete((uri) => {
+		console.log(`Note file deleted: ${uri.fsPath}`);
+		// Clear workspace cache and emit event for sidebar refresh
+		noteManager.clearAllCache();
+		noteManager.emit('noteFileChanged', { type: 'deleted', uri });
+	});
+
+	context.subscriptions.push(
+		changeDisposable,
+		openDisposable,
+		configDisposable,
+		workspaceFoldersDisposable,
+		fileWatcher
+	);
 }
 
 /**
