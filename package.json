@@ -166,6 +166,36 @@
         "title": "Refresh Sidebar",
         "icon": "$(refresh)",
         "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.collapseAll",
+        "title": "Collapse All",
+        "icon": "$(collapse-all)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.openFileFromSidebar",
+        "title": "Open File",
+        "icon": "$(go-to-file)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.editNoteFromSidebar",
+        "title": "Edit Note",
+        "icon": "$(edit)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.deleteNoteFromSidebar",
+        "title": "Delete Note",
+        "icon": "$(trash)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.viewNoteHistoryFromSidebar",
+        "title": "View History",
+        "icon": "$(history)",
+        "category": "Code Notes"
       }
     ],
     "keybindings": [
@@ -229,12 +259,44 @@
         {
           "command": "codeContextNotes.addNote",
           "when": "view == codeContextNotes.sidebarView",
-          "group": "navigation"
+          "group": "navigation@1"
+        },
+        {
+          "command": "codeContextNotes.collapseAll",
+          "when": "view == codeContextNotes.sidebarView",
+          "group": "navigation@2"
         },
         {
           "command": "codeContextNotes.refreshSidebar",
           "when": "view == codeContextNotes.sidebarView",
-          "group": "navigation"
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "codeContextNotes.openNoteFromSidebar",
+          "when": "view == codeContextNotes.sidebarView && viewItem == noteNode",
+          "group": "navigation@1"
+        },
+        {
+          "command": "codeContextNotes.editNoteFromSidebar",
+          "when": "view == codeContextNotes.sidebarView && viewItem == noteNode",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "codeContextNotes.viewNoteHistoryFromSidebar",
+          "when": "view == codeContextNotes.sidebarView && viewItem == noteNode",
+          "group": "1_actions@2"
+        },
+        {
+          "command": "codeContextNotes.deleteNoteFromSidebar",
+          "when": "view == codeContextNotes.sidebarView && viewItem == noteNode",
+          "group": "1_actions@3"
+        },
+        {
+          "command": "codeContextNotes.openFileFromSidebar",
+          "when": "view == codeContextNotes.sidebarView && viewItem == fileNode",
+          "group": "navigation@1"
         }
       ],
       "comments/commentThread/context": [

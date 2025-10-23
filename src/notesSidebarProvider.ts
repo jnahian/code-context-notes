@@ -106,15 +106,43 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 	private async getFileNodes(): Promise<FileTreeItem[]> {
 		const notesByFile = await this.noteManager.getNotesByFile();
 		const fileNodes: FileTreeItem[] = [];
+		const sortBy = this.getSortBy();
 
-		// Sort files alphabetically by path
-		const sortedFiles = Array.from(notesByFile.keys()).sort();
-
-		for (const filePath of sortedFiles) {
-			const notes = notesByFile.get(filePath) || [];
+		// Create file nodes
+		for (const [filePath, notes] of notesByFile.entries()) {
 			if (notes.length > 0) {
 				fileNodes.push(new FileTreeItem(filePath, notes, this.workspaceRoot));
 			}
+		}
+
+		// Sort file nodes based on configuration
+		switch (sortBy) {
+			case 'date':
+				// Sort by most recent note update time (descending)
+				fileNodes.sort((a, b) => {
+					const aLatest = Math.max(...a.notes.map(n => new Date(n.updatedAt).getTime()));
+					const bLatest = Math.max(...b.notes.map(n => new Date(n.updatedAt).getTime()));
+					return bLatest - aLatest;
+				});
+				break;
+
+			case 'author':
+				// Sort by author name (alphabetically), then by file path
+				fileNodes.sort((a, b) => {
+					const aAuthor = a.notes[0]?.author || '';
+					const bAuthor = b.notes[0]?.author || '';
+					if (aAuthor === bAuthor) {
+						return a.filePath.localeCompare(b.filePath);
+					}
+					return aAuthor.localeCompare(bAuthor);
+				});
+				break;
+
+			case 'file':
+			default:
+				// Sort alphabetically by file path
+				fileNodes.sort((a, b) => a.filePath.localeCompare(b.filePath));
+				break;
 		}
 
 		return fileNodes;
@@ -149,5 +177,13 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 	private getAutoExpand(): boolean {
 		const config = vscode.workspace.getConfiguration('codeContextNotes');
 		return config.get<boolean>('sidebar.autoExpand', false);
+	}
+
+	/**
+	 * Get sort order from configuration
+	 */
+	private getSortBy(): 'file' | 'date' | 'author' {
+		const config = vscode.workspace.getConfiguration('codeContextNotes');
+		return config.get<'file' | 'date' | 'author'>('sidebar.sortBy', 'file');
 	}
 }

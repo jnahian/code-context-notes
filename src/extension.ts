@@ -784,28 +784,21 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 	// Open Note from Sidebar
 	const openNoteFromSidebarCommand = vscode.commands.registerCommand(
 		'codeContextNotes.openNoteFromSidebar',
-		async (note) => {
+		async (noteOrTreeItem) => {
 			if (!noteManager || !commentController) {
 				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
 				return;
 			}
 
 			try {
+				// Handle both Note object (from click) and TreeItem (from context menu)
+				const note = noteOrTreeItem.note || noteOrTreeItem;
+
 				// Open the document
 				const document = await vscode.workspace.openTextDocument(note.filePath);
-				const editor = await vscode.window.showTextDocument(document);
+				await vscode.window.showTextDocument(document);
 
-				// Scroll to and reveal the line range
-				const range = new vscode.Range(
-					note.lineRange.start,
-					0,
-					note.lineRange.end,
-					0
-				);
-				editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
-				editor.selection = new vscode.Selection(range.start, range.start);
-
-				// Focus the comment thread for this note
+				// Focus the comment thread for this note (shows inline comment editor)
 				await commentController.focusNoteThread(note.id, note.filePath);
 			} catch (error) {
 				vscode.window.showErrorMessage(`Failed to open note: ${error}`);
@@ -822,6 +815,106 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 			}
 			sidebarProvider.refresh();
 			vscode.window.showInformationMessage('Sidebar refreshed!');
+		}
+	);
+
+	// Collapse All in Sidebar
+	const collapseAllCommand = vscode.commands.registerCommand(
+		'codeContextNotes.collapseAll',
+		() => {
+			if (!sidebarProvider) {
+				return;
+			}
+			// Refresh will reset the tree to default collapsed state
+			sidebarProvider.refresh();
+		}
+	);
+
+	// Edit Note from Sidebar
+	const editNoteFromSidebarCommand = vscode.commands.registerCommand(
+		'codeContextNotes.editNoteFromSidebar',
+		async (treeItem) => {
+			if (!noteManager || !commentController) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+
+			try {
+				const note = treeItem.note;
+				// Open the document
+				const document = await vscode.workspace.openTextDocument(note.filePath);
+				await vscode.window.showTextDocument(document);
+
+				// Start editing the note through comment controller
+				await commentController.enableEditMode(note.id, note.filePath);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to edit note: ${error}`);
+			}
+		}
+	);
+
+	// Delete Note from Sidebar
+	const deleteNoteFromSidebarCommand = vscode.commands.registerCommand(
+		'codeContextNotes.deleteNoteFromSidebar',
+		async (treeItem) => {
+			if (!noteManager || !commentController) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+
+			try {
+				const note = treeItem.note;
+				const confirm = await vscode.window.showWarningMessage(
+					`Delete note at line ${note.lineRange.start + 1}?`,
+					{ modal: true },
+					'Delete'
+				);
+
+				if (confirm === 'Delete') {
+					await noteManager.deleteNote(note.id, note.filePath);
+					vscode.window.showInformationMessage('Note deleted successfully');
+				}
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to delete note: ${error}`);
+			}
+		}
+	);
+
+	// View Note History from Sidebar
+	const viewNoteHistoryFromSidebarCommand = vscode.commands.registerCommand(
+		'codeContextNotes.viewNoteHistoryFromSidebar',
+		async (treeItem) => {
+			if (!noteManager || !commentController) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+
+			try {
+				const note = treeItem.note;
+
+				// Open the document
+				const document = await vscode.workspace.openTextDocument(note.filePath);
+				await vscode.window.showTextDocument(document);
+
+				// Show history in the comment thread (inline)
+				await commentController.showHistoryInThread(note.id, note.filePath);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to view history: ${error}`);
+			}
+		}
+	);
+
+	// Open File from Sidebar
+	const openFileFromSidebarCommand = vscode.commands.registerCommand(
+		'codeContextNotes.openFileFromSidebar',
+		async (treeItem) => {
+			try {
+				const filePath = treeItem.filePath;
+				const document = await vscode.workspace.openTextDocument(filePath);
+				await vscode.window.showTextDocument(document);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to open file: ${error}`);
+			}
 		}
 	);
 
@@ -851,7 +944,12 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		previousNoteCommand,
 		addNoteToLineCommand,
 		openNoteFromSidebarCommand,
-		refreshSidebarCommand
+		refreshSidebarCommand,
+		collapseAllCommand,
+		editNoteFromSidebarCommand,
+		deleteNoteFromSidebarCommand,
+		viewNoteHistoryFromSidebarCommand,
+		openFileFromSidebarCommand
 	);
 }
 
