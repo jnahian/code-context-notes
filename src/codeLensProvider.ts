@@ -59,13 +59,22 @@ export class CodeNotesLensProvider implements vscode.CodeLensProvider {
         );
 
         // Create CodeLens with command to view the note(s)
-        const codeLens = new vscode.CodeLens(range, {
+        const viewNoteLens = new vscode.CodeLens(range, {
           title: this.formatCodeLensTitle(lineNotes),
           command: 'codeContextNotes.viewNote',
           arguments: [lineNotes[0].id, document.uri.fsPath]
         });
 
-        codeLenses.push(codeLens);
+        codeLenses.push(viewNoteLens);
+
+        // Add "Add Note" button when notes exist (for multiple notes on same line)
+        const addNoteLens = new vscode.CodeLens(range, {
+          title: '➕ Add Note',
+          command: 'codeContextNotes.addNoteToLine',
+          arguments: [{ filePath: document.uri.fsPath, lineStart }]
+        });
+
+        codeLenses.push(addNoteLens);
       }
 
       // Add "Add Note" CodeLens above selection if there's a selection

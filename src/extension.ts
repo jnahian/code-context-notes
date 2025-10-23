@@ -347,10 +347,13 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 				return;
 			}
 
-			const noteId = comment.contextValue;
-			if (!noteId) {
+			const contextValue = comment.contextValue;
+			if (!contextValue) {
 				return;
 			}
+
+			// Extract note ID (remove :multi suffix if present)
+			const noteId = contextValue.replace(/:multi$/, '');
 
 			try {
 				await commentController.enableEditMode(noteId, editor.document.uri.fsPath);
@@ -375,10 +378,13 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 				comment = currentComment;
 			}
 
-			const noteId = comment.contextValue;
-			if (!noteId) {
+			const contextValue = comment.contextValue;
+			if (!contextValue) {
 				return;
 			}
+
+			// Extract note ID (remove :multi suffix if present)
+			const noteId = contextValue.replace(/:multi$/, '');
 
 			const newContent = typeof comment.body === 'string' ? comment.body : comment.body.value;
 
@@ -529,10 +535,13 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 	const deleteNoteFromCommentCommand = vscode.commands.registerCommand(
 		'codeContextNotes.deleteNoteFromComment',
 		async (comment: vscode.Comment) => {
-			const noteId = comment.contextValue;
-			if (!noteId) {
+			const contextValue = comment.contextValue;
+			if (!contextValue) {
 				return;
 			}
+
+			// Extract note ID (remove :multi suffix if present)
+			const noteId = contextValue.replace(/:multi$/, '');
 
 			const editor = vscode.window.activeTextEditor;
 			if (!editor) {
@@ -574,10 +583,13 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 	const viewNoteHistoryFromCommentCommand = vscode.commands.registerCommand(
 		'codeContextNotes.viewNoteHistory',
 		async (comment: vscode.Comment) => {
-			const noteId = comment.contextValue;
-			if (!noteId) {
+			const contextValue = comment.contextValue;
+			if (!contextValue) {
 				return;
 			}
+
+			// Extract note ID (remove :multi suffix if present)
+			const noteId = contextValue.replace(/:multi$/, '');
 
 			const editor = vscode.window.activeTextEditor;
 			if (!editor) {
@@ -598,9 +610,31 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 	// Navigate to next note in multi-note thread
 	const nextNoteCommand = vscode.commands.registerCommand(
 		'codeContextNotes.nextNote',
-		async (args: { threadKey: string }) => {
+		async (comment: vscode.Comment) => {
+			const contextValue = comment.contextValue;
+			if (!contextValue) {
+				return;
+			}
+
+			// Extract note ID (remove :multi suffix if present)
+			const noteId = contextValue.replace(/:multi$/, '');
+
+			const editor = vscode.window.activeTextEditor;
+			if (!editor) {
+				vscode.window.showErrorMessage('No active editor');
+				return;
+			}
+
+			const filePath = editor.document.uri.fsPath;
+
 			try {
-				await commentController.navigateNextNote(args.threadKey);
+				// Get note to find thread key
+				const note = await noteManager.getNoteById(noteId, filePath);
+				if (!note) {
+					return;
+				}
+				const threadKey = `${filePath}:${note.lineRange.start}`;
+				await commentController.navigateNextNote(threadKey);
 			} catch (error) {
 				vscode.window.showErrorMessage(`Failed to navigate to next note: ${error}`);
 			}
@@ -610,9 +644,31 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 	// Navigate to previous note in multi-note thread
 	const previousNoteCommand = vscode.commands.registerCommand(
 		'codeContextNotes.previousNote',
-		async (args: { threadKey: string }) => {
+		async (comment: vscode.Comment) => {
+			const contextValue = comment.contextValue;
+			if (!contextValue) {
+				return;
+			}
+
+			// Extract note ID (remove :multi suffix if present)
+			const noteId = contextValue.replace(/:multi$/, '');
+
+			const editor = vscode.window.activeTextEditor;
+			if (!editor) {
+				vscode.window.showErrorMessage('No active editor');
+				return;
+			}
+
+			const filePath = editor.document.uri.fsPath;
+
 			try {
-				await commentController.navigatePreviousNote(args.threadKey);
+				// Get note to find thread key
+				const note = await noteManager.getNoteById(noteId, filePath);
+				if (!note) {
+					return;
+				}
+				const threadKey = `${filePath}:${note.lineRange.start}`;
+				await commentController.navigatePreviousNote(threadKey);
 			} catch (error) {
 				vscode.window.showErrorMessage(`Failed to navigate to previous note: ${error}`);
 			}
@@ -622,13 +678,35 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 	// Add another note to an existing line
 	const addNoteToLineCommand = vscode.commands.registerCommand(
 		'codeContextNotes.addNoteToLine',
-		async (args: { filePath: string; lineStart: number }) => {
+		async (comment: vscode.Comment) => {
+			const contextValue = comment.contextValue;
+			if (!contextValue) {
+				return;
+			}
+
+			// Extract note ID (remove :multi suffix if present)
+			const noteId = contextValue.replace(/:multi$/, '');
+
+			const editor = vscode.window.activeTextEditor;
+			if (!editor) {
+				vscode.window.showErrorMessage('No active editor');
+				return;
+			}
+
+			const filePath = editor.document.uri.fsPath;
+
 			try {
-				const document = await vscode.workspace.openTextDocument(args.filePath);
-				const editor = await vscode.window.showTextDocument(document);
+				// Get note to find line range
+				const note = await noteManager.getNoteById(noteId, filePath);
+				if (!note) {
+					return;
+				}
+
+				const document = await vscode.workspace.openTextDocument(filePath);
+				await vscode.window.showTextDocument(document);
 
 				// Create range for the line
-				const range = new vscode.Range(args.lineStart, 0, args.lineStart, 0);
+				const range = new vscode.Range(note.lineRange.start, 0, note.lineRange.start, 0);
 
 				// Open comment editor
 				await commentController.openCommentEditor(document, range);

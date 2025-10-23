@@ -1649,3 +1649,326 @@ Complete 500+ line implementation plan created with:
 
 ---
 
+## Bug Fix: Multiple Note Creation & CodeLens Improvements
+
+**Task:** Fix multi-note functionality and add CodeLens action for adding notes to existing lines
+**Status:** COMPLETE
+**Date:** October 23, 2025
+
+### Issues Fixed
+
+**Issue #1: Multiple note creation not working properly**
+- **Problem**: Methods like `focusNoteThread`, `showHistoryInThread`, `enableEditMode`, and `saveEditedNoteById` were trying to look up threads by note ID, but threads are stored by thread keys (`filePath:lineStart`) in the multi-note system
+- **Root Cause**: Incomplete migration to multi-note system - some methods still expected the old single-note-per-thread model where thread keys were note IDs
+- **Impact**: Viewing, editing, and managing notes on lines with multiple notes would fail
+
+**Issue #2: No CodeLens action to add notes when notes exist**
+- **Problem**: CodeLens only showed "➕ Add Note" when NO notes existed at a position. When notes already existed, users could only add another note through the comment thread's navigation header
+- **Root Cause**: CodeLens provider had a check `if (notesAtSelection.length === 0)` that prevented showing the add button when notes existed
+- **Impact**: Users couldn't easily add multiple notes to the same line via CodeLens
+
+### Implementation
+
+**1. Fixed Thread Lookup Methods** (src/commentController.ts)
+
+Updated methods to use thread keys instead of note IDs:
+
+- ✅ **`focusNoteThread(noteId, filePath)`** (lines 638-675)
+  - Now gets the note first to find its line range
+  - Calculates thread key from `filePath:lineStart`
+  - Passes thread key to `closeAllCommentEditors()`
+  - Finds thread by thread key, not note ID
+  - If thread exists with multiple notes, updates `currentIndex` to show the requested note
+
+- ✅ **`showHistoryInThread(noteId, filePath)`** (lines 680-733)
+  - Gets thread key from note's position
+  - Looks up thread by thread key
+  - Creates thread if it doesn't exist
+  - Properly handles multi-note threads
+
+- ✅ **`enableEditMode(noteId, filePath)`** (lines 738-785)
+  - Calculates thread key from note's position
+  - Passes thread key to `closeAllCommentEditors()`
+  - Finds thread by thread key
+  - Sets `currentIndex` to show the note being edited
+  - Properly handles multi-note threads
+
+- ✅ **`saveEditedNoteById(noteId, newContent)`** (lines 831-872)
+  - Searches through all threads and their states
+  - Finds the thread that contains the note ID in its `noteIds` array
+  - Uses `updateThreadDisplay()` instead of `updateCommentThread()` to properly refresh multi-note display
+  - Maintains thread state when saving edits
+
+- ✅ **`closeAllCommentEditors(exceptThreadKey?)`** (lines 413-438)
+  - Changed parameter from `exceptNoteId` to `exceptThreadKey`
+  - Now clears both `commentThreads` and `threadStates` maps
+  - Properly handles thread key-based lookups
+
+**2. Added CodeLens "Add Note" Action** (src/codeLensProvider.ts)
+
+Updated CodeLens provider to show "Add Note" button even when notes exist (lines 70-77):
+
+- ✅ Added second CodeLens after the view note lens
+- ✅ Title: "➕ Add Note"
+- ✅ Command: `codeContextNotes.addNoteToLine`
+- ✅ Arguments: `{ filePath, lineStart }`
+- ✅ Shows on every line that has notes, allowing users to add more
+
+### Benefits
+
+**For Multiple Notes:**
+1. ✅ View history works correctly for notes on lines with multiple notes
+2. ✅ Editing works for any note in a multi-note thread
+3. ✅ Saving edits properly updates the multi-note display
+4. ✅ Thread navigation (Previous/Next) works seamlessly
+5. ✅ Proper focus management when switching between notes
+
+**For CodeLens:**
+1. ✅ Users can add notes via CodeLens even when notes already exist
+2. ✅ More discoverable - users don't need to open the comment thread first
+3. ✅ Faster workflow for adding multiple notes to the same line
+4. ✅ Consistent UI - CodeLens available for both empty and annotated lines
+
+### Technical Details
+
+**Thread Key Format:**
+```typescript
+threadKey = `${filePath}:${lineStart}`
+// Example: "/Users/project/src/main.ts:42"
+```
+
+**Thread State Lookup:**
+```typescript
+// Old (broken):
+const thread = this.commentThreads.get(noteId);
+
+// New (correct):
+const threadKey = this.getThreadKey(filePath, note.lineRange.start);
+const thread = this.commentThreads.get(threadKey);
+```
+
+**Finding Thread by Note ID:**
+```typescript
+// Search through all threads to find which one contains this note
+for (const [threadKey, thread] of this.commentThreads.entries()) {
+  const state = this.threadStates.get(threadKey);
+  if (state && state.noteIds.includes(noteId)) {
+    // Found it!
+    foundThreadKey = threadKey;
+    break;
+  }
+}
+```
+
+### Testing Status
+
+**Compilation:**
+- ✅ TypeScript compilation successful (0 errors)
+- ✅ esbuild bundling successful
+- ✅ No type errors or warnings
+
+**Manual Testing Checklist:**
+- [ ] Add multiple notes to the same line via CodeLens
+- [ ] View each note using Previous/Next buttons
+- [ ] Edit a note in a multi-note thread
+- [ ] View history for a note in a multi-note thread
+- [ ] Delete a note from a multi-note thread
+- [ ] Add a note via CodeLens on a line that already has notes
+- [ ] Verify CodeLens shows both view and add buttons
+- [ ] Test across file reload
+- [ ] Test with code movement/refactoring
+
+### Files Modified
+
+1. **src/commentController.ts** - Fixed 5 methods:
+   - `focusNoteThread()` - lines 638-675
+   - `showHistoryInThread()` - lines 680-733
+   - `enableEditMode()` - lines 738-785
+   - `saveEditedNoteById()` - lines 831-872
+   - `closeAllCommentEditors()` - lines 413-438
+
+2. **src/codeLensProvider.ts** - Added add note button:
+   - `provideCodeLenses()` - lines 70-77
+
+### Version
+
+**Target Version:** v0.1.8 (Next patch release)
+**Type:** Patch (bug fixes)
+**Priority:** High (broken multi-note feature)
+
+---
+
+## UI Enhancement: Move Navigation to Icon Buttons (Conditional)
+
+**Task:** Move Add Note, Previous, and Next actions from markdown header to icon-only buttons in comment UI, with conditional display for navigation buttons
+**Status:** COMPLETE
+**Date:** October 23, 2025
+
+### Changes Made
+
+**Problem**: Navigation actions (Previous, Next, Add Note) were displayed as markdown links in the comment body, which:
+- Took up space in the comment content area
+- Were less discoverable
+- Looked less polished than native VS Code buttons
+- Were inconsistent with Edit/Delete/History buttons
+
+**Solution**: Moved navigation to icon-only buttons alongside Edit/Delete/History buttons in the comment title bar.
+
+### Implementation
+
+**1. Added Navigation Commands to package.json** (lines 139-156)
+
+Added three new command definitions with icons:
+- `previousNote` - Icon: `$(chevron-left)` - Title: "Previous Note"
+- `nextNote` - Icon: `$(chevron-right)` - Title: "Next Note"
+- `addNoteToLine` - Icon: `$(add)` - Title: "Add Note"
+
+**2. Updated Comment Menu Configuration** (package.json lines 227-258)
+
+Added navigation buttons to `comments/comment/title` menu with conditional display:
+- All buttons placed in `inline` group - appears on right side
+- Order: Previous (@1), Next (@2), Add Note (@3), Edit (@4), History (@5), Delete (@6)
+- **Previous/Next buttons**: Only shown when `comment =~ /:multi$/` (multi-note threads)
+- **Other buttons**: Always shown when `comment =~ /^[a-f0-9-]+/` (any note)
+
+**Button Layout (Single Note):**
+```
+[+] [Edit] [History] [Delete]
+     All inline group (right side)
+```
+
+**Button Layout (Multiple Notes):**
+```
+[<] [>] [+] [Edit] [History] [Delete]
+         All inline group (right side)
+```
+
+**3. Updated Command Handlers** (src/extension.ts)
+
+Changed command signatures to accept `comment: vscode.Comment` parameter:
+- `nextNote` - lines 598-627: Gets note ID from comment.contextValue, finds thread, navigates
+- `previousNote` - lines 629-658: Gets note ID from comment.contextValue, finds thread, navigates
+- `addNoteToLine` - lines 660-696: Gets note ID, finds line range, opens comment editor
+
+**4. Removed Navigation Header from Comment Body** (src/commentController.ts)
+
+- Deleted `createNavigationHeader()` method completely
+- Updated `createComment()` method (lines 156-190):
+  - Added `isMultiNote` boolean parameter
+  - Sets contextValue to `${noteId}:multi` for multi-note threads
+  - Sets contextValue to just `noteId` for single notes
+  - This enables conditional button display in VS Code
+- Updated `updateThreadDisplay()` (line 141):
+  - Calculates `isMultiNote` from thread state
+  - Passes `isMultiNote` to `createComment()`
+
+**5. Updated All Command Handlers** (src/extension.ts)
+
+Updated all commands to extract note ID from contextValue:
+- Uses `.replace(/:multi$/, '')` to strip `:multi` suffix when present
+- Works with both single-note (`noteId`) and multi-note (`noteId:multi`) formats
+- Commands updated: nextNote, previousNote, addNoteToLine, editNote, saveNote, deleteNoteFromComment, viewNoteHistory
+
+### Benefits
+
+**User Experience:**
+1. ✅ Cleaner comment content area - no navigation clutter
+2. ✅ Native VS Code button appearance - more professional
+3. ✅ Better discoverability - buttons are always visible
+4. ✅ Consistent UI - all actions use icon buttons
+5. ✅ Icon-only interface - more compact and modern
+6. ✅ Logical grouping - all buttons together on right side
+7. ✅ Smart button display - navigation only shown when needed (multiple notes)
+8. ✅ Reduced clutter - single notes don't show unnecessary navigation buttons
+
+**Technical:**
+1. ✅ Simpler comment rendering - no markdown navigation to generate
+2. ✅ VS Code handles button states and rendering
+3. ✅ Better integration with VS Code's comment API
+4. ✅ Easier to maintain - declarative button configuration
+
+### Visual Layout
+
+**Before (Markdown Header):**
+```
+┌─────────────────────────────────────────────┐
+│ Note 1 of 3                                 │
+│                                             │
+│ [< Previous] | [Next >] | [+ Add Note]     │
+│ ─────────────────────────────────────────── │
+│                                             │
+│ This is the actual note content...          │
+└─────────────────────────────────────────────┘
+```
+
+**After (Icon Buttons - Single Note):**
+```
+┌─────────────────────────────────────────────┐
+│                                             │
+│                [+] [Edit] [History] [Del]   │
+│ ─────────────────────────────────────────── │
+│ This is the actual note content...          │
+└─────────────────────────────────────────────┘
+```
+
+**After (Icon Buttons - Multiple Notes):**
+```
+┌─────────────────────────────────────────────┐
+│ Note 1 of 3                                 │
+│          [<] [>] [+] [Edit] [History] [Del] │
+│ ─────────────────────────────────────────── │
+│ This is the actual note content...          │
+└─────────────────────────────────────────────┘
+```
+
+### Testing Status
+
+**Compilation:**
+- ✅ TypeScript compilation successful (0 errors)
+- ✅ esbuild bundling successful
+- ✅ Minor hints about unused variables (non-blocking)
+
+**Manual Testing Checklist:**
+- [ ] **Single Note Thread:**
+  - [ ] Previous/Next buttons do NOT appear
+  - [ ] Add Note, Edit, History, Delete buttons DO appear
+  - [ ] Button order: [+] [Edit] [History] [Delete]
+- [ ] **Multi-Note Thread:**
+  - [ ] Previous/Next buttons DO appear
+  - [ ] All buttons appear: [<] [>] [+] [Edit] [History] [Delete]
+  - [ ] Previous button works and navigates backward
+  - [ ] Next button works and navigates forward
+  - [ ] "Note X of Y" label appears
+- [ ] **General:**
+  - [ ] Add Note button opens comment editor
+  - [ ] Button tooltips show correct titles
+  - [ ] Buttons are icon-only (no text labels)
+  - [ ] All buttons appear on right side (inline group)
+  - [ ] Comment content has no navigation header
+
+### Files Modified
+
+1. **package.json**:
+   - Added 3 command definitions (lines 139-156)
+   - Updated comments/comment/title menu with conditional `when` clauses (lines 227-258)
+   - Previous/Next: `when: comment =~ /:multi$/`
+   - Other buttons: `when: comment =~ /^[a-f0-9-]+/`
+
+2. **src/extension.ts**:
+   - Updated 7 command handlers to extract note ID from contextValue
+   - All commands use `.replace(/:multi$/, '')` to handle both formats
+   - Commands: nextNote, previousNote, addNoteToLine, editNote, saveNote, deleteNoteFromComment, viewNoteHistory
+
+3. **src/commentController.ts**:
+   - Removed `createNavigationHeader()` method
+   - Updated `createComment()` (lines 156-190): Added `isMultiNote` parameter, sets contextValue conditionally
+   - Updated `updateThreadDisplay()` (lines 124-151): Calculates and passes `isMultiNote` flag
+
+### Version
+
+**Target Version:** v0.1.8 (Next patch release)
+**Type:** Patch (bug fixes + UI enhancement)
+**Priority:** Medium (UI improvement)
+
+---
+
