@@ -36,6 +36,7 @@ Working on complex codebases, developers face a common dilemma:
 ✅ **Non-invasive** - Notes stored separately in `.code-notes/` directory, never touching your source files
 ✅ **Intelligent tracking** - Notes follow your code even when you move, rename, or refactor it
 ✅ **Multiple notes per line** - Add multiple annotations to the same code with easy navigation
+✅ **Workspace sidebar** - Dedicated Activity Bar panel showing all notes organized by file
 ✅ **Complete history** - Every edit preserved with timestamps and authors
 ✅ **Team collaboration** - Share notes by committing `.code-notes/` or keep them local with `.gitignore`
 ✅ **Native integration** - Uses VSCode's comment UI for a familiar, seamless experience
@@ -102,12 +103,18 @@ Available on [Open VSX Registry](https://open-vsx.org/extension/jnahian/code-con
 
 ## Quick Start
 
-1. Select code you want to annotate
+**Method 1: From Code**
+1. Select code you want to annotate (or just place cursor on a line)
 2. Press `Ctrl+Alt+N` (or `Cmd+Alt+N` on Mac)
 3. Type your note with markdown formatting
 4. Click Save or press `Ctrl+Enter`
 
-That's it! A CodeLens indicator appears above your code.
+**Method 2: From Sidebar**
+1. Click the Code Notes icon in the Activity Bar
+2. Click the **+** button in the sidebar toolbar
+3. Type your note and save
+
+That's it! A CodeLens indicator appears above your code, and the note shows in the sidebar.
 
 ## Usage Guide
 
@@ -115,25 +122,34 @@ That's it! A CodeLens indicator appears above your code.
 
 **Method 1: Keyboard Shortcut**
 
-1. Select the line(s) of code
+1. Select the line(s) of code (or just place cursor on a line)
 2. Press `Ctrl+Alt+N` (Windows/Linux) or `Cmd+Alt+N` (Mac)
 3. Enter your note in the comment editor
 4. Click Save
 
-**Method 2: Command Palette**
+**Method 2: From Sidebar**
 
-1. Select the line(s) of code
+1. Open the Code Notes sidebar (Activity Bar icon)
+2. Click the **+** button in the toolbar
+3. Enter your note and click Save
+
+**Method 3: Command Palette**
+
+1. Place cursor on the line of code (or select multiple lines)
 2. Open Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`)
-3. Type "Code Notes: Add Note to Selection"
+3. Type "Code Notes: Add Note"
 4. Enter your note and click Save
 
-**Method 3: CodeLens**
+**Method 4: CodeLens**
 
 1. Select the line(s) of code
 2. Click "➕ Add Note" in the CodeLens that appears above your code
 3. Enter your note and click Save
 
-> **💡 Tip:** You can add multiple notes to the same line! Just click the "➕ Add Note" CodeLens or button again to create additional annotations.
+> **💡 Tips:**
+> - You can add notes **without selecting text** - just place the cursor on a line
+> - You can add **multiple notes to the same line** - just click "➕ Add Note" again
+> - Notes added from the sidebar use your current cursor position
 
 ### Markdown Formatting
 
@@ -189,6 +205,45 @@ Each edit creates a new history entry with timestamp and author.
 3. Note is marked as deleted in history (not permanently removed)
 4. CodeLens indicator disappears
 
+### Sidebar View
+
+The **Code Notes** sidebar provides a workspace-wide overview of all your notes, organized by file.
+
+**Opening the Sidebar:**
+- Click the Code Notes icon in the Activity Bar (left sidebar)
+- A dedicated panel opens showing all notes across your workspace
+
+**Sidebar Structure:**
+- **Root Node**: Shows total note count ("Code Notes (N)")
+- **File Nodes**: Show files with notes and note count per file ("src/app.ts (3)")
+- **Note Nodes**: Show line number, preview text (50 chars), and author
+
+**Quick Actions:**
+- **+ Button** (toolbar): Add a note at current cursor position (no selection needed)
+- **Collapse All** (toolbar): Reset all file nodes to collapsed state
+- **Refresh** (toolbar): Manually refresh the sidebar
+
+**Navigating from Sidebar:**
+1. **Click a note**: Opens the file and focuses the comment thread inline
+2. **Right-click a note** for context menu:
+   - **Go to Note**: Opens file and shows the note in comment editor
+   - **Edit Note**: Opens file and enables edit mode
+   - **View History**: Opens file and shows note history inline
+   - **Delete Note**: Confirms and deletes the note
+3. **Right-click a file** for context menu:
+   - **Open File**: Opens the file in editor
+
+**Sorting Options:**
+Configure how files are sorted in the sidebar (see Configuration section):
+- **By File Path** (default): Alphabetical order
+- **By Date**: Most recently updated notes first
+- **By Author**: Alphabetical by author name
+
+**Collapsing/Expanding:**
+- File nodes are collapsed by default to keep the view clean
+- Click to expand and see notes within each file
+- Use "Collapse All" button to reset to default state
+
 ## Configuration
 
 Open VSCode Settings (`Ctrl+,` or `Cmd+,`) and search for "Code Context Notes":
@@ -217,11 +272,35 @@ Override automatic username detection. Default: git username or system username
 
 Enable/disable CodeLens indicators above code with notes. Default: `true`
 
+### Sidebar: Sort By
+
+```json
+"codeContextNotes.sidebar.sortBy": "file"
+```
+
+Sort notes in sidebar by: `"file"` (path, alphabetically), `"date"` (most recent first), or `"author"` (alphabetically by author). Default: `"file"`
+
+### Sidebar: Preview Length
+
+```json
+"codeContextNotes.sidebar.previewLength": 50
+```
+
+Maximum length of note preview text in sidebar (20-200 characters). Default: `50`
+
+### Sidebar: Auto Expand
+
+```json
+"codeContextNotes.sidebar.autoExpand": false
+```
+
+Automatically expand file nodes in sidebar. Default: `false` (collapsed)
+
 ## Keyboard Shortcuts
 
 | Command       | Windows/Linux  | Mac           | Description                            |
 | ------------- | -------------- | ------------- | -------------------------------------- |
-| Add Note      | `Ctrl+Alt+N`   | `Cmd+Alt+N`   | Add note to selected code              |
+| Add Note      | `Ctrl+Alt+N`   | `Cmd+Alt+N`   | Add note to current line or selection  |
 | Delete Note   | `Ctrl+Alt+D`   | `Cmd+Alt+D`   | Delete note at cursor                  |
 | View History  | `Ctrl+Alt+H`   | `Cmd+Alt+H`   | View note history                      |
 | Refresh Notes | `Ctrl+Alt+R`   | `Cmd+Alt+R`   | Refresh all notes                      |
@@ -287,10 +366,17 @@ You can add `.code-notes/` to `.gitignore` if you want notes to be local only, o
 
 All commands are available in the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`):
 
-- **Code Notes: Add Note to Selection** - Add a note to selected code
+**Note Operations:**
+- **Code Notes: Add Note** - Add a note to selected code or current line
 - **Code Notes: Delete Note at Cursor** - Delete note at current cursor position
 - **Code Notes: View Note History** - View complete history of a note
 - **Code Notes: Refresh All Notes** - Refresh all note displays
+
+**Sidebar:**
+- **Code Notes: Refresh Sidebar** - Manually refresh the sidebar view
+- **Code Notes: Collapse All** - Collapse all file nodes in sidebar
+
+**Formatting:**
 - **Code Notes: Show Markdown Formatting Guide** - Display markdown help
 
 ## FAQ

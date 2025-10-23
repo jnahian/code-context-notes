@@ -29,6 +29,7 @@ node_modules/**/.npmignore
 node_modules/**/.eslintrc*
 node_modules/**/tsconfig.json
 node_modules/**/@types/**
+node_modules/prettier/**
 
 # Development files
 .claude/**
@@ -58,3 +59,6 @@ docs
 images/logo.png
 images/README.md
 images/screenshot-*.jpg
+
+# local notes
+.code-notes
