@@ -9,9 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Planned
 - Sidebar view for browsing all notes
-- Search and filter notes across workspace
-- Export notes to various formats
-- Note templates
+- Search and filter notes by content, author, date
 - Tags and categories
 
 ## [0.1.8] - 2025-10-23
