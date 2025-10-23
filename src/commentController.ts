@@ -5,22 +5,25 @@
 
 import * as vscode from "vscode";
 import { NoteManager } from './noteManager.js';
-import { LineRange, Note } from "./types.js";
+import { LineRange, Note, MultiNoteThreadState } from "./types.js";
 
 /**
  * CommentController manages the comment UI for notes
  * Integrates with VSCode's native commenting system
+ * Supports multiple notes per line with navigation
  */
 export class CommentController {
   private commentController: vscode.CommentController;
   private noteManager: NoteManager;
-  private commentThreads: Map<string, vscode.CommentThread>; // noteId -> CommentThread
+  private commentThreads: Map<string, vscode.CommentThread>; // threadKey (lineKey) -> CommentThread
+  private threadStates: Map<string, MultiNoteThreadState>; // threadKey -> state
   private currentlyEditingNoteId: string | null = null; // Track which note is being edited
   private currentlyCreatingThreadId: string | null = null; // Track temporary ID of thread being created
 
   constructor(noteManager: NoteManager, context: vscode.ExtensionContext) {
     this.noteManager = noteManager;
     this.commentThreads = new Map();
+    this.threadStates = new Map();
 
     // Create the comment controller
     this.commentController = vscode.comments.createCommentController(
@@ -49,53 +52,133 @@ export class CommentController {
   }
 
   /**
-   * Create a comment thread for a note
+   * Generate a unique key for a thread based on file path and line
    */
-  createCommentThread(
+  private getThreadKey(filePath: string, lineStart: number): string {
+    return `${filePath}:${lineStart}`;
+  }
+
+  /**
+   * Create or update a comment thread for notes at a position (supports multiple notes per line)
+   */
+  async createCommentThread(
     document: vscode.TextDocument,
     note: Note
-  ): vscode.CommentThread {
-    // Check if thread already exists
-    const existingThread = this.commentThreads.get(note.id);
-    if (existingThread) {
-      return existingThread;
+  ): Promise<vscode.CommentThread> {
+    const threadKey = this.getThreadKey(document.uri.fsPath, note.lineRange.start);
+
+    // Get all notes at this position
+    const notesAtPosition = await this.noteManager.getNotesAtPosition(
+      document.uri.fsPath,
+      note.lineRange.start
+    );
+
+    // Check if thread already exists for this line
+    let thread = this.commentThreads.get(threadKey);
+
+    if (!thread) {
+      // Create new thread
+      const range = new vscode.Range(
+        note.lineRange.start,
+        0,
+        note.lineRange.end,
+        document.lineAt(note.lineRange.end).text.length
+      );
+
+      thread = this.commentController.createCommentThread(
+        document.uri,
+        range,
+        []
+      );
+
+      thread.collapsibleState = vscode.CommentThreadCollapsibleState.Collapsed;
+      thread.canReply = false; // We'll handle creation through commands
+
+      this.commentThreads.set(threadKey, thread);
+
+      // Initialize thread state
+      this.threadStates.set(threadKey, {
+        noteIds: notesAtPosition.map(n => n.id),
+        currentIndex: notesAtPosition.findIndex(n => n.id === note.id),
+        lineRange: note.lineRange,
+        filePath: document.uri.fsPath
+      });
+    } else {
+      // Update existing thread state if note not in list
+      const state = this.threadStates.get(threadKey);
+      if (state && !state.noteIds.includes(note.id)) {
+        state.noteIds.push(note.id);
+        state.currentIndex = state.noteIds.indexOf(note.id);
+      }
     }
 
-    // Create range from line range
-    const range = new vscode.Range(
-      note.lineRange.start,
-      0,
-      note.lineRange.end,
-      document.lineAt(note.lineRange.end).text.length
-    );
-
-    // Create comment thread
-    const thread = this.commentController.createCommentThread(
-      document.uri,
-      range,
-      []
-    );
-
-    thread.collapsibleState = vscode.CommentThreadCollapsibleState.Collapsed;
-    thread.canReply = false; // We'll handle creation through commands
-
-    // Create comment for the note
-    const comment = this.createComment(note);
-    thread.comments = [comment];
-
-    // Store thread reference
-    this.commentThreads.set(note.id, thread);
+    // Update thread display with current note
+    await this.updateThreadDisplay(threadKey, document);
 
     return thread;
   }
 
   /**
-   * Create a VSCode comment from a note
+   * Update the thread display to show the current note with navigation
    */
-  private createComment(note: Note): vscode.Comment {
+  private async updateThreadDisplay(threadKey: string, document: vscode.TextDocument): Promise<void> {
+    const thread = this.commentThreads.get(threadKey);
+    const state = this.threadStates.get(threadKey);
+
+    if (!thread || !state) {
+      return;
+    }
+
+    // Validate noteIds array is not empty
+    if (!state.noteIds || state.noteIds.length === 0) {
+      return;
+    }
+
+    // Bounds checking for currentIndex
+    if (!Number.isFinite(state.currentIndex) ||
+        !Number.isInteger(state.currentIndex) ||
+        state.currentIndex < 0 ||
+        state.currentIndex >= state.noteIds.length) {
+      // Clamp to valid range and persist corrected value
+      if (state.currentIndex < 0 || !Number.isFinite(state.currentIndex)) {
+        state.currentIndex = 0;
+      } else if (state.currentIndex >= state.noteIds.length) {
+        state.currentIndex = state.noteIds.length - 1;
+      } else {
+        // Non-integer, round to nearest valid index
+        state.currentIndex = Math.max(0, Math.min(Math.round(state.currentIndex), state.noteIds.length - 1));
+      }
+    }
+
+    // Get current note using validated index
+    const currentNoteId = state.noteIds[state.currentIndex];
+    const currentNote = await this.noteManager.getNoteById(currentNoteId, state.filePath);
+
+    if (!currentNote) {
+      return;
+    }
+
+    // Create comment for display, passing multi-note state
+    const isMultiNote = state.noteIds.length > 1;
+    const comment = this.createComment(currentNote, isMultiNote);
+    thread.comments = [comment];
+
+    // Update thread label using validated index
+    if (isMultiNote) {
+      thread.label = `Note ${state.currentIndex + 1} of ${state.noteIds.length}`;
+    } else {
+      thread.label = undefined;
+    }
+  }
+
+  /**
+   * Create a VSCode comment from a note (navigation is now handled by buttons)
+   */
+  private createComment(note: Note, isMultiNote: boolean = false): vscode.Comment {
     const markdownBody = new vscode.MarkdownString(note.content);
     markdownBody.isTrusted = true;
     markdownBody.supportHtml = true;
+    markdownBody.supportThemeIcons = true;
 
     // Create a relevant label showing last update info
     const createdDate = new Date(note.createdAt);
@@ -109,6 +192,9 @@ export class CommentController {
       ? `Last updated ${lastUpdated.toLocaleDateString()}`
       : `Created ${createdDate.toLocaleDateString()}`;
 
+    // Set contextValue to indicate multi-note threads for conditional buttons
+    const contextValue = isMultiNote ? `${note.id}:multi` : note.id;
+
     const comment: vscode.Comment = {
       body: markdownBody,
       mode: vscode.CommentMode.Preview,
@@ -117,21 +203,71 @@ export class CommentController {
       },
       label: label,
       // @ts-ignore - VSCode API supports this but types might be incomplete
-      contextValue: note.id,
+      contextValue: contextValue,
       // Don't set reactions property - leaving it undefined disables reactions UI
     };
 
     return comment;
   }
 
+
+  /**
+   * Navigate to the next note in a multi-note thread
+   */
+  async navigateNextNote(threadKey: string): Promise<void> {
+    const state = this.threadStates.get(threadKey);
+    if (!state || state.noteIds.length <= 1) {
+      return;
+    }
+
+    // Move to next note (wrap around to start if at end)
+    state.currentIndex = (state.currentIndex + 1) % state.noteIds.length;
+
+    // Update display
+    const document = await vscode.workspace.openTextDocument(state.filePath);
+    await this.updateThreadDisplay(threadKey, document);
+  }
+
+  /**
+   * Navigate to the previous note in a multi-note thread
+   */
+  async navigatePreviousNote(threadKey: string): Promise<void> {
+    const state = this.threadStates.get(threadKey);
+    if (!state || state.noteIds.length <= 1) {
+      return;
+    }
+
+    // Move to previous note (wrap around to end if at start)
+    state.currentIndex = state.currentIndex === 0
+      ? state.noteIds.length - 1
+      : state.currentIndex - 1;
+
+    // Update display
+    const document = await vscode.workspace.openTextDocument(state.filePath);
+    await this.updateThreadDisplay(threadKey, document);
+  }
+
+  /**
+   * Get the currently displayed note ID for a thread
+   */
+  getCurrentNoteId(threadKey: string): string | undefined {
+    const state = this.threadStates.get(threadKey);
+    if (!state) {
+      return undefined;
+    }
+    return state.noteIds[state.currentIndex];
+  }
+
   /**
    * Update a comment thread with new note data
    */
-  updateCommentThread(note: Note, document: vscode.TextDocument): void {
-    const thread = this.commentThreads.get(note.id);
+  async updateCommentThread(note: Note, document: vscode.TextDocument): Promise<void> {
+    const threadKey = this.getThreadKey(document.uri.fsPath, note.lineRange.start);
+    const thread = this.commentThreads.get(threadKey);
+
     if (!thread) {
       // Create new thread if it doesn't exist
-      this.createCommentThread(document, note);
+      await this.createCommentThread(document, note);
       return;
     }
 
@@ -144,24 +280,58 @@ export class CommentController {
     );
     thread.range = range;
 
-    // Update comment
-    const comment = this.createComment(note);
-    thread.comments = [comment];
+    // Update display
+    await this.updateThreadDisplay(threadKey, document);
   }
 
   /**
-   * Delete a comment thread
+   * Delete a comment thread (or remove a note from a multi-note thread)
    */
-  deleteCommentThread(noteId: string): void {
-    const thread = this.commentThreads.get(noteId);
-    if (thread) {
+  async deleteCommentThread(noteId: string, filePath: string): Promise<void> {
+    // Find the thread containing this note
+    let threadKeyToUpdate: string | undefined;
+
+    for (const [threadKey, state] of this.threadStates.entries()) {
+      if (state.noteIds.includes(noteId)) {
+        threadKeyToUpdate = threadKey;
+        break;
+      }
+    }
+
+    if (!threadKeyToUpdate) {
+      return;
+    }
+
+    const state = this.threadStates.get(threadKeyToUpdate);
+    const thread = this.commentThreads.get(threadKeyToUpdate);
+
+    if (!state || !thread) {
+      return;
+    }
+
+    // Remove note from state
+    const noteIndex = state.noteIds.indexOf(noteId);
+    state.noteIds = state.noteIds.filter(id => id !== noteId);
+
+    if (state.noteIds.length === 0) {
+      // No more notes - dispose thread completely
       thread.dispose();
-      this.commentThreads.delete(noteId);
+      this.commentThreads.delete(threadKeyToUpdate);
+      this.threadStates.delete(threadKeyToUpdate);
+    } else {
+      // Adjust current index if needed
+      if (state.currentIndex >= state.noteIds.length) {
+        state.currentIndex = state.noteIds.length - 1;
+      }
+
+      // Update display
+      const document = await vscode.workspace.openTextDocument(filePath);
+      await this.updateThreadDisplay(threadKeyToUpdate, document);
     }
   }
 
   /**
-   * Load and display all comment threads for a document
+   * Load and display all comment threads for a document (groups notes by line)
    */
   async loadCommentsForDocument(document: vscode.TextDocument): Promise<void> {
     const filePath = document.uri.fsPath;
@@ -169,9 +339,20 @@ export class CommentController {
     // Get all notes for this file
     const notes = await this.noteManager.getNotesForFile(filePath);
 
-    // Create comment threads for each note
+    // Group notes by line to create one thread per line
+    const notesByLine = new Map<number, Note[]>();
     for (const note of notes) {
-      this.createCommentThread(document, note);
+      const lineStart = note.lineRange.start;
+      if (!notesByLine.has(lineStart)) {
+        notesByLine.set(lineStart, []);
+      }
+      notesByLine.get(lineStart)!.push(note);
+    }
+
+    // Create comment threads for each line (will handle multiple notes per line)
+    for (const [lineStart, lineNotes] of notesByLine) {
+      // Create thread for first note, which will automatically load all notes at that position
+      await this.createCommentThread(document, lineNotes[0]);
     }
   }
 
@@ -195,50 +376,55 @@ export class CommentController {
    */
   private clearThreadsForDocument(uri: vscode.Uri): void {
     const threadsToDelete: string[] = [];
+    const statesToDelete: string[] = [];
 
-    for (const [noteId, thread] of this.commentThreads.entries()) {
+    for (const [threadKey, thread] of this.commentThreads.entries()) {
       if (thread.uri.fsPath === uri.fsPath) {
         thread.dispose();
-        threadsToDelete.push(noteId);
+        threadsToDelete.push(threadKey);
+      }
+    }
+
+    for (const [threadKey, state] of this.threadStates.entries()) {
+      if (state.filePath === uri.fsPath) {
+        statesToDelete.push(threadKey);
       }
     }
 
     threadsToDelete.forEach((id) => this.commentThreads.delete(id));
+    statesToDelete.forEach((id) => this.threadStates.delete(id));
   }
 
   /**
    * Close/hide all comment threads except the one being worked on
    * This ensures only one note is visible at a time for better focus
    * Completely disposes all threads to fully hide them from the editor
-   * @param exceptNoteId Optional note ID to exclude from closing (keeps this thread open)
+   * @param exceptThreadKey Optional thread key to exclude from closing (keeps this thread open)
    */
-  private closeAllCommentEditors(exceptNoteId?: string): void {
+  private closeAllCommentEditors(exceptThreadKey?: string): void {
     const threadsToDelete: string[] = [];
 
-    for (const [noteId, thread] of this.commentThreads.entries()) {
+    for (const [threadKey, thread] of this.commentThreads.entries()) {
       // Skip the thread we want to keep open
-      if (exceptNoteId && noteId === exceptNoteId) {
+      if (exceptThreadKey && threadKey === exceptThreadKey) {
         continue;
       }
 
       // Dispose the thread completely to hide it from the editor
       thread.dispose();
-      threadsToDelete.push(noteId);
+      threadsToDelete.push(threadKey);
     }
 
     // Clear all threads from the map
-    threadsToDelete.forEach((id) => this.commentThreads.delete(id));
+    threadsToDelete.forEach((id) => {
+      this.commentThreads.delete(id);
+      this.threadStates.delete(id);
+    });
 
     // Clear editing state only if we're not keeping a specific thread
-    if (!exceptNoteId) {
+    if (!exceptThreadKey) {
       this.currentlyEditingNoteId = null;
       this.currentlyCreatingThreadId = null;
-    } else if (
-      this.currentlyEditingNoteId &&
-      this.currentlyEditingNoteId !== exceptNoteId
-    ) {
-      // Clear editing state if the editing note is being closed
-      this.currentlyEditingNoteId = null;
     }
   }
 
@@ -413,13 +599,13 @@ export class CommentController {
   }
 
   /**
-   * Handle note deletion via comment
+   * Handle note deletion via comment (supports multi-note threads)
    */
   async handleDeleteNote(noteId: string, filePath: string): Promise<void> {
     await this.noteManager.deleteNote(noteId, filePath);
 
-    // Remove the comment thread
-    this.deleteCommentThread(noteId);
+    // Remove the comment thread or note from multi-note thread
+    await this.deleteCommentThread(noteId, filePath);
   }
 
   /**
@@ -438,23 +624,38 @@ export class CommentController {
    * Focus and expand a comment thread for a note
    */
   async focusNoteThread(noteId: string, filePath: string): Promise<void> {
+    // Get the note to find its line range
+    const note = await this.noteManager.getNoteById(noteId, filePath);
+    if (!note) {
+      vscode.window.showErrorMessage("Note not found");
+      return;
+    }
+
+    // Get thread key for this note's position
+    const threadKey = this.getThreadKey(filePath, note.lineRange.start);
+
     // Close all other comment editors except this one
-    this.closeAllCommentEditors(noteId);
+    this.closeAllCommentEditors(threadKey);
 
     // Open the document if not already open
     const document = await vscode.workspace.openTextDocument(filePath);
     const editor = await vscode.window.showTextDocument(document);
 
     // Get or create the thread
-    let thread = this.commentThreads.get(noteId);
+    let thread = this.commentThreads.get(threadKey);
     if (!thread) {
-      // Thread doesn't exist, need to get the note and create it
-      const note = await this.noteManager.getNoteById(noteId, filePath);
-      if (!note) {
-        vscode.window.showErrorMessage("Note not found");
-        return;
+      // Thread doesn't exist, create it
+      thread = await this.createCommentThread(document, note);
+    } else {
+      // Thread exists, make sure we're showing the correct note
+      const state = this.threadStates.get(threadKey);
+      if (state) {
+        const noteIndex = state.noteIds.indexOf(noteId);
+        if (noteIndex !== -1 && noteIndex !== state.currentIndex) {
+          state.currentIndex = noteIndex;
+          await this.updateThreadDisplay(threadKey, document);
+        }
       }
-      thread = this.createCommentThread(document, note);
     }
 
     // Expand the comment thread
@@ -471,12 +672,15 @@ export class CommentController {
       return;
     }
 
+    // Get thread key for this note's position
+    const threadKey = this.getThreadKey(filePath, note.lineRange.start);
+
     // Get or create the thread
-    let thread = this.commentThreads.get(noteId);
+    let thread = this.commentThreads.get(threadKey);
     if (!thread) {
       // Thread doesn't exist, create it
       const document = await vscode.workspace.openTextDocument(filePath);
-      thread = this.createCommentThread(document, note);
+      thread = await this.createCommentThread(document, note);
     }
 
     // Create the main comment
@@ -520,21 +724,33 @@ export class CommentController {
    * Enable edit mode for a note
    */
   async enableEditMode(noteId: string, filePath: string): Promise<void> {
-    // Close all other comment editors except this one
-    this.closeAllCommentEditors(noteId);
-
     const note = await this.noteManager.getNoteById(noteId, filePath);
     if (!note) {
       vscode.window.showErrorMessage("Note not found");
       return;
     }
 
+    // Get thread key for this note's position
+    const threadKey = this.getThreadKey(filePath, note.lineRange.start);
+
+    // Close all other comment editors except this one
+    this.closeAllCommentEditors(threadKey);
+
     // Get or create the thread
-    let thread = this.commentThreads.get(noteId);
+    let thread = this.commentThreads.get(threadKey);
     if (!thread) {
       // Thread doesn't exist, create it
       const document = await vscode.workspace.openTextDocument(filePath);
-      thread = this.createCommentThread(document, note);
+      thread = await this.createCommentThread(document, note);
+    } else {
+      // Thread exists, make sure we're showing the correct note
+      const state = this.threadStates.get(threadKey);
+      if (state) {
+        const noteIndex = state.noteIds.indexOf(noteId);
+        if (noteIndex !== -1) {
+          state.currentIndex = noteIndex;
+        }
+      }
     }
 
     // Track which note is being edited
@@ -604,14 +820,26 @@ export class CommentController {
     noteId: string,
     newContent: string
   ): Promise<boolean> {
-    // Get the comment thread to find the file
-    const thread = this.commentThreads.get(noteId);
-    if (!thread) {
+    // Find the thread by searching through all threads
+    // Since we don't know the file path yet, we need to search
+    let foundThread: vscode.CommentThread | undefined;
+    let foundThreadKey: string | undefined;
+
+    for (const [threadKey, thread] of this.commentThreads.entries()) {
+      const state = this.threadStates.get(threadKey);
+      if (state && state.noteIds.includes(noteId)) {
+        foundThread = thread;
+        foundThreadKey = threadKey;
+        break;
+      }
+    }
+
+    if (!foundThread || !foundThreadKey) {
       vscode.window.showErrorMessage("Note thread not found");
       return false;
     }
 
-    const filePath = thread.uri.fsPath;
+    const filePath = foundThread.uri.fsPath;
 
     // Open the document
     const document = await vscode.workspace.openTextDocument(filePath);
@@ -623,7 +851,7 @@ export class CommentController {
     );
 
     // Update thread back to preview mode
-    this.updateCommentThread(updatedNote, document);
+    await this.updateThreadDisplay(foundThreadKey, document);
 
     // Clear editing state
     this.currentlyEditingNoteId = null;

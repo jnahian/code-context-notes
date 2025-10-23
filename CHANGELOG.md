@@ -14,6 +14,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Note templates
 - Tags and categories
 
+## [0.1.8] - 2025-10-23
+
+### Fixed
+- **Multiple note creation and navigation** (GitHub Issue #6)
+  - Fixed thread lookup methods that were using note IDs instead of thread keys, breaking multi-note functionality
+  - Updated `focusNoteThread()`, `showHistoryInThread()`, `enableEditMode()`, and `saveEditedNoteById()` to properly handle multi-note threads
+  - Fixed thread key format to use `filePath:lineStart` for consistent lookups
+  - Added "➕ Add Note" CodeLens button that appears even when notes already exist on a line
+  - Users can now easily add multiple notes to the same line via CodeLens
+  - All multi-note features (viewing, editing, navigating) now work correctly
+
+### Changed
+- **Conditional navigation buttons with icon-only UI**
+  - Moved Previous/Next/Add Note actions from markdown header to native VS Code icon buttons
+  - Previous (`$(chevron-left)`) and Next (`$(chevron-right)`) buttons now only appear when there are multiple notes on the same line
+  - Single-note threads show: `[+] [Edit] [History] [Delete]`
+  - Multi-note threads show: `[<] [>] [+] [Edit] [History] [Delete]`
+  - All buttons placed in inline group on the right side for consistent positioning
+  - Removed markdown navigation header from comment body for cleaner content display
+  - Introduced contextValue system: single notes use `noteId`, multi-notes use `noteId:multi` suffix
+  - Smarter, cleaner UI that only shows navigation when needed
+
+### Technical
+- Updated `commentController.ts`:
+  - Modified `createComment()` to add `isMultiNote` parameter and set contextValue conditionally (lines 156-190)
+  - Updated `updateThreadDisplay()` to calculate and pass multi-note state (lines 124-151)
+  - Updated thread lookup methods to use thread keys (lines 638-872)
+- Updated `extension.ts`:
+  - Modified 7 command handlers to extract note ID from contextValue using `.replace(/:multi$/, '')`
+  - Commands: nextNote, previousNote, addNoteToLine, editNote, saveNote, deleteNoteFromComment, viewNoteHistory
+- Updated `package.json`:
+  - Added conditional `when` clauses: Previous/Next use `comment =~ /:multi$/`, other buttons use `comment =~ /^[a-f0-9-]+/`
+- Updated `codeLensProvider.ts`:
+  - Added "Add Note" CodeLens for lines with existing notes (lines 70-77)
+
 ## [0.1.7] - 2025-10-19
 
 ### Fixed

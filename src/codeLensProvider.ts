@@ -34,28 +34,47 @@ export class CodeNotesLensProvider implements vscode.CodeLensProvider {
       // Get all notes for this file
       const notes = await this.noteManager.getNotesForFile(document.uri.fsPath);
 
-      // Create CodeLens for each note
+      // Group notes by line to handle multiple notes per line
+      const notesByLine = new Map<number, Note[]>();
       for (const note of notes) {
+        const lineStart = note.lineRange.start;
+        if (!notesByLine.has(lineStart)) {
+          notesByLine.set(lineStart, []);
+        }
+        notesByLine.get(lineStart)!.push(note);
+      }
+
+      // Create CodeLens for each line with notes
+      for (const [lineStart, lineNotes] of notesByLine) {
         if (token.isCancellationRequested) {
           break;
         }
 
         // Create range for the CodeLens (line before the note)
         const range = new vscode.Range(
-          note.lineRange.start,
+          lineStart,
           0,
-          note.lineRange.start,
+          lineStart,
           0
         );
 
-        // Create CodeLens with command to view the note
-        const codeLens = new vscode.CodeLens(range, {
-          title: this.formatCodeLensTitle(note),
+        // Create CodeLens with command to view the note(s)
+        const viewNoteLens = new vscode.CodeLens(range, {
+          title: this.formatCodeLensTitle(lineNotes),
           command: 'codeContextNotes.viewNote',
-          arguments: [note.id, document.uri.fsPath]
+          arguments: [lineNotes[0].id, document.uri.fsPath]
         });
 
-        codeLenses.push(codeLens);
+        codeLenses.push(viewNoteLens);
+
+        // Add "Add Note" button when notes exist (for multiple notes on same line)
+        const addNoteLens = new vscode.CodeLens(range, {
+          title: '➕ Add Note',
+          command: 'codeContextNotes.addNoteToLine',
+          arguments: [{ filePath: document.uri.fsPath, lineStart }]
+        });
+
+        codeLenses.push(addNoteLens);
       }
 
       // Add "Add Note" CodeLens above selection if there's a selection
@@ -64,11 +83,12 @@ export class CodeNotesLensProvider implements vscode.CodeLensProvider {
         const selectionStart = selection.start.line;
 
         // Check if there's already a note at this position
-        const existingNote = notes.find(n =>
-          selectionStart >= n.lineRange.start && selectionStart <= n.lineRange.end
+        const notesAtSelection = await this.noteManager.getNotesAtPosition(
+          document.uri.fsPath,
+          selectionStart
         );
 
-        if (!existingNote) {
+        if (notesAtSelection.length === 0) {
           const addNoteRange = new vscode.Range(selectionStart, 0, selectionStart, 0);
           const addNoteLens = new vscode.CodeLens(addNoteRange, {
             title: '➕ Add Note',
@@ -121,18 +141,37 @@ export class CodeNotesLensProvider implements vscode.CodeLensProvider {
   }
 
   /**
-   * Format the CodeLens title to show note preview
+   * Format the CodeLens title to show note preview (supports multiple notes)
    */
-  private formatCodeLensTitle(note: Note): string {
-    // Strip markdown formatting and get first line
-    const plainText = this.stripMarkdown(note.content);
-    const firstLine = plainText.split('\n')[0];
-    const preview = firstLine.length > 50
-      ? firstLine.substring(0, 47) + '...'
-      : firstLine;
+  private formatCodeLensTitle(notes: Note[]): string {
+    if (notes.length === 1) {
+      const note = notes[0];
+      // Strip markdown formatting and get first line
+      const plainText = this.stripMarkdown(note.content);
+      const firstLine = plainText.split('\n')[0];
+      const preview = firstLine.length > 50
+        ? firstLine.substring(0, 47) + '...'
+        : firstLine;
 
-    // Format: "📝 Note: preview text (by author)"
-    return `📝 Note: ${preview} (${note.author})`;
+      // Format: "📝 Note: preview text (by author)"
+      return `📝 Note: ${preview} (${note.author})`;
+    } else {
+      // Multiple notes - show count and authors
+      const uniqueAuthors = [...new Set(notes.map(n => n.author))];
+      const authorsDisplay = uniqueAuthors.length > 2
+        ? `${uniqueAuthors.slice(0, 2).join(', ')} +${uniqueAuthors.length - 2} more`
+        : uniqueAuthors.join(', ');
+
+      // Get preview from first note
+      const plainText = this.stripMarkdown(notes[0].content);
+      const firstLine = plainText.split('\n')[0];
+      const preview = firstLine.length > 35
+        ? firstLine.substring(0, 32) + '...'
+        : firstLine;
+
+      // Format: "📝 Notes (3): preview... (by author1, author2)"
+      return `📝 Notes (${notes.length}): ${preview} (${authorsDisplay})`;
+    }
   }
 
   /**

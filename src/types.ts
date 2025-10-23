@@ -146,3 +146,17 @@ export interface NoteStorage {
   /** Create storage directory */
   createStorage(): Promise<void>;
 }
+
+/**
+ * Thread state for managing multiple notes on a single line
+ */
+export interface MultiNoteThreadState {
+  /** Array of note IDs at this position */
+  noteIds: string[];
+  /** Index of currently displayed note (0-based) */
+  currentIndex: number;
+  /** Shared line range for all notes in this thread */
+  lineRange: LineRange;
+  /** File path for this thread */
+  filePath: string;
+}

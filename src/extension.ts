@@ -347,10 +347,13 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 				return;
 			}
 
-			const noteId = comment.contextValue;
-			if (!noteId) {
+			const contextValue = comment.contextValue;
+			if (!contextValue) {
 				return;
 			}
+
+			// Extract note ID (remove :multi suffix if present)
+			const noteId = contextValue.replace(/:multi$/, '');
 
 			try {
 				await commentController.enableEditMode(noteId, editor.document.uri.fsPath);
@@ -375,10 +378,13 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 				comment = currentComment;
 			}
 
-			const noteId = comment.contextValue;
-			if (!noteId) {
+			const contextValue = comment.contextValue;
+			if (!contextValue) {
 				return;
 			}
+
+			// Extract note ID (remove :multi suffix if present)
+			const noteId = contextValue.replace(/:multi$/, '');
 
 			const newContent = typeof comment.body === 'string' ? comment.body : comment.body.value;
 
@@ -529,10 +535,13 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 	const deleteNoteFromCommentCommand = vscode.commands.registerCommand(
 		'codeContextNotes.deleteNoteFromComment',
 		async (comment: vscode.Comment) => {
-			const noteId = comment.contextValue;
-			if (!noteId) {
+			const contextValue = comment.contextValue;
+			if (!contextValue) {
 				return;
 			}
+
+			// Extract note ID (remove :multi suffix if present)
+			const noteId = contextValue.replace(/:multi$/, '');
 
 			const editor = vscode.window.activeTextEditor;
 			if (!editor) {
@@ -574,10 +583,13 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 	const viewNoteHistoryFromCommentCommand = vscode.commands.registerCommand(
 		'codeContextNotes.viewNoteHistory',
 		async (comment: vscode.Comment) => {
-			const noteId = comment.contextValue;
-			if (!noteId) {
+			const contextValue = comment.contextValue;
+			if (!contextValue) {
 				return;
 			}
+
+			// Extract note ID (remove :multi suffix if present)
+			const noteId = contextValue.replace(/:multi$/, '');
 
 			const editor = vscode.window.activeTextEditor;
 			if (!editor) {
@@ -591,6 +603,145 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 				await commentController.showHistoryInThread(noteId, filePath);
 			} catch (error) {
 				vscode.window.showErrorMessage(`Failed to view history: ${error}`);
+			}
+		}
+	);
+
+	// Navigate to next note in multi-note thread
+	const nextNoteCommand = vscode.commands.registerCommand(
+		'codeContextNotes.nextNote',
+		async (comment: vscode.Comment) => {
+			const contextValue = comment.contextValue;
+			if (!contextValue) {
+				return;
+			}
+
+			// Extract note ID (remove :multi suffix if present)
+			const noteId = contextValue.replace(/:multi$/, '');
+
+			const editor = vscode.window.activeTextEditor;
+			if (!editor) {
+				vscode.window.showErrorMessage('No active editor');
+				return;
+			}
+
+			const filePath = editor.document.uri.fsPath;
+
+			try {
+				// Get note to find thread key
+				const note = await noteManager.getNoteById(noteId, filePath);
+				if (!note) {
+					return;
+				}
+				const threadKey = `${filePath}:${note.lineRange.start}`;
+				await commentController.navigateNextNote(threadKey);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to navigate to next note: ${error}`);
+			}
+		}
+	);
+
+	// Navigate to previous note in multi-note thread
+	const previousNoteCommand = vscode.commands.registerCommand(
+		'codeContextNotes.previousNote',
+		async (comment: vscode.Comment) => {
+			const contextValue = comment.contextValue;
+			if (!contextValue) {
+				return;
+			}
+
+			// Extract note ID (remove :multi suffix if present)
+			const noteId = contextValue.replace(/:multi$/, '');
+
+			const editor = vscode.window.activeTextEditor;
+			if (!editor) {
+				vscode.window.showErrorMessage('No active editor');
+				return;
+			}
+
+			const filePath = editor.document.uri.fsPath;
+
+			try {
+				// Get note to find thread key
+				const note = await noteManager.getNoteById(noteId, filePath);
+				if (!note) {
+					return;
+				}
+				const threadKey = `${filePath}:${note.lineRange.start}`;
+				await commentController.navigatePreviousNote(threadKey);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to navigate to previous note: ${error}`);
+			}
+		}
+	);
+
+	// Add another note to an existing line
+	const addNoteToLineCommand = vscode.commands.registerCommand(
+		'codeContextNotes.addNoteToLine',
+		async (arg: vscode.Comment | { filePath: string; lineStart: number }) => {
+			let filePath: string | undefined;
+			let lineStart: number | undefined;
+
+			// Detect argument shape: vscode.Comment has contextValue, CodeLens payload has filePath
+			if ('contextValue' in arg && arg.contextValue) {
+				// Called from comment button - arg is vscode.Comment
+				const contextValue = arg.contextValue;
+
+				// Extract note ID (remove :multi suffix if present)
+				const noteId = contextValue.replace(/:multi$/, '');
+
+				const editor = vscode.window.activeTextEditor;
+				if (!editor) {
+					vscode.window.showErrorMessage('No active editor');
+					return;
+				}
+
+				filePath = editor.document.uri.fsPath;
+
+				try {
+					// Get note to find line range
+					const note = await noteManager.getNoteById(noteId, filePath);
+					if (!note) {
+						return;
+					}
+
+					lineStart = note.lineRange.start;
+				} catch (error) {
+					vscode.window.showErrorMessage(`Failed to find note: ${error}`);
+					return;
+				}
+			} else if ('filePath' in arg && 'lineStart' in arg) {
+				// Called from CodeLens - arg is { filePath, lineStart }
+				filePath = arg.filePath;
+				lineStart = arg.lineStart;
+			} else {
+				// Fallback: use active editor
+				const editor = vscode.window.activeTextEditor;
+				if (!editor) {
+					vscode.window.showErrorMessage('No active editor');
+					return;
+				}
+				filePath = editor.document.uri.fsPath;
+				lineStart = editor.selection.active.line;
+			}
+
+			// Ensure we have both filePath and lineStart
+			if (!filePath || lineStart === undefined) {
+				vscode.window.showErrorMessage('Unable to determine file path or line number');
+				return;
+			}
+
+			try {
+				const document = await vscode.workspace.openTextDocument(filePath);
+				await vscode.window.showTextDocument(document);
+
+				// Create range for the line
+				const range = new vscode.Range(lineStart, 0, lineStart, 0);
+
+				// Open comment editor
+				await commentController.openCommentEditor(document, range);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to add note: ${error}`);
 			}
 		}
 	);
@@ -616,7 +767,10 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		insertListCommand,
 		showMarkdownHelpCommand,
 		deleteNoteFromCommentCommand,
-		viewNoteHistoryFromCommentCommand
+		viewNoteHistoryFromCommentCommand,
+		nextNoteCommand,
+		previousNoteCommand,
+		addNoteToLineCommand
 	);
 }
 
