@@ -977,6 +977,42 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		}
 	);
 
+	// Filter Notes by Tags
+	const filterByTagsCommand = vscode.commands.registerCommand(
+		'codeContextNotes.filterByTags',
+		async () => {
+			if (!noteManager || !sidebarProvider) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+
+			try {
+				const { TagInputUI } = await import('./tagInputUI.js');
+				const allNotes = await noteManager.getAllNotes();
+				const selectedTags = await TagInputUI.showTagFilter(allNotes);
+
+				if (selectedTags && selectedTags.length > 0) {
+					sidebarProvider.setTagFilters(selectedTags, 'any');
+					vscode.window.showInformationMessage(`Filtering by tags: ${selectedTags.join(', ')}`);
+				}
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to filter by tags: ${error}`);
+			}
+		}
+	);
+
+	// Clear Tag Filters
+	const clearTagFiltersCommand = vscode.commands.registerCommand(
+		'codeContextNotes.clearTagFilters',
+		() => {
+			if (!sidebarProvider) {
+				return;
+			}
+			sidebarProvider.clearTagFilters();
+			vscode.window.showInformationMessage('Tag filters cleared');
+		}
+	);
+
 	// Register all commands
 	context.subscriptions.push(
 		addNoteCommand,
@@ -1009,7 +1045,9 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		editNoteFromSidebarCommand,
 		deleteNoteFromSidebarCommand,
 		viewNoteHistoryFromSidebarCommand,
-		openFileFromSidebarCommand
+		openFileFromSidebarCommand,
+		filterByTagsCommand,
+		clearTagFiltersCommand
 	);
 }
 

@@ -21,6 +21,10 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 	private debounceTimer: NodeJS.Timeout | null = null;
 	private readonly DEBOUNCE_DELAY = 300; // ms
 
+	// Tag filtering
+	private activeTagFilters: string[] = [];
+	private filterMode: 'any' | 'all' = 'any'; // 'any' = OR logic, 'all' = AND logic
+
 	constructor(
 		private readonly noteManager: NoteManager,
 		private readonly workspaceRoot: string,
@@ -108,10 +112,16 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 		const fileNodes: FileTreeItem[] = [];
 		const sortBy = this.getSortBy();
 
-		// Create file nodes
+		// Create file nodes, applying tag filters
 		for (const [filePath, notes] of notesByFile.entries()) {
-			if (notes.length > 0) {
-				fileNodes.push(new FileTreeItem(filePath, notes, this.workspaceRoot));
+			// Filter notes by tags if filters are active
+			const filteredNotes = this.activeTagFilters.length > 0
+				? notes.filter(note => this.matchesTagFilter(note))
+				: notes;
+
+			// Only create file node if it has notes after filtering
+			if (filteredNotes.length > 0) {
+				fileNodes.push(new FileTreeItem(filePath, filteredNotes, this.workspaceRoot));
 			}
 		}
 
@@ -185,5 +195,67 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 	private getSortBy(): 'file' | 'date' | 'author' {
 		const config = vscode.workspace.getConfiguration('codeContextNotes');
 		return config.get<'file' | 'date' | 'author'>('sidebar.sortBy', 'file');
+	}
+
+	/**
+	 * Set tag filters for the sidebar
+	 */
+	setTagFilters(tags: string[], mode: 'any' | 'all' = 'any'): void {
+		this.activeTagFilters = tags;
+		this.filterMode = mode;
+		this.refresh();
+	}
+
+	/**
+	 * Clear all tag filters
+	 */
+	clearTagFilters(): void {
+		this.activeTagFilters = [];
+		this.refresh();
+	}
+
+	/**
+	 * Get currently active tag filters
+	 */
+	getActiveFilters(): { tags: string[]; mode: 'any' | 'all' } {
+		return {
+			tags: [...this.activeTagFilters],
+			mode: this.filterMode,
+		};
+	}
+
+	/**
+	 * Check if a note matches the active tag filters
+	 */
+	private matchesTagFilter(note: Note): boolean {
+		// If no filters, show all notes
+		if (this.activeTagFilters.length === 0) {
+			return true;
+		}
+
+		// If note has no tags, it doesn't match any tag filter
+		if (!note.tags || note.tags.length === 0) {
+			return false;
+		}
+
+		// Apply filter based on mode
+		if (this.filterMode === 'all') {
+			// Note must have ALL filter tags (AND logic)
+			return this.activeTagFilters.every(filterTag =>
+				note.tags!.includes(filterTag)
+			);
+		} else {
+			// Note must have at least ONE filter tag (OR logic)
+			return this.activeTagFilters.some(filterTag =>
+				note.tags!.includes(filterTag)
+			);
+		}
+	}
+
+	/**
+	 * Check if any filters are active
+	 */
+	hasActiveFilters(): boolean {
+		return this.activeTagFilters.length > 0;
 	}
 }

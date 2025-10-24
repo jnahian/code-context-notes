@@ -23,6 +23,12 @@ export interface SearchQuery {
   /** File path glob pattern */
   filePattern?: string;
 
+  /** Filter by tags */
+  tags?: string[];
+
+  /** Tag filter mode - 'any' means OR logic, 'all' means AND logic */
+  tagFilterMode?: 'any' | 'all';
+
   /** Case-sensitive search */
   caseSensitive?: boolean;
 

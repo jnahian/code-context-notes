@@ -637,4 +637,224 @@ suite('SearchManager Test Suite', () => {
 			assert.strictEqual(results3.length, 1);
 		});
 	});
+
+	suite('Tag Filtering & Indexing', () => {
+		test('should index notes with tags', async () => {
+			const notes = [
+				{ ...createMockNote('note1', 'Content 1', 'Alice', '/file1.ts'), tags: ['TODO', 'BUG'] },
+				{ ...createMockNote('note2', 'Content 2', 'Bob', '/file2.ts'), tags: ['FIXME'] },
+				{ ...createMockNote('note3', 'Content 3', 'Charlie', '/file3.ts'), tags: [] }
+			];
+
+			await searchManager.buildIndex(notes);
+			const stats = searchManager.getStats();
+			assert.strictEqual(stats.totalNotes, 3);
+		});
+
+		test('should filter by single tag - any mode', async () => {
+			const notes = [
+				{ ...createMockNote('note1', 'Content 1', 'Alice', '/file1.ts'), tags: ['TODO', 'BUG'] },
+				{ ...createMockNote('note2', 'Content 2', 'Bob', '/file2.ts'), tags: ['FIXME'] },
+				{ ...createMockNote('note3', 'Content 3', 'Charlie', '/file3.ts'), tags: ['TODO'] }
+			];
+
+			await searchManager.buildIndex(notes);
+			const results = await searchManager.filterByTags(['TODO'], 'any');
+
+			assert.strictEqual(results.length, 2);
+			assert.ok(results.some(n => n.id === 'note1'));
+			assert.ok(results.some(n => n.id === 'note3'));
+		});
+
+		test('should filter by multiple tags - any mode (OR logic)', async () => {
+			const notes = [
+				{ ...createMockNote('note1', 'Content 1', 'Alice', '/file1.ts'), tags: ['TODO'] },
+				{ ...createMockNote('note2', 'Content 2', 'Bob', '/file2.ts'), tags: ['FIXME'] },
+				{ ...createMockNote('note3', 'Content 3', 'Charlie', '/file3.ts'), tags: ['BUG'] },
+				{ ...createMockNote('note4', 'Content 4', 'Dave', '/file4.ts'), tags: ['REVIEW'] }
+			];
+
+			await searchManager.buildIndex(notes);
+			const results = await searchManager.filterByTags(['TODO', 'FIXME'], 'any');
+
+			assert.strictEqual(results.length, 2);
+			assert.ok(results.some(n => n.id === 'note1'));
+			assert.ok(results.some(n => n.id === 'note2'));
+		});
+
+		test('should filter by multiple tags - all mode (AND logic)', async () => {
+			const notes = [
+				{ ...createMockNote('note1', 'Content 1', 'Alice', '/file1.ts'), tags: ['TODO', 'BUG'] },
+				{ ...createMockNote('note2', 'Content 2', 'Bob', '/file2.ts'), tags: ['TODO'] },
+				{ ...createMockNote('note3', 'Content 3', 'Charlie', '/file3.ts'), tags: ['BUG'] },
+				{ ...createMockNote('note4', 'Content 4', 'Dave', '/file4.ts'), tags: ['TODO', 'BUG', 'FIXME'] }
+			];
+
+			await searchManager.buildIndex(notes);
+			const results = await searchManager.filterByTags(['TODO', 'BUG'], 'all');
+
+			assert.strictEqual(results.length, 2);
+			assert.ok(results.some(n => n.id === 'note1'));
+			assert.ok(results.some(n => n.id === 'note4'));
+		});
+
+		test('should return empty array for non-existent tag', async () => {
+			const notes = [
+				{ ...createMockNote('note1', 'Content 1', 'Alice', '/file1.ts'), tags: ['TODO'] },
+				{ ...createMockNote('note2', 'Content 2', 'Bob', '/file2.ts'), tags: ['FIXME'] }
+			];
+
+			await searchManager.buildIndex(notes);
+			const results = await searchManager.filterByTags(['NONEXISTENT'], 'any');
+
+			assert.strictEqual(results.length, 0);
+		});
+
+		test('should handle notes without tags', async () => {
+			const notes = [
+				{ ...createMockNote('note1', 'Content 1', 'Alice', '/file1.ts'), tags: ['TODO'] },
+				{ ...createMockNote('note2', 'Content 2', 'Bob', '/file2.ts'), tags: [] },
+				{ ...createMockNote('note3', 'Content 3', 'Charlie', '/file3.ts'), tags: undefined }
+			];
+
+			await searchManager.buildIndex(notes);
+			const results = await searchManager.filterByTags(['TODO'], 'any');
+
+			assert.strictEqual(results.length, 1);
+			assert.strictEqual(results[0].id, 'note1');
+		});
+
+		test('should integrate tag filtering with search query', async () => {
+			const notes = [
+				{ ...createMockNote('note1', 'JavaScript code', 'Alice', '/file1.ts'), tags: ['TODO'] },
+				{ ...createMockNote('note2', 'JavaScript code', 'Bob', '/file2.ts'), tags: ['FIXME'] },
+				{ ...createMockNote('note3', 'Python code', 'Charlie', '/file3.ts'), tags: ['TODO'] }
+			];
+
+			await searchManager.buildIndex(notes);
+			const query: SearchQuery = {
+				text: 'javascript',
+				tags: ['TODO']
+			};
+			const results = await searchManager.search(query, notes);
+
+			assert.strictEqual(results.length, 1);
+			assert.strictEqual(results[0].note.id, 'note1');
+		});
+
+		test('should support tag filter mode in search query', async () => {
+			const notes = [
+				{ ...createMockNote('note1', 'Content', 'Alice', '/file1.ts'), tags: ['TODO', 'BUG'] },
+				{ ...createMockNote('note2', 'Content', 'Bob', '/file2.ts'), tags: ['TODO'] },
+				{ ...createMockNote('note3', 'Content', 'Charlie', '/file3.ts'), tags: ['BUG'] }
+			];
+
+			await searchManager.buildIndex(notes);
+
+			// Test with 'any' mode (OR logic)
+			const queryAny: SearchQuery = {
+				tags: ['TODO', 'BUG'],
+				tagFilterMode: 'any'
+			};
+			const resultsAny = await searchManager.search(queryAny, notes);
+			assert.strictEqual(resultsAny.length, 3);
+
+			// Test with 'all' mode (AND logic)
+			const queryAll: SearchQuery = {
+				tags: ['TODO', 'BUG'],
+				tagFilterMode: 'all'
+			};
+			const resultsAll = await searchManager.search(queryAll, notes);
+			assert.strictEqual(resultsAll.length, 1);
+			assert.strictEqual(resultsAll[0].note.id, 'note1');
+		});
+
+		test('should update tag index when adding notes incrementally', async () => {
+			const note1 = { ...createMockNote('note1', 'Content 1', 'Alice', '/file1.ts'), tags: ['TODO'] };
+			await searchManager.buildIndex([note1]);
+
+			const note2 = { ...createMockNote('note2', 'Content 2', 'Bob', '/file2.ts'), tags: ['TODO'] };
+			await searchManager.updateIndex(note2);
+
+			const results = await searchManager.filterByTags(['TODO'], 'any');
+			assert.strictEqual(results.length, 2);
+		});
+
+		test('should remove tags from index when note is removed', async () => {
+			const notes = [
+				{ ...createMockNote('note1', 'Content 1', 'Alice', '/file1.ts'), tags: ['TODO'] },
+				{ ...createMockNote('note2', 'Content 2', 'Bob', '/file2.ts'), tags: ['TODO'] }
+			];
+
+			await searchManager.buildIndex(notes);
+			await searchManager.removeFromIndex('note1');
+
+			const results = await searchManager.filterByTags(['TODO'], 'any');
+			assert.strictEqual(results.length, 1);
+			assert.strictEqual(results[0].id, 'note2');
+		});
+
+		test('should handle empty tags array in filter', async () => {
+			const notes = [
+				{ ...createMockNote('note1', 'Content', 'Alice', '/file1.ts'), tags: ['TODO'] }
+			];
+
+			await searchManager.buildIndex(notes);
+			const results = await searchManager.filterByTags([], 'any');
+
+			assert.strictEqual(results.length, 0);
+		});
+
+		test('should handle case-sensitive tag matching', async () => {
+			const notes = [
+				{ ...createMockNote('note1', 'Content', 'Alice', '/file1.ts'), tags: ['TODO'] },
+				{ ...createMockNote('note2', 'Content', 'Bob', '/file2.ts'), tags: ['todo'] },
+				{ ...createMockNote('note3', 'Content', 'Charlie', '/file3.ts'), tags: ['Todo'] }
+			];
+
+			await searchManager.buildIndex(notes);
+
+			// Should only match exact case
+			const results = await searchManager.filterByTags(['TODO'], 'any');
+			assert.strictEqual(results.length, 1);
+			assert.strictEqual(results[0].id, 'note1');
+		});
+
+		test('should combine text search with tag filtering', async () => {
+			const notes = [
+				{ ...createMockNote('note1', 'JavaScript function', 'Alice', '/file1.ts'), tags: ['TODO', 'BUG'] },
+				{ ...createMockNote('note2', 'JavaScript class', 'Bob', '/file2.ts'), tags: ['TODO'] },
+				{ ...createMockNote('note3', 'Python function', 'Charlie', '/file3.ts'), tags: ['TODO'] },
+				{ ...createMockNote('note4', 'JavaScript variable', 'Dave', '/file4.ts'), tags: ['FIXME'] }
+			];
+
+			await searchManager.buildIndex(notes);
+
+			const query: SearchQuery = {
+				text: 'javascript',
+				tags: ['TODO']
+			};
+			const results = await searchManager.search(query, notes);
+
+			// Should match notes that have JavaScript AND TODO tag
+			assert.strictEqual(results.length, 2);
+			assert.ok(results.some(r => r.note.id === 'note1'));
+			assert.ok(results.some(r => r.note.id === 'note2'));
+		});
+
+		test('should handle multiple tag updates on same note', async () => {
+			const note1 = { ...createMockNote('note1', 'Content', 'Alice', '/file1.ts'), tags: ['TODO'] };
+			await searchManager.buildIndex([note1]);
+
+			// Update to different tags
+			const note1Updated = { ...note1, tags: ['FIXME', 'BUG'] };
+			await searchManager.updateIndex(note1Updated);
+
+			const todoResults = await searchManager.filterByTags(['TODO'], 'any');
+			assert.strictEqual(todoResults.length, 0);
+
+			const fixmeResults = await searchManager.filterByTags(['FIXME'], 'any');
+			assert.strictEqual(fixmeResults.length, 1);
+		});
+	});
 });

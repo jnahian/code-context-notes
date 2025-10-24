@@ -91,7 +91,8 @@ export class NoteManager extends EventEmitter {
           action: 'created'
         }
       ],
-      isDeleted: false
+      isDeleted: false,
+      tags: params.tags || []
     };
 
     // Save to storage
@@ -138,6 +139,11 @@ export class NoteManager extends EventEmitter {
     note.content = params.content.trim();
     note.author = author;
     note.updatedAt = now;
+
+    // Update tags if provided
+    if (params.tags !== undefined) {
+      note.tags = params.tags;
+    }
 
     // Add history entry
     note.history.push({
