@@ -117,15 +117,34 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 	}
 
-	// Build search index in background
+	// Build search index in background with progress notification
 	console.log('Code Context Notes: Building search index...');
 	setTimeout(async () => {
 		try {
-			const allNotes = await noteManager.getAllNotes();
-			await searchManager.buildIndex(allNotes);
-			console.log(`Code Context Notes: Search index built with ${allNotes.length} notes`);
+			// Show progress for large workspaces
+			await vscode.window.withProgress({
+				location: vscode.ProgressLocation.Notification,
+				title: "Code Context Notes",
+				cancellable: false
+			}, async (progress) => {
+				progress.report({ message: "Building search index..." });
+
+				const allNotes = await noteManager.getAllNotes();
+				await searchManager.buildIndex(allNotes);
+
+				progress.report({ message: `Search index ready (${allNotes.length} notes)` });
+				console.log(`Code Context Notes: Search index built with ${allNotes.length} notes`);
+
+				// Show completion message for large indexes
+				if (allNotes.length > 100) {
+					setTimeout(() => {
+						vscode.window.showInformationMessage(`Code Context Notes: Search index ready with ${allNotes.length} notes`);
+					}, 500);
+				}
+			});
 		} catch (error) {
 			console.error('Code Context Notes: Failed to build search index:', error);
+			vscode.window.showErrorMessage(`Code Context Notes: Failed to build search index: ${error}`);
 		}
 	}, 1000); // Delay to not block activation
 
