@@ -4,6 +4,7 @@
  */
 
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
 import { Note, CreateNoteParams, UpdateNoteParams, LineRange } from './types.js';
@@ -534,7 +535,7 @@ export class NoteManager extends EventEmitter {
    * Example: /path/.code-notes/abc123.md -> abc123
    */
   private extractNoteIdFromFilePath(filePath: string): string {
-    const fileName = filePath.split('/').pop() || '';
-    return fileName.replace('.md', '');
+    const fileName = path.basename(filePath);
+    return fileName.replace(path.extname(fileName), '');
   }
 }
