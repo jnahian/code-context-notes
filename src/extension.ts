@@ -10,8 +10,10 @@ import { NoteManager } from './noteManager.js';
 import { CommentController } from './commentController.js';
 import { CodeNotesLensProvider } from './codeLensProvider.js';
 import { NotesSidebarProvider } from './notesSidebarProvider.js';
+import { SearchManager } from './searchManager.js';
 
 let noteManager: NoteManager;
+let searchManager: SearchManager;
 let commentController: CommentController;
 let codeLensProvider: CodeNotesLensProvider;
 let sidebarProvider: NotesSidebarProvider;
@@ -74,6 +76,18 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Initialize note manager
 	noteManager = new NoteManager(storage, hashTracker, gitIntegration);
+
+	// Initialize search manager
+	searchManager = new SearchManager(context);
+
+	// Connect search manager to note manager
+	noteManager.setSearchManager(searchManager);
+
+	// Build initial search index with all existing notes
+	console.log('Code Context Notes: Building initial search index...');
+	const allNotes = await noteManager.getAllNotes();
+	await searchManager.buildIndex(allNotes);
+	console.log(`Code Context Notes: Search index built with ${allNotes.length} notes`);
 
 	// Initialize comment controller
 	commentController = new CommentController(noteManager, context);

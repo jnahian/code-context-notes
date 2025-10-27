@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Note } from './types';
+import { Note } from './types.js';
 import {
   SearchQuery,
   SearchResult,
@@ -8,8 +8,37 @@ import {
   SearchStats,
   InvertedIndexEntry,
   SearchCacheEntry
-} from './searchTypes';
+} from './searchTypes.js';
 import { v4 as uuidv4 } from 'uuid';
+
+/**
+ * Serializable version of SearchQuery for storage
+ */
+interface SerializableSearchQuery {
+  text?: string;
+  regex?: { pattern: string; flags: string } | null;
+  authors?: string[];
+  dateRange?: {
+    start?: string;
+    end?: string;
+    field: 'created' | 'updated';
+  };
+  filePattern?: string;
+  caseSensitive?: boolean;
+  fuzzy?: boolean;
+  maxResults?: number;
+}
+
+/**
+ * Serializable version of SearchHistoryEntry for storage
+ */
+interface SerializableSearchHistoryEntry {
+  id: string;
+  query: SerializableSearchQuery;
+  timestamp: string;
+  resultCount: number;
+  label: string;
+}
 
 /**
  * Manages search indexing and queries for notes
@@ -246,8 +275,11 @@ export class SearchManager {
   async searchRegex(pattern: RegExp, allNotes: Note[]): Promise<Note[]> {
     const matches: Note[] = [];
 
+    // Create a fresh non-global regex to avoid lastIndex issues
+    const testRegex = new RegExp(pattern.source, pattern.flags.replace(/g/g, ''));
+
     for (const note of allNotes) {
-      if (pattern.test(note.content)) {
+      if (testRegex.test(note.content)) {
         matches.push(note);
       }
     }
@@ -313,6 +345,8 @@ export class SearchManager {
     const matchingNoteIds = new Set<string>();
 
     for (const [filePath, noteIds] of this.fileIndex.entries()) {
+      // Reset lastIndex to prevent state leakage (defensive programming)
+      regex.lastIndex = 0;
       if (regex.test(filePath)) {
         noteIds.forEach(id => matchingNoteIds.add(id));
       }
@@ -557,9 +591,15 @@ export class SearchManager {
     const matches: SearchMatch[] = [];
 
     if (query.regex) {
-      // Regex matching
+      // Regex matching - ensure flags contain exactly one 'g'
+      let flags = query.regex.flags;
+      if (!flags.includes('g')) {
+        flags += 'g';
+      }
+      // Create a fresh regex with global flag for iteration
+      const regex = new RegExp(query.regex.source, flags);
+
       let match;
-      const regex = new RegExp(query.regex.source, query.regex.flags + 'g');
       while ((match = regex.exec(note.content)) !== null) {
         matches.push({
           text: match[0],
@@ -614,9 +654,36 @@ export class SearchManager {
 
   /**
    * Get cache key for query
+   * Uses a custom replacer to handle RegExp and Date objects properly
    */
   private getCacheKey(query: SearchQuery): string {
-    return JSON.stringify(query);
+    return JSON.stringify(query, this.serializationReplacer);
+  }
+
+  /**
+   * JSON replacer function for stable serialization of queries
+   * Handles RegExp and Date objects to prevent cache key collisions
+   */
+  private serializationReplacer(key: string, value: any): any {
+    // Handle RegExp objects
+    if (value instanceof RegExp) {
+      return {
+        __type: 'RegExp',
+        pattern: value.source,
+        flags: value.flags
+      };
+    }
+
+    // Handle Date objects
+    if (value instanceof Date) {
+      return {
+        __type: 'Date',
+        iso: value.toISOString()
+      };
+    }
+
+    // Return value unchanged for other types
+    return value;
   }
 
   /**
@@ -765,12 +832,48 @@ export class SearchManager {
    */
   private loadSearchHistory(): void {
     try {
-      const stored = this.context.globalState.get<SearchHistoryEntry[]>('searchHistory');
-      if (stored) {
-        this.searchHistory = stored.map(entry => ({
-          ...entry,
-          timestamp: new Date(entry.timestamp)
-        }));
+      const stored = this.context.globalState.get<SerializableSearchHistoryEntry[]>('searchHistory');
+      if (stored && Array.isArray(stored)) {
+        this.searchHistory = stored
+          .map(entry => {
+            try {
+              // Deserialize query
+              const query: SearchQuery = {
+                ...entry.query,
+                // Recreate RegExp from stored pattern and flags
+                regex: entry.query.regex &&
+                       entry.query.regex.pattern &&
+                       typeof entry.query.regex.pattern === 'string'
+                  ? new RegExp(entry.query.regex.pattern, entry.query.regex.flags || '')
+                  : undefined,
+                // Recreate Date objects from ISO strings
+                dateRange: entry.query.dateRange ? {
+                  start: entry.query.dateRange.start ? new Date(entry.query.dateRange.start) : undefined,
+                  end: entry.query.dateRange.end ? new Date(entry.query.dateRange.end) : undefined,
+                  field: entry.query.dateRange.field
+                } : undefined
+              };
+
+              // Validate and recreate timestamp
+              const timestamp = new Date(entry.timestamp);
+              if (isNaN(timestamp.getTime())) {
+                console.warn('Invalid timestamp in search history entry, skipping');
+                return null;
+              }
+
+              return {
+                id: entry.id,
+                query,
+                timestamp,
+                resultCount: entry.resultCount,
+                label: entry.label
+              };
+            } catch (entryError) {
+              console.warn('Failed to deserialize search history entry:', entryError);
+              return null;
+            }
+          })
+          .filter((entry): entry is SearchHistoryEntry => entry !== null);
       }
     } catch (error) {
       console.error('Failed to load search history:', error);
@@ -783,7 +886,33 @@ export class SearchManager {
    */
   private async persistSearchHistory(): Promise<void> {
     try {
-      await this.context.globalState.update('searchHistory', this.searchHistory);
+      // Serialize search history to plain objects
+      const serializable: SerializableSearchHistoryEntry[] = this.searchHistory.map(entry => {
+        const serializableQuery: SerializableSearchQuery = {
+          ...entry.query,
+          // Convert RegExp to serializable object
+          regex: entry.query.regex ? {
+            pattern: entry.query.regex.source,
+            flags: entry.query.regex.flags
+          } : undefined,
+          // Convert Date objects to ISO strings
+          dateRange: entry.query.dateRange ? {
+            start: entry.query.dateRange.start?.toISOString(),
+            end: entry.query.dateRange.end?.toISOString(),
+            field: entry.query.dateRange.field
+          } : undefined
+        };
+
+        return {
+          id: entry.id,
+          query: serializableQuery,
+          timestamp: entry.timestamp.toISOString(),
+          resultCount: entry.resultCount,
+          label: entry.label
+        };
+      });
+
+      await this.context.globalState.update('searchHistory', serializable);
     } catch (error) {
       console.error('Failed to persist search history:', error);
     }
