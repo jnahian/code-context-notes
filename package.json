@@ -41,7 +41,8 @@
     "commands": [
       {
         "command": "codeContextNotes.addNote",
-        "title": "Add Note to Selection",
+        "title": "Add Note",
+        "icon": "$(add)",
         "category": "Code Notes"
       },
       {
@@ -153,6 +154,48 @@
         "title": "Add Note",
         "icon": "$(add)",
         "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.openNoteFromSidebar",
+        "title": "Go to Note",
+        "icon": "$(go-to-file)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.refreshSidebar",
+        "title": "Refresh Sidebar",
+        "icon": "$(refresh)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.collapseAll",
+        "title": "Collapse All",
+        "icon": "$(collapse-all)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.openFileFromSidebar",
+        "title": "Open File",
+        "icon": "$(go-to-file)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.editNoteFromSidebar",
+        "title": "Edit Note",
+        "icon": "$(edit)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.deleteNoteFromSidebar",
+        "title": "Delete Note",
+        "icon": "$(trash)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.viewNoteHistoryFromSidebar",
+        "title": "View History",
+        "icon": "$(history)",
+        "category": "Code Notes"
       }
     ],
     "keybindings": [
@@ -160,7 +203,7 @@
         "command": "codeContextNotes.addNote",
         "key": "ctrl+alt+n",
         "mac": "cmd+alt+n",
-        "when": "editorTextFocus && editorHasSelection"
+        "when": "editorTextFocus"
       },
       {
         "command": "codeContextNotes.deleteNote",
@@ -212,6 +255,45 @@
       }
     ],
     "menus": {
+      "view/title": [
+        {
+          "command": "codeContextNotes.addNote",
+          "when": "view == codeContextNotes.sidebarView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "codeContextNotes.refreshSidebar",
+          "when": "view == codeContextNotes.sidebarView",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "codeContextNotes.openNoteFromSidebar",
+          "when": "view == codeContextNotes.sidebarView && viewItem == noteNode",
+          "group": "navigation@1"
+        },
+        {
+          "command": "codeContextNotes.editNoteFromSidebar",
+          "when": "view == codeContextNotes.sidebarView && viewItem == noteNode",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "codeContextNotes.viewNoteHistoryFromSidebar",
+          "when": "view == codeContextNotes.sidebarView && viewItem == noteNode",
+          "group": "1_actions@2"
+        },
+        {
+          "command": "codeContextNotes.deleteNoteFromSidebar",
+          "when": "view == codeContextNotes.sidebarView && viewItem == noteNode",
+          "group": "1_actions@3"
+        },
+        {
+          "command": "codeContextNotes.openFileFromSidebar",
+          "when": "view == codeContextNotes.sidebarView && viewItem == fileNode",
+          "group": "navigation@1"
+        }
+      ],
       "comments/commentThread/context": [
         {
           "command": "codeContextNotes.saveNewNote",
@@ -269,6 +351,30 @@
         }
       ]
     },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "codeContextNotes",
+          "title": "Code Notes",
+          "icon": "images/task.png"
+        }
+      ]
+    },
+    "views": {
+      "codeContextNotes": [
+        {
+          "id": "codeContextNotes.sidebarView",
+          "name": "Notes",
+          "contextualTitle": "Code Context Notes"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "codeContextNotes.sidebarView",
+        "contents": "No notes found in this workspace.\n[Add Your First Note](command:codeContextNotes.addNote)\nSelect some code and add a note to get started!"
+      }
+    ],
     "configuration": {
       "title": "Code Context Notes",
       "properties": {
@@ -286,6 +392,26 @@
           "type": "boolean",
           "default": true,
           "description": "Show CodeLens indicators above code with notes"
+        },
+        "codeContextNotes.sidebar.previewLength": {
+          "type": "number",
+          "default": 50,
+          "minimum": 20,
+          "maximum": 200,
+          "description": "Maximum length of note preview text in sidebar"
+        },
+        "codeContextNotes.sidebar.autoExpand": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically expand file nodes in sidebar"
+        },
+        "codeContextNotes.sidebar.sortBy": {
+          "type": "string",
+          "enum": [
+            "file"
+          ],
+          "default": "file",
+          "description": "Sort notes by file path"
         }
       }
     }

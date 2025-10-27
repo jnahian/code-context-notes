@@ -5,3 +5,4 @@
 - Don't add changelog entry for repeated bugs in a feature or improvement in the same release.
 - Always request explicit permission before committing any changes to the repository
 - When requested to write tests, invoke the test-writer agent
+- update the task user story once completed

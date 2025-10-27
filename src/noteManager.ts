@@ -4,21 +4,27 @@
  */
 
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { EventEmitter } from 'events';
 import { Note, CreateNoteParams, UpdateNoteParams, LineRange } from './types.js';
 import { StorageManager } from './storageManager.js';
 import { ContentHashTracker } from './contentHashTracker.js';
 import { GitIntegration } from './gitIntegration.js';
+import { SearchManager } from './searchManager.js';
 
 /**
  * NoteManager coordinates all note operations
  * Integrates storage, content tracking, and git username
  */
-export class NoteManager {
+export class NoteManager extends EventEmitter {
   private storage: StorageManager;
   private hashTracker: ContentHashTracker;
   private gitIntegration: GitIntegration;
+  private searchManager?: SearchManager; // optional to avoid circular dependency
   private noteCache: Map<string, Note[]>; // filePath -> notes
+  private workspaceNotesCache: Note[] | null = null; // cache for all notes
+  private workspaceNotesByFileCache: Map<string, Note[]> | null = null; // cache for notes grouped by file
   private defaultAuthor: string = 'Unknown User';
 
   constructor(
@@ -26,6 +32,7 @@ export class NoteManager {
     hashTracker: ContentHashTracker,
     gitIntegration: GitIntegration
   ) {
+    super();
     this.storage = storage;
     this.hashTracker = hashTracker;
     this.gitIntegration = gitIntegration;
@@ -33,6 +40,13 @@ export class NoteManager {
 
     // Initialize default author
     this.initializeDefaultAuthor();
+  }
+
+  /**
+   * Set the search manager (called after both managers are created to avoid circular dependency)
+   */
+  setSearchManager(searchManager: SearchManager): void {
+    this.searchManager = searchManager;
   }
 
   /**
@@ -87,6 +101,16 @@ export class NoteManager {
     // Update cache
     this.addNoteToCache(note);
 
+    // Update search index
+    if (this.searchManager) {
+      await this.searchManager.updateIndex(note);
+    }
+
+    // Clear workspace cache and emit events
+    this.clearWorkspaceCache();
+    this.emit('noteCreated', note);
+    this.emit('noteChanged', { type: 'created', note });
+
     return note;
   }
 
@@ -133,6 +157,16 @@ export class NoteManager {
     // Update cache
     this.updateNoteInCache(note);
 
+    // Update search index
+    if (this.searchManager) {
+      await this.searchManager.updateIndex(note);
+    }
+
+    // Clear workspace cache and emit events
+    this.clearWorkspaceCache();
+    this.emit('noteUpdated', note);
+    this.emit('noteChanged', { type: 'updated', note });
+
     return note;
   }
 
@@ -168,6 +202,16 @@ export class NoteManager {
 
     // Remove from cache
     this.removeNoteFromCache(noteId, filePath);
+
+    // Remove from search index
+    if (this.searchManager) {
+      await this.searchManager.removeFromIndex(noteId);
+    }
+
+    // Clear workspace cache and emit events
+    this.clearWorkspaceCache();
+    this.emit('noteDeleted', { noteId, filePath });
+    this.emit('noteChanged', { type: 'deleted', noteId, filePath });
   }
 
   /**
@@ -386,5 +430,112 @@ export class NoteManager {
   updateConfiguration(authorName?: string): void {
     this.gitIntegration.updateConfigOverride(authorName);
     this.initializeDefaultAuthor();
+  }
+
+  // ========================================
+  // Workspace-Wide Query Methods (for Sidebar)
+  // ========================================
+
+  /**
+   * Get all notes across the entire workspace (excluding deleted notes)
+   * Uses caching for performance
+   */
+  async getAllNotes(): Promise<Note[]> {
+    // Check cache first
+    if (this.workspaceNotesCache !== null) {
+      return this.workspaceNotesCache;
+    }
+
+    // Load all note files from storage
+    const allNoteFiles = await this.storage.getAllNoteFiles();
+    const notes: Note[] = [];
+
+    for (const noteFilePath of allNoteFiles) {
+      try {
+        const noteId = this.extractNoteIdFromFilePath(noteFilePath);
+        const note = await this.storage.loadNoteById(noteId);
+
+        // Include only non-deleted notes
+        if (note && !note.isDeleted) {
+          notes.push(note);
+        }
+      } catch (error) {
+        console.error(`Failed to load note from ${noteFilePath}:`, error);
+        // Continue with other files
+      }
+    }
+
+    // Cache the results
+    this.workspaceNotesCache = notes;
+
+    return notes;
+  }
+
+  /**
+   * Get all notes grouped by file path
+   * Returns a Map with filePath as key and array of notes as value
+   * Uses caching for performance
+   */
+  async getNotesByFile(): Promise<Map<string, Note[]>> {
+    // Check cache first
+    if (this.workspaceNotesByFileCache !== null) {
+      return this.workspaceNotesByFileCache;
+    }
+
+    // Get all notes
+    const allNotes = await this.getAllNotes();
+
+    // Group by file path
+    const notesByFile = new Map<string, Note[]>();
+
+    for (const note of allNotes) {
+      const existing = notesByFile.get(note.filePath) || [];
+      existing.push(note);
+      notesByFile.set(note.filePath, existing);
+    }
+
+    // Sort notes within each file by line range
+    for (const [filePath, notes] of notesByFile.entries()) {
+      notes.sort((a, b) => a.lineRange.start - b.lineRange.start);
+    }
+
+    // Cache the results
+    this.workspaceNotesByFileCache = notesByFile;
+
+    return notesByFile;
+  }
+
+  /**
+   * Get total count of notes in workspace (excluding deleted)
+   */
+  async getNoteCount(): Promise<number> {
+    const notes = await this.getAllNotes();
+    return notes.length;
+  }
+
+  /**
+   * Get count of files that have notes
+   */
+  async getFileCount(): Promise<number> {
+    const notesByFile = await this.getNotesByFile();
+    return notesByFile.size;
+  }
+
+  /**
+   * Clear workspace-wide caches
+   * Should be called when notes are created, updated, or deleted
+   */
+  private clearWorkspaceCache(): void {
+    this.workspaceNotesCache = null;
+    this.workspaceNotesByFileCache = null;
+  }
+
+  /**
+   * Extract note ID from a note file path
+   * Example: /path/.code-notes/abc123.md -> abc123
+   */
+  private extractNoteIdFromFilePath(filePath: string): string {
+    const fileName = path.basename(filePath);
+    return fileName.replace(path.extname(fileName), '');
   }
 }
