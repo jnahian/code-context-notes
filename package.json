@@ -2,7 +2,7 @@
   "name": "code-context-notes",
   "displayName": "Code Context Notes - Smart Annotations",
   "description": "Add contextual notes to your code with full version history and intelligent tracking",
-  "version": "0.1.8",
+  "version": "0.2.0",
   "publisher": "jnahian",
   "icon": "images/icon.png",
   "galleryBanner": {
@@ -430,9 +430,7 @@
         "codeContextNotes.sidebar.sortBy": {
           "type": "string",
           "enum": [
-            "file",
-            "date",
-            "author"
+            "file"
           ],
           "default": "file",
           "description": "Sort notes by: file path, date, or author (file path only in v0.2.0)"

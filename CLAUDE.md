@@ -6,3 +6,4 @@
 - Always request explicit permission before committing any changes to the repository
 - When requested to write tests, invoke the test-writer agent
 - update the task user story once completed
+- When creating a new release, follow the process documented in `docs/RELEASE_TEMPLATE.md`

@@ -1,46 +1,45 @@
 # Changelog Template
 
-Use this template when creating changelog entries for new versions.
+Use this template when creating changelog entries for new versions. **Always use the COMPACT format below.**
 
 ## [X.Y.Z] - YYYY-MM-DD
 
 ### Added
-- New features that have been added
-- Use bullet points for each item
-- Be specific and user-focused
+- **Feature name** (GitHub Issue #N if applicable)
+  - Concise summary combining key features in 1-2 lines per major feature
+  - Group related sub-features using commas or "and" for brevity
+  - Focus on user-facing value, not implementation details
 
 ### Changed
-- Changes to existing functionality
-- UI/UX improvements
-- Performance enhancements
-- Refactoring that affects users
+- **Change description** - brief explanation of what changed and why
+- Combine related changes into single bullet points where logical
 
 ### Fixed
-- Bug fixes with issue references when applicable
-- Format: `**Brief description** (GitHub Issue #N)`
-- Include what was broken and how it was fixed
+- **Brief description** (GitHub Issue #N) - what was broken and the fix
 
-### Deprecated
-- Features that are being phased out
-- Include migration guidance
-
-### Removed
-- Features that have been removed
-- Explain why and provide alternatives
-
-### Security
-- Security fixes and improvements
-- Be specific but don't expose vulnerabilities
+### Testing
+- Test summary with key numbers (e.g., "X tests covering Y features")
+- Combine test details into concise bullets
 
 ### Technical
-- Internal changes that don't affect users directly
-- Architecture updates
-- Dependency updates
-- Build system changes
+- Implementation summary listing key components/commands/configs
+- Use commas to list multiple items compactly
+- Keep to essential technical changes only
+
+---
+
+[X.Y.Z]: https://github.com/jnahian/code-context-notes/releases/tag/vX.Y.Z
 
 ---
 
 ## Guidelines
+
+### Compact Format Principles
+- **Combine details**: Merge related items into single bullets with sub-points
+- **Remove verbosity**: Cut sections like "Benefits", "Migration Notes", "Known Limitations" unless critical
+- **Dense prose**: Use commas, parentheses, and conjunctions to pack information
+- **One feature, one section**: Group all aspects of a feature under single bullet with sub-bullets
+- **Essential only**: Focus on what users need to know, omit obvious details
 
 ### Writing Style
 - Use present tense ("Add feature" not "Added feature")
@@ -52,26 +51,37 @@ Use this template when creating changelog entries for new versions.
 - **Added**: New features
 - **Changed**: Changes to existing functionality
 - **Fixed**: Bug fixes
-- **Deprecated**: Soon-to-be removed features
-- **Removed**: Removed features
-- **Security**: Security-related changes
+- **Testing**: Test coverage (optional, can merge into Technical)
 - **Technical**: Internal/developer-focused changes
+- **Deprecated**: Soon-to-be removed features (if needed)
+- **Removed**: Removed features (if needed)
+- **Security**: Security-related changes (if needed)
 
 ### Examples
 
-#### Good
+#### Good (Compact)
 ```markdown
-### Fixed
-- **Multiple note creation and navigation** (GitHub Issue #6)
-  - Fixed thread lookup methods that were using note IDs instead of thread keys
-  - Users can now easily add multiple notes to the same line via CodeLens
+### Added
+- **Sidebar View for Browsing All Notes** (GitHub Issue #9)
+  - Dedicated Activity Bar icon with tree view showing all notes across workspace
+  - Notes organized by file with collapsible nodes showing path, note count, and previews
+  - **"+" button** for quick creation, **Collapse All** and Refresh buttons in toolbar
+  - **Context menus**: Note items (Go to, Edit, Delete, History), File items (Open)
+  - **Configurable sorting** by file/date/author with preview length (20-200 chars)
 ```
 
-#### Bad
+#### Bad (Too Verbose)
 ```markdown
-### Fixed
-- Fixed some bugs
-- Updated code
+### Added
+- **Sidebar View for Browsing All Notes** (GitHub Issue #9)
+  - Dedicated Activity Bar icon for Code Notes (standalone sidebar, not in Explorer)
+  - Tree view showing all notes across workspace
+  - Notes organized by file with collapsible file nodes
+  - File nodes display relative path and note count (e.g., "src/extension.ts (3)")
+  - Note nodes show line number, preview text (50 chars), and author name
+  - Click on note to navigate directly to location in editor
+  - Real-time updates when notes are created, edited, or deleted
+  [continues with many more bullets...]
 ```
 
 ### Version Numbering (Semantic Versioning)
