@@ -262,11 +262,6 @@
           "group": "navigation@1"
         },
         {
-          "command": "codeContextNotes.collapseAll",
-          "when": "view == codeContextNotes.sidebarView",
-          "group": "navigation@2"
-        },
-        {
           "command": "codeContextNotes.refreshSidebar",
           "when": "view == codeContextNotes.sidebarView",
           "group": "navigation@3"
