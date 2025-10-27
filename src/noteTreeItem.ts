@@ -150,9 +150,22 @@ export class NoteTreeItem extends BaseTreeItem {
 	 * Truncate text to specified length with ellipsis
 	 */
 	static truncateText(text: string, maxLength: number): string {
+		// Clamp non-positive maxLength to 0
+		if (maxLength <= 0) {
+			maxLength = 0;
+		}
+
+		// For very small maxLength (<=3), just return substring without ellipsis
+		if (maxLength <= 3) {
+			return text.substring(0, maxLength);
+		}
+
+		// If text fits, return unchanged
 		if (text.length <= maxLength) {
 			return text;
 		}
+
+		// Otherwise, truncate and add ellipsis
 		return text.substring(0, maxLength - 3) + '...';
 	}
 }
