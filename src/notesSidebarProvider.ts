@@ -20,6 +20,7 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 
 	private debounceTimer: NodeJS.Timeout | null = null;
 	private readonly DEBOUNCE_DELAY = 300; // ms
+	private disposables: vscode.Disposable[] = [];
 
 	constructor(
 		private readonly noteManager: NoteManager,
@@ -28,6 +29,9 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 	) {
 		// Listen for note changes from NoteManager
 		this.setupEventListeners();
+
+		// Register dispose method so VS Code can clean up when deactivating
+		this.context.subscriptions.push(this);
 	}
 
 	/**
@@ -35,14 +39,22 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 	 */
 	private setupEventListeners(): void {
 		// Listen for note changes (create/update/delete)
-		this.noteManager.on('noteChanged', () => {
+		const noteChangedHandler = () => {
 			this.refresh();
-		});
+		};
+		this.noteManager.on('noteChanged', noteChangedHandler);
+		this.disposables.push(new vscode.Disposable(() => {
+			this.noteManager.removeListener('noteChanged', noteChangedHandler);
+		}));
 
 		// Listen for file changes (external modifications)
-		this.noteManager.on('noteFileChanged', () => {
+		const noteFileChangedHandler = () => {
 			this.refresh();
-		});
+		};
+		this.noteManager.on('noteFileChanged', noteFileChangedHandler);
+		this.disposables.push(new vscode.Disposable(() => {
+			this.noteManager.removeListener('noteFileChanged', noteFileChangedHandler);
+		}));
 	}
 
 	/**
@@ -185,5 +197,23 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 	private getSortBy(): 'file' | 'date' | 'author' {
 		const config = vscode.workspace.getConfiguration('codeContextNotes');
 		return config.get<'file' | 'date' | 'author'>('sidebar.sortBy', 'file');
+	}
+
+	/**
+	 * Dispose of all event listeners and resources
+	 */
+	dispose(): void {
+		// Clear debounce timer if active
+		if (this.debounceTimer) {
+			clearTimeout(this.debounceTimer);
+			this.debounceTimer = null;
+		}
+
+		// Dispose all event listeners
+		vscode.Disposable.from(...this.disposables).dispose();
+		this.disposables = [];
+
+		// Dispose the event emitter
+		this._onDidChangeTreeData.dispose();
 	}
 }
