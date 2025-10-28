@@ -11,12 +11,13 @@ import { CommentController } from './commentController.js';
 import { CodeNotesLensProvider } from './codeLensProvider.js';
 import { NotesSidebarProvider } from './notesSidebarProvider.js';
 import { SearchManager } from './searchManager.js';
+import { SearchUI } from './searchUI.js';
 
 let noteManager: NoteManager;
-let searchManager: SearchManager;
 let commentController: CommentController;
 let codeLensProvider: CodeNotesLensProvider;
 let sidebarProvider: NotesSidebarProvider;
+let searchManager: SearchManager;
 
 // Debounce timers for performance optimization
 const documentChangeTimers: Map<string, NodeJS.Timeout> = new Map();
@@ -80,14 +81,8 @@ export async function activate(context: vscode.ExtensionContext) {
 	// Initialize search manager
 	searchManager = new SearchManager(context);
 
-	// Connect search manager to note manager
+	// Link search manager to note manager (avoids circular dependency)
 	noteManager.setSearchManager(searchManager);
-
-	// Build initial search index with all existing notes
-	console.log('Code Context Notes: Building initial search index...');
-	const allNotes = await noteManager.getAllNotes();
-	await searchManager.buildIndex(allNotes);
-	console.log(`Code Context Notes: Search index built with ${allNotes.length} notes`);
 
 	// Initialize comment controller
 	commentController = new CommentController(noteManager, context);
@@ -121,6 +116,37 @@ export async function activate(context: vscode.ExtensionContext) {
 			await commentController.loadCommentsForDocument(document);
 		}
 	}
+
+	// Build search index in background with progress notification
+	console.log('Code Context Notes: Building search index...');
+	setTimeout(async () => {
+		try {
+			// Show progress for large workspaces
+			await vscode.window.withProgress({
+				location: vscode.ProgressLocation.Notification,
+				title: "Code Context Notes",
+				cancellable: false
+			}, async (progress) => {
+				progress.report({ message: "Building search index..." });
+
+				const allNotes = await noteManager.getAllNotes();
+				await searchManager.buildIndex(allNotes);
+
+				progress.report({ message: `Search index ready (${allNotes.length} notes)` });
+				console.log(`Code Context Notes: Search index built with ${allNotes.length} notes`);
+
+				// Show completion message for large indexes
+				if (allNotes.length > 100) {
+					setTimeout(() => {
+						vscode.window.showInformationMessage(`Code Context Notes: Search index ready with ${allNotes.length} notes`);
+					}, 500);
+				}
+			});
+		} catch (error) {
+			console.error('Code Context Notes: Failed to build search index:', error);
+			vscode.window.showErrorMessage(`Code Context Notes: Failed to build search index: ${error}`);
+		}
+	}, 1000); // Delay to not block activation
 
 	// Listen for selection changes to update CodeLens
 	vscode.window.onDidChangeTextEditorSelection((event) => {
@@ -832,6 +858,25 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		}
 	);
 
+	// Search Notes
+	const searchNotesCommand = vscode.commands.registerCommand(
+		'codeContextNotes.searchNotes',
+		async () => {
+			if (!noteManager || !searchManager) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+
+			try {
+				const searchUI = new SearchUI(searchManager, noteManager);
+				await searchUI.show();
+			} catch (error) {
+				console.error('Search failed:', error);
+				vscode.window.showErrorMessage(`Search failed: ${error}`);
+			}
+		}
+	);
+
 	// Collapse All in Sidebar
 	const collapseAllCommand = vscode.commands.registerCommand(
 		'codeContextNotes.collapseAll',
@@ -959,6 +1004,7 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		addNoteToLineCommand,
 		openNoteFromSidebarCommand,
 		refreshSidebarCommand,
+		searchNotesCommand,
 		collapseAllCommand,
 		editNoteFromSidebarCommand,
 		deleteNoteFromSidebarCommand,
