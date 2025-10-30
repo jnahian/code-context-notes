@@ -51,6 +51,7 @@ export class SearchManager {
   private authorIndex: Map<string, Set<string>> = new Map(); // author -> noteIds
   private dateIndex: Map<string, Note> = new Map(); // noteId -> note
   private fileIndex: Map<string, Set<string>> = new Map(); // filePath -> noteIds
+  private tagIndex: Map<string, Set<string>> = new Map(); // tag -> noteIds
 
   // Search cache
   private searchCache: Map<string, SearchCacheEntry> = new Map();
@@ -76,6 +77,15 @@ export class SearchManager {
   // Configuration
   private context: vscode.ExtensionContext;
 
+  // Stop words to skip during indexing (common words with low search value)
+  private readonly STOP_WORDS = new Set([
+    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+    'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'been',
+    'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should',
+    'could', 'may', 'might', 'can', 'this', 'that', 'these', 'those', 'it',
+    'its', 'we', 'you', 'they', 'them', 'their', 'our', 'your', 'my', 'me'
+  ]);
+
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
     this.loadSearchHistory();
@@ -85,14 +95,15 @@ export class SearchManager {
    * Build complete search index from all notes
    */
   async buildIndex(notes: Note[]): Promise<void> {
-    console.log(`Building search index for ${notes.length} notes...`);
     const startTime = Date.now();
+    console.log(`[SearchManager] Building search index for ${notes.length} notes...`);
 
     // Clear existing indexes
     this.contentIndex.clear();
     this.authorIndex.clear();
     this.dateIndex.clear();
     this.fileIndex.clear();
+    this.tagIndex.clear();
 
     // Index each note
     for (const note of notes) {
@@ -106,7 +117,13 @@ export class SearchManager {
     this.stats.indexSize = this.estimateIndexSize();
 
     const duration = Date.now() - startTime;
-    console.log(`Search index built in ${duration}ms (${notes.length} notes, ${this.contentIndex.size} terms)`);
+    const indexSizeMB = (this.stats.indexSize / (1024 * 1024)).toFixed(2);
+    console.log(`[SearchManager] Index built in ${duration}ms:`, {
+      notes: notes.length,
+      uniqueTerms: this.contentIndex.size,
+      indexSizeMB: `${indexSizeMB} MB`,
+      avgTermsPerNote: Math.round(this.contentIndex.size / Math.max(1, notes.length))
+    });
   }
 
   /**
@@ -159,7 +176,11 @@ export class SearchManager {
     const cacheKey = this.getCacheKey(query);
     const cached = this.getFromCache(cacheKey);
     if (cached) {
-      console.log(`Search cache hit for: ${cacheKey}`);
+      const duration = Date.now() - startTime;
+      console.log(`[SearchManager] Cache hit (${duration}ms):`, {
+        query: query.text || query.regex?.source || 'filters',
+        resultCount: cached.results.length
+      });
       return cached.results;
     }
 
@@ -197,6 +218,12 @@ export class SearchManager {
       candidates = this.intersectSets(candidates, new Set(fileMatches.map(n => n.id)));
     }
 
+    // Apply tag filter
+    if (query.tags && query.tags.length > 0) {
+      const tagMatches = await this.filterByTags(query.tags, query.tagFilterMode || 'any');
+      candidates = this.intersectSets(candidates, new Set(tagMatches.map(n => n.id)));
+    }
+
     // Convert candidate IDs to notes
     const matchedNotes = Array.from(candidates)
       .map(id => this.dateIndex.get(id))
@@ -223,7 +250,20 @@ export class SearchManager {
     const duration = Date.now() - startTime;
     this.recordSearchTime(duration);
 
-    console.log(`Search completed in ${duration}ms (${limitedResults.length} results)`);
+    // Log performance metrics
+    const performanceInfo = {
+      duration: `${duration}ms`,
+      resultCount: limitedResults.length,
+      candidateCount: candidates.size,
+      cacheHit: false,
+      query: query.text || query.regex?.source || 'filters only'
+    };
+    console.log(`[SearchManager] Search completed:`, performanceInfo);
+
+    // Warn if search is slow
+    if (duration > 500) {
+      console.warn(`[SearchManager] Slow search detected (${duration}ms). Consider optimizing query or reducing result set.`);
+    }
 
     return limitedResults;
   }
@@ -360,6 +400,68 @@ export class SearchManager {
   }
 
   /**
+   * Filter notes by tags
+   * @param tags Tags to filter by
+   * @param mode 'any' (OR logic) or 'all' (AND logic)
+   */
+  async filterByTags(tags: string[], mode: 'any' | 'all' = 'any'): Promise<Note[]> {
+    if (tags.length === 0) {
+      return [];
+    }
+
+    if (mode === 'any') {
+      // OR logic: note must have at least one of the specified tags
+      const matchingNoteIds = new Set<string>();
+
+      for (const tag of tags) {
+        const noteIds = this.tagIndex.get(tag);
+        if (noteIds) {
+          noteIds.forEach(id => matchingNoteIds.add(id));
+        }
+      }
+
+      const notes = Array.from(matchingNoteIds)
+        .map(id => this.dateIndex.get(id))
+        .filter(note => note !== undefined) as Note[];
+
+      return notes;
+    } else {
+      // AND logic: note must have all of the specified tags
+      // Start with notes that have the first tag
+      const firstTag = tags[0];
+      let matchingNoteIds = this.tagIndex.get(firstTag);
+
+      if (!matchingNoteIds || matchingNoteIds.size === 0) {
+        return [];
+      }
+
+      // Copy the set so we don't modify the original
+      matchingNoteIds = new Set(matchingNoteIds);
+
+      // Intersect with notes that have each subsequent tag
+      for (let i = 1; i < tags.length; i++) {
+        const tagNoteIds = this.tagIndex.get(tags[i]);
+        if (!tagNoteIds) {
+          return []; // If any tag doesn't exist, no notes can match
+        }
+
+        // Keep only notes that are in both sets
+        matchingNoteIds = this.intersectSets(matchingNoteIds, tagNoteIds);
+
+        if (matchingNoteIds.size === 0) {
+          return []; // Early exit if no matches
+        }
+      }
+
+      const notes = Array.from(matchingNoteIds)
+        .map(id => this.dateIndex.get(id))
+        .filter(note => note !== undefined) as Note[];
+
+      return notes;
+    }
+  }
+
+  /**
    * Get all unique authors
    */
   async getAuthors(): Promise<string[]> {
@@ -460,6 +562,16 @@ export class SearchManager {
       this.fileIndex.set(note.filePath, new Set());
     }
     this.fileIndex.get(note.filePath)!.add(note.id);
+
+    // Index tags
+    if (note.tags && note.tags.length > 0) {
+      for (const tag of note.tags) {
+        if (!this.tagIndex.has(tag)) {
+          this.tagIndex.set(tag, new Set());
+        }
+        this.tagIndex.get(tag)!.add(note.id);
+      }
+    }
   }
 
   /**
@@ -497,6 +609,19 @@ export class SearchManager {
           this.fileIndex.delete(note.filePath);
         }
       }
+
+      // Remove from tag index
+      if (note.tags && note.tags.length > 0) {
+        for (const tag of note.tags) {
+          const tagNotes = this.tagIndex.get(tag);
+          if (tagNotes) {
+            tagNotes.delete(noteId);
+            if (tagNotes.size === 0) {
+              this.tagIndex.delete(tag);
+            }
+          }
+        }
+      }
     }
 
     // Remove from date index
@@ -517,7 +642,8 @@ export class SearchManager {
     const tokens = normalized
       .split(/[\s\.,;:!?\(\)\[\]\{\}<>'"\/\\]+/)
       .filter(token => token.length > 0)
-      .filter(token => token.length > 1); // Ignore single-char tokens
+      .filter(token => token.length > 1) // Ignore single-char tokens
+      .filter(token => !this.STOP_WORDS.has(token)); // Skip stop words for better performance
 
     return tokens;
   }

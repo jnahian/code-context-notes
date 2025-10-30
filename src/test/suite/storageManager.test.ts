@@ -319,4 +319,172 @@ suite('StorageManager Test Suite', () => {
 
 		assert.ok(content.includes('**Status:** DELETED'));
 	});
+
+	suite('Tag Serialization and Deserialization', () => {
+		test('should save and load note with tags', async () => {
+			const noteWithTags: Note = {
+				...testNote,
+				tags: ['TODO', 'BUG', 'authentication']
+			};
+
+			await storageManager.saveNote(noteWithTags);
+			const loadedNote = await storageManager.loadNoteById(noteWithTags.id);
+
+			assert.ok(loadedNote);
+			assert.ok(loadedNote!.tags);
+			assert.strictEqual(loadedNote!.tags!.length, 3);
+			assert.ok(loadedNote!.tags!.includes('TODO'));
+			assert.ok(loadedNote!.tags!.includes('BUG'));
+			assert.ok(loadedNote!.tags!.includes('authentication'));
+		});
+
+		test('should preserve tag order', async () => {
+			const noteWithTags: Note = {
+				...testNote,
+				tags: ['zebra', 'apple', 'middle']
+			};
+
+			await storageManager.saveNote(noteWithTags);
+			const loadedNote = await storageManager.loadNoteById(noteWithTags.id);
+
+			assert.ok(loadedNote);
+			assert.deepStrictEqual(loadedNote!.tags, ['zebra', 'apple', 'middle']);
+		});
+
+		test('should handle note with single tag', async () => {
+			const noteWithTag: Note = {
+				...testNote,
+				tags: ['TODO']
+			};
+
+			await storageManager.saveNote(noteWithTag);
+			const loadedNote = await storageManager.loadNoteById(noteWithTag.id);
+
+			assert.ok(loadedNote);
+			assert.strictEqual(loadedNote!.tags!.length, 1);
+			assert.strictEqual(loadedNote!.tags![0], 'TODO');
+		});
+
+		test('should handle note with empty tags array', async () => {
+			const noteWithNoTags: Note = {
+				...testNote,
+				tags: []
+			};
+
+			await storageManager.saveNote(noteWithNoTags);
+			const loadedNote = await storageManager.loadNoteById(noteWithNoTags.id);
+
+			assert.ok(loadedNote);
+			assert.ok(Array.isArray(loadedNote!.tags));
+			assert.strictEqual(loadedNote!.tags!.length, 0);
+		});
+
+		test('should handle note with undefined tags', async () => {
+			const noteWithUndefinedTags: Note = {
+				...testNote,
+				tags: undefined
+			};
+
+			await storageManager.saveNote(noteWithUndefinedTags);
+			const loadedNote = await storageManager.loadNoteById(noteWithUndefinedTags.id);
+
+			assert.ok(loadedNote);
+			// Should be undefined or empty array after loading
+			assert.ok(!loadedNote!.tags || loadedNote!.tags.length === 0);
+		});
+
+		test('should handle tags with special characters', async () => {
+			const noteWithSpecialTags: Note = {
+				...testNote,
+				tags: ['tag-with-dash', 'tag_with_underscore', 'tag.with.dot', 'tag#123']
+			};
+
+			await storageManager.saveNote(noteWithSpecialTags);
+			const loadedNote = await storageManager.loadNoteById(noteWithSpecialTags.id);
+
+			assert.ok(loadedNote);
+			assert.strictEqual(loadedNote!.tags!.length, 4);
+			assert.ok(loadedNote!.tags!.includes('tag-with-dash'));
+			assert.ok(loadedNote!.tags!.includes('tag_with_underscore'));
+			assert.ok(loadedNote!.tags!.includes('tag.with.dot'));
+			assert.ok(loadedNote!.tags!.includes('tag#123'));
+		});
+
+		test('should handle tags with spaces (trimmed)', async () => {
+			const noteWithSpacedTags: Note = {
+				...testNote,
+				tags: ['tag with spaces', 'another tag']
+			};
+
+			await storageManager.saveNote(noteWithSpacedTags);
+			const loadedNote = await storageManager.loadNoteById(noteWithSpacedTags.id);
+
+			assert.ok(loadedNote);
+			assert.strictEqual(loadedNote!.tags!.length, 2);
+			assert.ok(loadedNote!.tags!.includes('tag with spaces'));
+			assert.ok(loadedNote!.tags!.includes('another tag'));
+		});
+
+		test('should format tags in markdown correctly', async () => {
+			const noteWithTags: Note = {
+				...testNote,
+				tags: ['TODO', 'BUG', 'custom']
+			};
+
+			await storageManager.saveNote(noteWithTags);
+			const filePath = storageManager.getNoteFilePath(noteWithTags.id);
+			const content = await fs.readFile(filePath, 'utf-8');
+
+			assert.ok(content.includes('**Tags:** TODO, BUG, custom'));
+		});
+
+		test('should not include Tags line when no tags', async () => {
+			const noteWithoutTags: Note = {
+				...testNote,
+				tags: []
+			};
+
+			await storageManager.saveNote(noteWithoutTags);
+			const filePath = storageManager.getNoteFilePath(noteWithoutTags.id);
+			const content = await fs.readFile(filePath, 'utf-8');
+
+			// Should not have a Tags line
+			const lines = content.split('\n');
+			const tagsLine = lines.find(line => line.startsWith('**Tags:**'));
+			assert.strictEqual(tagsLine, undefined);
+		});
+
+		test('should handle many tags', async () => {
+			const manyTags = Array.from({ length: 20 }, (_, i) => `tag${i}`);
+			const noteWithManyTags: Note = {
+				...testNote,
+				tags: manyTags
+			};
+
+			await storageManager.saveNote(noteWithManyTags);
+			const loadedNote = await storageManager.loadNoteById(noteWithManyTags.id);
+
+			assert.ok(loadedNote);
+			assert.strictEqual(loadedNote!.tags!.length, 20);
+			for (let i = 0; i < 20; i++) {
+				assert.ok(loadedNote!.tags!.includes(`tag${i}`));
+			}
+		});
+
+		test('should handle tags with maximum length', async () => {
+			const longTag = 'a'.repeat(50);
+			const noteWithLongTag: Note = {
+				...testNote,
+				tags: [longTag, 'short']
+			};
+
+			await storageManager.saveNote(noteWithLongTag);
+			const loadedNote = await storageManager.loadNoteById(noteWithLongTag.id);
+
+			assert.ok(loadedNote);
+			assert.strictEqual(loadedNote!.tags!.length, 2);
+			assert.ok(loadedNote!.tags!.includes(longTag));
+			assert.ok(loadedNote!.tags!.includes('short'));
+		});
+	});
 });
