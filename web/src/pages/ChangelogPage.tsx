@@ -1,9 +1,6 @@
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageTransition } from "@/components/PageTransition";
@@ -21,33 +18,51 @@ import {
 export function ChangelogPage() {
   return (
     <PageTransition>
-      <div className="container py-12 max-w-5xl">
+      <div className="container py-12 max-w-6xl">
         <div className="space-y-8">
           {/* Header */}
-          <div className="space-y-4">
+          <div className="space-y-4 text-center">
             <h1 className="text-4xl font-bold">Changelog</h1>
             <p className="text-xl text-muted-foreground">
               Track all updates, improvements, and new features
             </p>
           </div>
 
+          {/* Timeline Container */}
+          <div className="relative">
+            {/* Vertical Timeline Line */}
+            <div className="absolute left-0 md:left-[30%] top-0 bottom-0 w-0.5 bg-gradient-to-b from-brand-orange via-blue-400 to-green-400"></div>
+
+          {/* Timeline Items */}
+          <div className="space-y-16">
+
           {/* Version 0.2.1 */}
-          <Card id="v0.2.1" className="shadow-brand-drop bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-900 border-2 border-brand-orange">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-2xl flex items-center space-x-3">
+          <div id="v0.2.1" className="relative grid grid-cols-1 md:grid-cols-[30%_70%] gap-8 items-start">
+            {/* Timeline Node */}
+            <div className="absolute left-0 md:left-[30%] transform -translate-x-1/2 top-2">
+              <div className="w-4 h-4 rounded-full bg-brand-orange border-4 border-white dark:border-slate-900 shadow-lg"></div>
+            </div>
+
+            {/* Left Column - Version Info */}
+            <div className="pl-8 md:pl-0 md:pr-12 text-left md:text-right space-y-2">
+              <div className="flex md:flex-col md:items-end items-start gap-2">
+                <h3 className="text-2xl font-bold flex items-center gap-2 md:flex-row-reverse">
                   <span>Version 0.2.1</span>
                   <Badge className="bg-brand-orange">Latest</Badge>
-                </CardTitle>
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  <span className="text-sm">November 12, 2025</span>
-                </div>
+                </h3>
               </div>
-              <CardDescription className="text-base">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm md:justify-end">
+                <Calendar className="h-4 w-4" />
+                <span>November 12, 2025</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
                 Patch release with context menu integration and UX improvements
-              </CardDescription>
-            </CardHeader>
+              </p>
+            </div>
+
+            {/* Right Column - Changes */}
+            <div className="pl-8 md:pl-12">
+          <Card className="shadow-brand-drop bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-900 border-2 border-brand-orange">
             <CardContent className="space-y-6">
               {/* Added */}
               <div>
@@ -97,21 +112,31 @@ export function ChangelogPage() {
               </div>
             </CardContent>
           </Card>
+            </div>
+          </div>
 
           {/* Version 0.2.0 */}
-          <Card id="v0.2.0" className="bg-white">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-2xl">Version 0.2.0</CardTitle>
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  <span className="text-sm">October 27, 2025</span>
-                </div>
+          <div id="v0.2.0" className="relative grid grid-cols-1 md:grid-cols-[30%_70%] gap-8 items-start">
+            {/* Timeline Node */}
+            <div className="absolute left-0 md:left-[30%] transform -translate-x-1/2 top-2">
+              <div className="w-4 h-4 rounded-full bg-blue-500 border-4 border-white dark:border-slate-900 shadow-lg"></div>
+            </div>
+
+            {/* Left Column - Version Info */}
+            <div className="pl-8 md:pl-0 md:pr-12 text-left md:text-right space-y-2">
+              <h3 className="text-2xl font-bold">Version 0.2.0</h3>
+              <div className="flex items-center gap-2 text-muted-foreground text-sm md:justify-end">
+                <Calendar className="h-4 w-4" />
+                <span>October 27, 2025</span>
               </div>
-              <CardDescription className="text-base">
+              <p className="text-sm text-muted-foreground">
                 Major feature update with sidebar view and workspace-wide note browsing
-              </CardDescription>
-            </CardHeader>
+              </p>
+            </div>
+
+            {/* Right Column - Changes */}
+            <div className="pl-8 md:pl-12">
+          <Card className="bg-white shadow-brand-drop">
             <CardContent className="space-y-6">
               {/* Added */}
               <div>
@@ -173,21 +198,31 @@ export function ChangelogPage() {
               </div>
             </CardContent>
           </Card>
+            </div>
+          </div>
 
           {/* Version 0.1.8 */}
-          <Card id="v0.1.8" className="bg-white">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-2xl">Version 0.1.8</CardTitle>
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  <span className="text-sm">October 23, 2025</span>
-                </div>
+          <div id="v0.1.8" className="relative grid grid-cols-1 md:grid-cols-[30%_70%] gap-8 items-start">
+            {/* Timeline Node */}
+            <div className="absolute left-0 md:left-[30%] transform -translate-x-1/2 top-2">
+              <div className="w-4 h-4 rounded-full bg-orange-500 border-4 border-white dark:border-slate-900 shadow-lg"></div>
+            </div>
+
+            {/* Left Column - Version Info */}
+            <div className="pl-8 md:pl-0 md:pr-12 text-left md:text-right space-y-2">
+              <h3 className="text-2xl font-bold">Version 0.1.8</h3>
+              <div className="flex items-center gap-2 text-muted-foreground text-sm md:justify-end">
+                <Calendar className="h-4 w-4" />
+                <span>October 23, 2025</span>
               </div>
-              <CardDescription className="text-base">
+              <p className="text-sm text-muted-foreground">
                 Multiple notes per line feature with conditional navigation
-              </CardDescription>
-            </CardHeader>
+              </p>
+            </div>
+
+            {/* Right Column - Changes */}
+            <div className="pl-8 md:pl-12">
+          <Card className="bg-white shadow-brand-drop">
             <CardContent className="space-y-6">
               {/* Fixed */}
               <div>
@@ -236,21 +271,31 @@ export function ChangelogPage() {
               </div>
             </CardContent>
           </Card>
+            </div>
+          </div>
 
           {/* Version 0.1.7 */}
-          <Card id="v0.1.7" className="bg-white">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-2xl">Version 0.1.7</CardTitle>
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  <span className="text-sm">October 19, 2025</span>
-                </div>
+          <div id="v0.1.7" className="relative grid grid-cols-1 md:grid-cols-[30%_70%] gap-8 items-start">
+            {/* Timeline Node */}
+            <div className="absolute left-0 md:left-[30%] transform -translate-x-1/2 top-2">
+              <div className="w-4 h-4 rounded-full bg-purple-500 border-4 border-white dark:border-slate-900 shadow-lg"></div>
+            </div>
+
+            {/* Left Column - Version Info */}
+            <div className="pl-8 md:pl-0 md:pr-12 text-left md:text-right space-y-2">
+              <h3 className="text-2xl font-bold">Version 0.1.7</h3>
+              <div className="flex items-center gap-2 text-muted-foreground text-sm md:justify-end">
+                <Calendar className="h-4 w-4" />
+                <span>October 19, 2025</span>
               </div>
-              <CardDescription className="text-base">
+              <p className="text-sm text-muted-foreground">
                 UX improvements to prevent unwanted scrolling and reduce interruptions
-              </CardDescription>
-            </CardHeader>
+              </p>
+            </div>
+
+            {/* Right Column - Changes */}
+            <div className="pl-8 md:pl-12">
+          <Card className="bg-white shadow-brand-drop">
             <CardContent className="space-y-6">
               {/* Fixed */}
               <div>
@@ -287,21 +332,31 @@ export function ChangelogPage() {
               </div>
             </CardContent>
           </Card>
+            </div>
+          </div>
 
           {/* Version 0.1.6 */}
-          <Card id="v0.1.6" className="bg-white">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-2xl">Version 0.1.6</CardTitle>
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  <span className="text-sm">October 19, 2025</span>
-                </div>
+          <div id="v0.1.6" className="relative grid grid-cols-1 md:grid-cols-[30%_70%] gap-8 items-start">
+            {/* Timeline Node */}
+            <div className="absolute left-0 md:left-[30%] transform -translate-x-1/2 top-2">
+              <div className="w-4 h-4 rounded-full bg-pink-500 border-4 border-white dark:border-slate-900 shadow-lg"></div>
+            </div>
+
+            {/* Left Column - Version Info */}
+            <div className="pl-8 md:pl-0 md:pr-12 text-left md:text-right space-y-2">
+              <h3 className="text-2xl font-bold">Version 0.1.6</h3>
+              <div className="flex items-center gap-2 text-muted-foreground text-sm md:justify-end">
+                <Calendar className="h-4 w-4" />
+                <span>October 19, 2025</span>
               </div>
-              <CardDescription className="text-base">
+              <p className="text-sm text-muted-foreground">
                 Input focus improvements and unified note creation
-              </CardDescription>
-            </CardHeader>
+              </p>
+            </div>
+
+            {/* Right Column - Changes */}
+            <div className="pl-8 md:pl-12">
+          <Card className="bg-white shadow-brand-drop">
             <CardContent className="space-y-6">
               {/* Fixed */}
               <div>
@@ -332,21 +387,31 @@ export function ChangelogPage() {
               </div>
             </CardContent>
           </Card>
+            </div>
+          </div>
 
           {/* Version 0.1.5 */}
-          <Card id="v0.1.5" className="bg-white">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-2xl">Version 0.1.5</CardTitle>
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  <span className="text-sm">October 19, 2025</span>
-                </div>
+          <div id="v0.1.5" className="relative grid grid-cols-1 md:grid-cols-[30%_70%] gap-8 items-start">
+            {/* Timeline Node */}
+            <div className="absolute left-0 md:left-[30%] transform -translate-x-1/2 top-2">
+              <div className="w-4 h-4 rounded-full bg-indigo-500 border-4 border-white dark:border-slate-900 shadow-lg"></div>
+            </div>
+
+            {/* Left Column - Version Info */}
+            <div className="pl-8 md:pl-0 md:pr-12 text-left md:text-right space-y-2">
+              <h3 className="text-2xl font-bold">Version 0.1.5</h3>
+              <div className="flex items-center gap-2 text-muted-foreground text-sm md:justify-end">
+                <Calendar className="h-4 w-4" />
+                <span>October 19, 2025</span>
               </div>
-              <CardDescription className="text-base">
+              <p className="text-sm text-muted-foreground">
                 Focus mode and keyboard shortcut improvements
-              </CardDescription>
-            </CardHeader>
+              </p>
+            </div>
+
+            {/* Right Column - Changes */}
+            <div className="pl-8 md:pl-12">
+          <Card className="bg-white shadow-brand-drop">
             <CardContent className="space-y-6">
               {/* Added */}
               <div>
@@ -387,21 +452,31 @@ export function ChangelogPage() {
               </div>
             </CardContent>
           </Card>
+            </div>
+          </div>
 
           {/* Version 0.1.4 */}
-          <Card id="v0.1.4" className="bg-white">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-2xl">Version 0.1.4</CardTitle>
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  <span className="text-sm">October 17, 2025</span>
-                </div>
+          <div id="v0.1.4" className="relative grid grid-cols-1 md:grid-cols-[30%_70%] gap-8 items-start">
+            {/* Timeline Node */}
+            <div className="absolute left-0 md:left-[30%] transform -translate-x-1/2 top-2">
+              <div className="w-4 h-4 rounded-full bg-teal-500 border-4 border-white dark:border-slate-900 shadow-lg"></div>
+            </div>
+
+            {/* Left Column - Version Info */}
+            <div className="pl-8 md:pl-0 md:pr-12 text-left md:text-right space-y-2">
+              <h3 className="text-2xl font-bold">Version 0.1.4</h3>
+              <div className="flex items-center gap-2 text-muted-foreground text-sm md:justify-end">
+                <Calendar className="h-4 w-4" />
+                <span>October 17, 2025</span>
               </div>
-              <CardDescription className="text-base">
+              <p className="text-sm text-muted-foreground">
                 ES Module migration for modern package compatibility
-              </CardDescription>
-            </CardHeader>
+              </p>
+            </div>
+
+            {/* Right Column - Changes */}
+            <div className="pl-8 md:pl-12">
+          <Card className="bg-white shadow-brand-drop">
             <CardContent className="space-y-6">
               {/* Changed */}
               <div>
@@ -434,21 +509,31 @@ export function ChangelogPage() {
               </div>
             </CardContent>
           </Card>
+            </div>
+          </div>
 
           {/* Version 0.1.1 */}
-          <Card id="v0.1.1" className="bg-white">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-2xl">Version 0.1.1</CardTitle>
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  <span className="text-sm">October 17, 2025</span>
-                </div>
+          <div id="v0.1.1" className="relative grid grid-cols-1 md:grid-cols-[30%_70%] gap-8 items-start">
+            {/* Timeline Node */}
+            <div className="absolute left-0 md:left-[30%] transform -translate-x-1/2 top-2">
+              <div className="w-4 h-4 rounded-full bg-cyan-500 border-4 border-white dark:border-slate-900 shadow-lg"></div>
+            </div>
+
+            {/* Left Column - Version Info */}
+            <div className="pl-8 md:pl-0 md:pr-12 text-left md:text-right space-y-2">
+              <h3 className="text-2xl font-bold">Version 0.1.1</h3>
+              <div className="flex items-center gap-2 text-muted-foreground text-sm md:justify-end">
+                <Calendar className="h-4 w-4" />
+                <span>October 17, 2025</span>
               </div>
-              <CardDescription className="text-base">
+              <p className="text-sm text-muted-foreground">
                 Activation and workspace handling improvements
-              </CardDescription>
-            </CardHeader>
+              </p>
+            </div>
+
+            {/* Right Column - Changes */}
+            <div className="pl-8 md:pl-12">
+          <Card className="bg-white shadow-brand-drop">
             <CardContent className="space-y-6">
               {/* Fixed */}
               <div>
@@ -469,24 +554,38 @@ export function ChangelogPage() {
               </div>
             </CardContent>
           </Card>
+            </div>
+          </div>
 
           {/* Version 0.1.0 - Initial Release */}
-          <Card id="v0.1.0" className="bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950 border-2 border-green-400">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-2xl flex items-center space-x-3">
+          <div id="v0.1.0" className="relative grid grid-cols-1 md:grid-cols-[30%_70%] gap-8 items-start">
+            {/* Timeline Node - Special for initial release */}
+            <div className="absolute left-0 md:left-[30%] transform -translate-x-1/2 top-2">
+              <div className="w-6 h-6 rounded-full bg-green-500 border-4 border-white dark:border-slate-900 shadow-lg flex items-center justify-center">
+                <div className="w-2 h-2 rounded-full bg-white"></div>
+              </div>
+            </div>
+
+            {/* Left Column - Version Info */}
+            <div className="pl-8 md:pl-0 md:pr-12 text-left md:text-right space-y-2">
+              <div className="flex md:flex-col md:items-end items-start gap-2">
+                <h3 className="text-2xl font-bold flex items-center gap-2 md:flex-row-reverse">
                   <span>Version 0.1.0</span>
                   <Badge className="bg-green-600">Initial Release</Badge>
-                </CardTitle>
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  <span className="text-sm">October 17, 2025</span>
-                </div>
+                </h3>
               </div>
-              <CardDescription className="text-base">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm md:justify-end">
+                <Calendar className="h-4 w-4" />
+                <span>October 17, 2025</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
                 🎉 First public release - Published to VS Code Marketplace and Open VSX Registry!
-              </CardDescription>
-            </CardHeader>
+              </p>
+            </div>
+
+            {/* Right Column - Changes */}
+            <div className="pl-8 md:pl-12">
+          <Card className="bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950 border-2 border-green-400 shadow-brand-drop">
             <CardContent className="space-y-6">
               {/* Core Features */}
               <div>
@@ -536,18 +635,31 @@ export function ChangelogPage() {
               </div>
             </CardContent>
           </Card>
+            </div>
+          </div>
 
           {/* Future Versions Note */}
-          <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-2 border-purple-300">
-            <CardHeader>
-              <CardTitle className="text-xl flex items-center space-x-2">
-                <Search className="h-5 w-5 text-purple-600" />
-                <span>Coming in v0.3.0</span>
-              </CardTitle>
-              <CardDescription>
+          <div className="relative grid grid-cols-1 md:grid-cols-[30%_70%] gap-8 items-start">
+            {/* Timeline Node - Future */}
+            <div className="absolute left-0 md:left-[30%] transform -translate-x-1/2 top-2">
+              <div className="w-4 h-4 rounded-full bg-purple-500 border-4 border-white dark:border-slate-900 shadow-lg animate-pulse"></div>
+            </div>
+
+            {/* Left Column - Version Info */}
+            <div className="pl-8 md:pl-0 md:pr-12 text-left md:text-right space-y-2">
+              <h3 className="text-2xl font-bold text-purple-600">Coming in v0.3.0</h3>
+              <div className="flex items-center gap-2 text-muted-foreground text-sm md:justify-end">
+                <Search className="h-4 w-4" />
+                <span>Future Release</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
                 What's next for Code Context Notes
-              </CardDescription>
-            </CardHeader>
+              </p>
+            </div>
+
+            {/* Right Column - Changes */}
+            <div className="pl-8 md:pl-12">
+          <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-2 border-purple-300 shadow-brand-drop">
             <CardContent>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <div className="flex items-start space-x-2">
@@ -571,6 +683,11 @@ export function ChangelogPage() {
               </div>
             </CardContent>
           </Card>
+            </div>
+          </div>
+
+          </div>
+          </div>
         </div>
       </div>
     </PageTransition>
