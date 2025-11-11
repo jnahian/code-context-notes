@@ -2,7 +2,7 @@
   "name": "code-context-notes",
   "displayName": "Code Context Notes - Smart Annotations",
   "description": "Add contextual notes to your code with full version history and intelligent tracking",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "jnahian",
   "icon": "images/icon.png",
   "galleryBanner": {
@@ -255,6 +255,13 @@
       }
     ],
     "menus": {
+      "editor/context": [
+        {
+          "command": "codeContextNotes.addNote",
+          "group": "9_codeNotes@1",
+          "when": "editorTextFocus"
+        }
+      ],
       "view/title": [
         {
           "command": "codeContextNotes.addNote",
