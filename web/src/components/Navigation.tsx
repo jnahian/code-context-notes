@@ -19,21 +19,29 @@ export function Navigation() {
           </Link>
           
           <div className="hidden md:flex items-center space-x-6">
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               className={`text-sm font-medium transition-colors hover:text-primary ${
                 location.pathname === '/' ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
               Home
             </Link>
-            <Link 
-              to="/docs" 
+            <Link
+              to="/docs"
               className={`text-sm font-medium transition-colors hover:text-primary ${
                 location.pathname === '/docs' ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
               Documentation
+            </Link>
+            <Link
+              to="/changelog"
+              className={`text-sm font-medium transition-colors hover:text-primary ${
+                location.pathname === '/changelog' ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              Changelog
             </Link>
           </div>
         </div>

@@ -241,7 +241,7 @@ export function DocsPage() {
                     <div>
                       <h4 className="font-semibold">Add Note</h4>
                       <p className="text-sm text-muted-foreground">
-                        Press{" "}
+                        Right-click and select "Code Notes: Add Note", or press{" "}
                         <code className="bg-brand-navy text-brand-warm px-1 rounded-lg-lg">
                           Ctrl+Alt+N
                         </code>{" "}
@@ -289,8 +289,11 @@ export function DocsPage() {
                     <div>
                       <h4 className="font-semibold mb-3">Main Commands</h4>
                       <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span>Add Note</span>
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span>Add Note</span>
+                            <p className="text-xs text-muted-foreground">Right-click menu or shortcut</p>
+                          </div>
                           <Badge
                             variant="outline"
                             className="border-brand-orange text-brand-orange"
