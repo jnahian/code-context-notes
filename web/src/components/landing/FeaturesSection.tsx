@@ -70,7 +70,7 @@ export function FeaturesSection() {
   ];
 
   return (
-    <section className="relative py-32 bg-muted/30 overflow-hidden">
+    <section id="features" className="relative py-32 bg-muted/30 overflow-hidden">
       {/* Geometric Background Shapes - Enhanced Visibility */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Grid Pattern */}

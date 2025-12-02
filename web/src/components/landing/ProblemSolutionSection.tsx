@@ -24,7 +24,7 @@ export function ProblemSolutionSection() {
   ];
 
   return (
-    <section className="relative py-24 overflow-hidden bg-slate-50 dark:bg-slate-950">
+    <section id="problem" className="relative py-24 overflow-hidden bg-slate-50 dark:bg-slate-950">
       {/* Background Elements */}
       <div className="absolute top-0 left-0 w-full h-full bg-grid-pattern opacity-[0.3] pointer-events-none" />
 

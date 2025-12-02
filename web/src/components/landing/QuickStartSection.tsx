@@ -116,7 +116,7 @@ export function QuickStartSection() {
   ];
 
   return (
-    <section className="relative py-32 overflow-hidden bg-brand-warm dark:bg-brand-navy transition-colors duration-500">
+    <section id="how-it-works" className="relative py-32 overflow-hidden bg-brand-warm dark:bg-brand-navy transition-colors duration-500">
       {/* Background Elements */}
       <div className="absolute inset-0 bg-grid-pattern opacity-[0.03] dark:opacity-[0.05]" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-brand-orange/5 blur-[120px] rounded-full pointer-events-none" />
