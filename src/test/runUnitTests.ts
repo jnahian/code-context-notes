@@ -35,6 +35,7 @@ async function main() {
 		const unitTestFiles = files.filter(f => {
 			const basename = path.basename(f);
 			// Only include tests that don't require vscode
+			// searchManager.test.js runs as an integration test since it needs vscode API
 			return basename === 'storageManager.test.js' || basename === 'gitIntegration.test.js';
 		});
 

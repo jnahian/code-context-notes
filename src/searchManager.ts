@@ -76,6 +76,15 @@ export class SearchManager {
   // Configuration
   private context: vscode.ExtensionContext;
 
+  // Stop words to skip during indexing (common words with low search value)
+  private readonly STOP_WORDS = new Set([
+    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+    'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'been',
+    'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should',
+    'could', 'may', 'might', 'can', 'this', 'that', 'these', 'those', 'it',
+    'its', 'we', 'you', 'they', 'them', 'their', 'our', 'your', 'my', 'me'
+  ]);
+
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
     this.loadSearchHistory();
@@ -85,8 +94,8 @@ export class SearchManager {
    * Build complete search index from all notes
    */
   async buildIndex(notes: Note[]): Promise<void> {
-    console.log(`Building search index for ${notes.length} notes...`);
     const startTime = Date.now();
+    console.log(`[SearchManager] Building search index for ${notes.length} notes...`);
 
     // Clear existing indexes
     this.contentIndex.clear();
@@ -106,7 +115,13 @@ export class SearchManager {
     this.stats.indexSize = this.estimateIndexSize();
 
     const duration = Date.now() - startTime;
-    console.log(`Search index built in ${duration}ms (${notes.length} notes, ${this.contentIndex.size} terms)`);
+    const indexSizeMB = (this.stats.indexSize / (1024 * 1024)).toFixed(2);
+    console.log(`[SearchManager] Index built in ${duration}ms:`, {
+      notes: notes.length,
+      uniqueTerms: this.contentIndex.size,
+      indexSizeMB: `${indexSizeMB} MB`,
+      avgTermsPerNote: Math.round(this.contentIndex.size / Math.max(1, notes.length))
+    });
   }
 
   /**
@@ -159,7 +174,11 @@ export class SearchManager {
     const cacheKey = this.getCacheKey(query);
     const cached = this.getFromCache(cacheKey);
     if (cached) {
-      console.log(`Search cache hit for: ${cacheKey}`);
+      const duration = Date.now() - startTime;
+      console.log(`[SearchManager] Cache hit (${duration}ms):`, {
+        query: query.text || query.regex?.source || 'filters',
+        resultCount: cached.results.length
+      });
       return cached.results;
     }
 
@@ -223,7 +242,20 @@ export class SearchManager {
     const duration = Date.now() - startTime;
     this.recordSearchTime(duration);
 
-    console.log(`Search completed in ${duration}ms (${limitedResults.length} results)`);
+    // Log performance metrics
+    const performanceInfo = {
+      duration: `${duration}ms`,
+      resultCount: limitedResults.length,
+      candidateCount: candidates.size,
+      cacheHit: false,
+      query: query.text || query.regex?.source || 'filters only'
+    };
+    console.log(`[SearchManager] Search completed:`, performanceInfo);
+
+    // Warn if search is slow
+    if (duration > 500) {
+      console.warn(`[SearchManager] Slow search detected (${duration}ms). Consider optimizing query or reducing result set.`);
+    }
 
     return limitedResults;
   }
@@ -517,7 +549,8 @@ export class SearchManager {
     const tokens = normalized
       .split(/[\s\.,;:!?\(\)\[\]\{\}<>'"\/\\]+/)
       .filter(token => token.length > 0)
-      .filter(token => token.length > 1); // Ignore single-char tokens
+      .filter(token => token.length > 1) // Ignore single-char tokens
+      .filter(token => !this.STOP_WORDS.has(token)); // Skip stop words for better performance
 
     return tokens;
   }

@@ -244,6 +244,82 @@ Configure how files are sorted in the sidebar (see Configuration section):
 - Click to expand and see notes within each file
 - Use "Collapse All" button to reset to default state
 
+### Search & Filter Notes
+
+The **Search Notes** feature provides powerful search and filtering capabilities to quickly find notes across your entire workspace.
+
+**Opening Search:**
+- **Keyboard Shortcut**: Press `Ctrl+Shift+F` (Windows/Linux) or `Cmd+Shift+F` (Mac)
+- **Sidebar Button**: Click the 🔍 (search) icon in Code Notes sidebar toolbar
+- **Command Palette**: Type "Code Notes: Search Notes"
+
+**Search Features:**
+- ✅ **Full-text search** - Find notes by content
+- ✅ **Regex patterns** - Use `/pattern/flags` for advanced searches
+- ✅ **Filter by author** - Select one or more authors
+- ✅ **Filter by date** - Created or updated date ranges
+- ✅ **Filter by file** - Glob patterns (e.g., `src/**/*.ts`)
+- ✅ **Combine filters** - Use multiple filters together (AND logic)
+- ✅ **Search history** - Quick access to recent searches (last 20)
+- ✅ **Relevance scoring** - Results ranked by match quality
+
+**Search Syntax:**
+```
+# Regular text search
+authentication
+
+# Case-sensitive search (configure in settings)
+Authentication
+
+# Regex pattern search
+/auth.*?token/i
+
+# Multiple terms (all must match)
+user authentication token
+```
+
+**Using Filters:**
+
+1. **Filter by Author**:
+   - Click "Filter by Author" in search panel
+   - Select one or more authors
+   - Results show notes from any selected author (OR logic)
+
+2. **Filter by Date Range**:
+   - Click "Filter by Date Range"
+   - Choose created or updated date
+   - Select preset (Last 7/30/90 days, This year) or custom range
+   - Format: YYYY-MM-DD
+
+3. **Filter by File Pattern**:
+   - Click "Filter by File Pattern"
+   - Enter glob pattern: `src/**/*.ts`, `*.js`, `components/**/*`
+   - Supports standard glob syntax
+
+4. **Combine Filters**:
+   - Apply multiple filters together
+   - All active filters must match (AND logic)
+   - Clear individual filters or use "Clear All Filters"
+
+**Search Results:**
+- Results show file path, line number, preview, and author
+- Click any result to navigate to the note
+- Relevance score displayed (⭐ High, ⭐½ Medium, ☆ Low)
+- Result count shown at top
+- Debounced search (200ms delay for performance)
+
+**Search History:**
+- Recent searches appear when opening search panel
+- Click any history entry to re-run the search
+- History persists across sessions
+- Configurable history size (default: 20 searches)
+
+**Performance:**
+- Inverted index for fast full-text search
+- Background indexing (builds on workspace load)
+- Search results typically < 100ms
+- Optimized for 1000+ notes
+
 ## Configuration
 
 Open VSCode Settings (`Ctrl+,` or `Cmd+,`) and search for "Code Context Notes":
@@ -296,6 +372,54 @@ Maximum length of note preview text in sidebar (20-200 characters). Default: `50
 
 Automatically expand file nodes in sidebar. Default: `false` (collapsed)
 
+### Search: Fuzzy Matching
+
+```json
+"codeContextNotes.search.fuzzyMatching": false
+```
+
+Enable fuzzy matching for search queries (tolerates typos). Default: `false`
+
+### Search: Case Sensitive
+
+```json
+"codeContextNotes.search.caseSensitive": false
+```
+
+Make search case-sensitive by default. Default: `false`
+
+### Search: Max Results
+
+```json
+"codeContextNotes.search.maxResults": 100
+```
+
+Maximum number of search results to display (10-500). Default: `100`
+
+### Search: Debounce Delay
+
+```json
+"codeContextNotes.search.debounceDelay": 200
+```
+
+Delay in milliseconds before triggering search (50-1000). Default: `200`
+
+### Search: Save History
+
+```json
+"codeContextNotes.search.saveHistory": true
+```
+
+Save search history for quick access to recent searches. Default: `true`
+
+### Search: History Size
+
+```json
+"codeContextNotes.search.historySize": 20
+```
+
+Number of recent searches to keep in history (5-100). Default: `20`
+
 ## Keyboard Shortcuts
 
 | Command       | Windows/Linux  | Mac           | Description                            |
@@ -304,6 +428,7 @@ Automatically expand file nodes in sidebar. Default: `false` (collapsed)
 | Delete Note   | `Ctrl+Alt+D`   | `Cmd+Alt+D`   | Delete note at cursor                  |
 | View History  | `Ctrl+Alt+H`   | `Cmd+Alt+H`   | View note history                      |
 | Refresh Notes | `Ctrl+Alt+R`   | `Cmd+Alt+R`   | Refresh all notes                      |
+| **Search Notes** | **`Ctrl+Shift+F`** | **`Cmd+Shift+F`** | **Open search panel for notes**     |
 | Bold          | `Ctrl+B`       | `Cmd+B`       | Insert bold text (in comment editor)   |
 | Italic        | `Ctrl+I`       | `Cmd+I`       | Insert italic text (in comment editor) |
 | Inline Code   | `Ctrl+Shift+C` | `Cmd+Shift+C` | Insert inline code (in comment editor) |
@@ -371,6 +496,9 @@ All commands are available in the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+
 - **Code Notes: Delete Note at Cursor** - Delete note at current cursor position
 - **Code Notes: View Note History** - View complete history of a note
 - **Code Notes: Refresh All Notes** - Refresh all note displays
+
+**Search & Filter:**
+- **Code Notes: Search Notes** - Open search panel to find notes by content, author, date, or file
 
 **Sidebar:**
 - **Code Notes: Refresh Sidebar** - Manually refresh the sidebar view
