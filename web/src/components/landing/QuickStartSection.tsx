@@ -1,92 +1,113 @@
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { CheckCircle } from "lucide-react";
-import { AnimatedSection } from "@/components/AnimatedSection";
+import { motion } from "framer-motion";
+import { ArrowRight, Check, Command, FileText, MousePointer2 } from "lucide-react";
 
 export function QuickStartSection() {
   const steps = [
     {
-      number: 1,
-      title: "Select Your Code",
-      description:
-        "Highlight the lines of code you want to annotate. Works with any programming language and file type.",
+      number: "01",
+      title: "Select Code",
+      description: "Highlight any snippet in your editor. We support all languages and file types out of the box.",
+      icon: <MousePointer2 className="w-6 h-6 text-white" />,
       content: (
-        <div className="bg-brand-navy/5 rounded-2xl p-4 border border-brand-navy/10">
-          <div className="flex items-center space-x-2 text-sm">
-            <div className="w-2 h-2 rounded-full bg-brand-orange"></div>
-            <span className="text-brand-navy font-mono">
-              function calculateTotal() {"{"}
-            </span>
+        <div className="relative rounded-xl overflow-hidden bg-[#1e1e1e] border border-white/10 shadow-2xl w-full max-w-[280px]">
+          {/* Mock IDE Header */}
+          <div className="flex items-center px-4 py-2 bg-[#252526] border-b border-white/5">
+            <div className="flex space-x-1.5">
+              <div className="w-3 h-3 rounded-full bg-[#ff5f56]" />
+              <div className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
+              <div className="w-3 h-3 rounded-full bg-[#27c93f]" />
+            </div>
+            <div className="ml-4 text-xs text-white/40 font-mono">utils.ts</div>
           </div>
-          <div className="flex items-center space-x-2 text-sm mt-1">
-            <div className="w-2 h-2 rounded-full bg-brand-orange"></div>
-            <span className="text-brand-navy font-mono">
-              {" "}
-              return items.reduce...
-            </span>
+          {/* Mock Code */}
+          <div className="p-4 font-mono text-xs leading-relaxed text-left">
+            <div className="flex">
+              <span className="text-white/20 w-6 select-none">1</span>
+              <span className="text-[#c586c0]">export</span>{" "}
+              <span className="text-[#569cd6]">function</span>{" "}
+              <span className="text-[#dcdcaa]">calc</span>() {"{"}
+            </div>
+            <div className="flex relative group cursor-text">
+              <div className="absolute inset-0 bg-brand-orange/20 -mx-4 px-4 border-l-2 border-brand-orange" />
+              <span className="text-white/20 w-6 select-none relative z-10">2</span>
+              <span className="text-[#569cd6] ml-4 relative z-10">return</span>{" "}
+              <span className="text-[#9cdcfe] relative z-10">items</span>.
+              <span className="text-[#dcdcaa] relative z-10">map</span>
+            </div>
+            <div className="flex">
+              <span className="text-white/20 w-6 select-none">3</span>
+              <span className="text-[#9cdcfe] ml-8">i</span> ={">"} <span className="text-[#9cdcfe]">i</span> * 2
+            </div>
+            <div className="flex">
+              <span className="text-white/20 w-6 select-none">4</span>
+              {"}"}
+            </div>
           </div>
         </div>
       ),
     },
     {
-      number: 2,
-      title: "Press the Shortcut",
-      description:
-        "Use the keyboard shortcut to instantly open the note editor right where you need it.",
+      number: "02",
+      title: "Trigger Shortcut",
+      description: "Hit the magic key combo. The note editor appears instantly, right where your focus is.",
+      icon: <Command className="w-6 h-6 text-white" />,
       content: (
-        <div className="flex flex-col space-y-3">
-          <div className="flex items-center justify-center space-x-2">
-            <kbd className="px-3 py-2 bg-brand-navy text-brand-warm rounded-xl font-mono text-sm shadow-sm">
-              Ctrl
-            </kbd>
-            <span className="text-brand-orange font-bold">+</span>
-            <kbd className="px-3 py-2 bg-brand-navy text-brand-warm rounded-xl font-mono text-sm shadow-sm">
-              Alt
-            </kbd>
-            <span className="text-brand-orange font-bold">+</span>
-            <kbd className="px-3 py-2 bg-brand-navy text-brand-warm rounded-xl font-mono text-sm shadow-sm">
-              N
-            </kbd>
+        <div className="h-full flex flex-col items-center justify-center py-4 w-full">
+          <div className="flex items-center gap-2">
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-b from-brand-orange to-orange-600 rounded-lg blur opacity-40 group-hover:opacity-75 transition duration-200" />
+              <div className="relative h-12 min-w-[3rem] px-2 bg-gradient-to-b from-[#333] to-[#111] rounded-lg border-t border-white/20 border-b-4 border-black shadow-xl flex items-center justify-center transform active:translate-y-1 active:border-b-0 transition-all">
+                <span className="font-sans font-bold text-white text-sm">Ctrl</span>
+              </div>
+            </div>
+            <span className="text-brand-orange/50 font-bold text-lg">+</span>
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-b from-brand-orange to-orange-600 rounded-lg blur opacity-40 group-hover:opacity-75 transition duration-200" />
+              <div className="relative h-12 min-w-[3rem] px-2 bg-gradient-to-b from-[#333] to-[#111] rounded-lg border-t border-white/20 border-b-4 border-black shadow-xl flex items-center justify-center transform active:translate-y-1 active:border-b-0 transition-all">
+                <span className="font-sans font-bold text-white text-sm">Alt</span>
+              </div>
+            </div>
+            <span className="text-brand-orange/50 font-bold text-lg">+</span>
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-b from-brand-orange to-orange-600 rounded-lg blur opacity-40 group-hover:opacity-75 transition duration-200" />
+              <div className="relative h-12 min-w-[3rem] px-2 bg-gradient-to-b from-[#333] to-[#111] rounded-lg border-t border-white/20 border-b-4 border-black shadow-xl flex items-center justify-center transform active:translate-y-1 active:border-b-0 transition-all">
+                <span className="font-sans font-bold text-white text-sm">N</span>
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground text-center">
-            (Cmd+Alt+N on Mac)
+          <p className="mt-4 text-[10px] text-muted-foreground font-medium bg-brand-navy/5 dark:bg-white/5 px-2 py-1 rounded-full border border-brand-navy/10 dark:border-white/10">
+            Cmd + Alt + N on macOS
           </p>
         </div>
       ),
     },
     {
-      number: 3,
-      title: "Write & Save",
-      description:
-        "Type your note with full markdown support, then save. Your note is now tracked with complete history.",
+      number: "03",
+      title: "Annotate & Save",
+      description: "Write your thoughts in Markdown. Your context is saved automatically with the code.",
+      icon: <FileText className="w-6 h-6 text-white" />,
       content: (
-        <div className="bg-brand-warm/50 rounded-2xl p-4 border border-brand-orange/20">
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-brand-orange"></div>
-              <span className="text-sm text-brand-navy">
-                **TODO:** Optimize this function
-              </span>
+        <div className="relative w-full max-w-[260px]">
+          <div className="absolute -right-4 -top-4 w-20 h-20 bg-brand-orange/20 rounded-full blur-2xl" />
+          <div className="relative bg-[#F4F1E9] dark:bg-[#1e1e1e] rounded-xl p-4 shadow-xl border border-black/5 dark:border-white/10 rotate-1 hover:rotate-0 transition-transform duration-300">
+            <div className="flex items-center justify-between mb-3 border-b border-black/5 dark:border-white/5 pb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-brand-orange" />
+                <span className="text-[10px] font-semibold text-brand-navy/60 dark:text-white/60 uppercase tracking-wider">
+                  New Note
+                </span>
+              </div>
+              <span className="text-[10px] text-muted-foreground">Just now</span>
             </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-brand-orange"></div>
-              <span className="text-sm text-brand-navy">
-                Consider using `Map` for O(1) lookup
-              </span>
+            <div className="space-y-2">
+              <div className="h-2 w-3/4 bg-black/5 dark:bg-white/10 rounded-full" />
+              <div className="h-2 w-full bg-black/5 dark:bg-white/10 rounded-full" />
+              <div className="h-2 w-5/6 bg-black/5 dark:bg-white/10 rounded-full" />
             </div>
-            <div className="mt-3 pt-2 border-t border-brand-orange/20">
-              <Button
-                size="sm"
-                className="w-full bg-brand-orange hover:bg-brand-orange/90"
-              >
-                Save Note
-              </Button>
+            <div className="mt-4 flex justify-end">
+              <div className="bg-brand-orange text-white text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-lg shadow-brand-orange/20 flex items-center gap-1">
+                Save Note <ArrowRight className="w-3 h-3" />
+              </div>
             </div>
           </div>
         </div>
@@ -95,79 +116,97 @@ export function QuickStartSection() {
   ];
 
   return (
-    <section className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20">
-      <div className="container py-24">
-        <AnimatedSection
-          animation="fade-up"
-          className="text-center space-y-4 mb-20"
-        >
-          <h2 className="text-3xl md:text-4xl font-bold">
-            Get Started in Seconds
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Three simple steps to start annotating your code with intelligent
-            tracking and full history
-          </p>
-        </AnimatedSection>
+    <section id="how-it-works" className="relative py-32 overflow-hidden bg-brand-warm dark:bg-brand-navy transition-colors duration-500">
+      {/* Background Elements */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-[0.03] dark:opacity-[0.05]" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-brand-orange/5 blur-[120px] rounded-full pointer-events-none" />
 
-        <AnimatedSection animation="fade-up" delay={200}>
-          <div className="relative">
-            {/* Connection Lines for Desktop */}
-            <div className="hidden lg:block absolute top-16 left-1/2 transform -translate-x-1/2 w-full max-w-4xl">
-              <div className="flex justify-between items-center px-32">
-                <div className="w-24 h-0.5 bg-gradient-to-r from-brand-orange to-brand-orange/50"></div>
-                <div className="w-24 h-0.5 bg-gradient-to-r from-brand-orange/50 to-brand-orange"></div>
-              </div>
-            </div>
+      <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section Header */}
+        <div className="text-center max-w-3xl mx-auto mb-24">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-brand-navy dark:text-white mb-6">
+              From Code to Context in <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-orange to-orange-600">
+                Three Simple Steps
+              </span>
+            </h2>
+            <p className="text-lg text-muted-foreground leading-relaxed">
+              Stop context switching. Capture your thoughts exactly where they belong—right next to your code.
+            </p>
+          </motion.div>
+        </div>
 
-            <div className="grid lg:grid-cols-3 gap-8 lg:gap-12 max-w-5xl mx-auto">
-              {steps.map((step, index) => (
-                <AnimatedSection
-                  key={step.number}
-                  animation="fade-up"
-                  delay={400 + index * 200}
-                  duration={600}
-                >
-                  <Card className="relative shadow-brand-drop hover:shadow-brand-glow transition-all duration-300 border-2 border-transparent hover:border-brand-orange/20 hover:-translate-y-2 h-full bg-white">
-                    <CardHeader className="text-center pb-6">
-                      <div className="relative mb-6">
-                        <div className="w-16 h-16 rounded-full bg-brand-orange text-white flex items-center justify-center text-2xl font-bold mx-auto shadow-brand-glow relative z-10">
-                          {step.number}
-                        </div>
-                        <div
-                          className="absolute inset-0 w-16 h-16 rounded-full bg-brand-orange/20 mx-auto animate-pulse"
-                          style={{ animationDelay: `${index * 0.5}s` }}
-                        ></div>
-                      </div>
-                      <CardTitle className="text-xl mb-3">
-                        {step.title}
-                      </CardTitle>
-                      <CardDescription className="text-base leading-relaxed">
-                        {step.description}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-0">{step.content}</CardContent>
-                  </Card>
-                </AnimatedSection>
-              ))}
-            </div>
+        {/* Steps Grid */}
+        <div className="grid lg:grid-cols-3 gap-8 relative">
+          {/* Connecting Line (Desktop) */}
+          <div className="hidden lg:block absolute top-12 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-brand-orange/20 to-transparent" />
 
-            {/* Bottom CTA */}
-            <AnimatedSection
-              animation="fade-up"
-              delay={1000}
-              className="text-center mt-16"
+          {steps.map((step, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: index * 0.2 }}
+              className="relative"
             >
-              <div className="inline-flex items-center space-x-2 bg-brand-orange/10 px-6 py-3 rounded-2xl border border-brand-orange/20">
-                <CheckCircle className="h-5 w-5 text-brand-orange" />
-                <span className="text-brand-navy font-medium">
-                  That's it! Your code is now annotated with intelligent
-                  tracking.
-                </span>
+              <div className="group relative h-full">
+                {/* Card Background with Glass Effect */}
+                <div className="absolute inset-0 bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-3xl border border-white/20 dark:border-white/10 shadow-xl transition-all duration-300 group-hover:shadow-2xl group-hover:-translate-y-1" />
+
+                <div className="relative p-8 flex flex-col h-full items-center">
+                  {/* Step Number & Icon */}
+                  <div className="flex items-center justify-between w-full mb-8">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-brand-orange blur-lg opacity-20" />
+                      <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-orange to-orange-600 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300">
+                        {step.icon}
+                      </div>
+                    </div>
+                    <span className="text-4xl font-bold text-brand-navy/5 dark:text-white/5 font-mono">
+                      {step.number}
+                    </span>
+                  </div>
+
+                  {/* Content Preview */}
+                  <div className="mb-8 flex-grow flex items-center justify-center w-full min-h-[180px]">
+                    {step.content}
+                  </div>
+
+                  {/* Text Content */}
+                  <div className="text-center w-full">
+                    <h3 className="text-xl font-bold text-brand-navy dark:text-white mb-3">
+                      {step.title}
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed text-sm">
+                      {step.description}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </AnimatedSection>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Bottom CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+          className="mt-20 text-center"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-orange/10 border border-brand-orange/20 text-brand-orange font-medium text-sm">
+            <Check className="w-4 h-4" />
+            <span>Ready to start? No credit card required.</span>
           </div>
-        </AnimatedSection>
+        </motion.div>
       </div>
     </section>
   );

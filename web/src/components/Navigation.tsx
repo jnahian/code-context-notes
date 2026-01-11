@@ -10,36 +10,62 @@ export function Navigation() {
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center space-x-8">
           <Link to="/" className="flex items-center space-x-3">
-            <img 
-              src="/icon.png" 
-              alt="Code Context Notes" 
+            <img
+              src="/icon.png"
+              alt="Code Context Notes"
               className="h-8 w-8 rounded-2xl"
             />
             <span className="font-bold text-xl">Code Context Notes</span>
           </Link>
-          
+
           <div className="hidden md:flex items-center space-x-6">
             <Link
-              to="/"
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                location.pathname === '/' ? 'text-primary' : 'text-muted-foreground'
-              }`}
+              to="/#problem"
+              onClick={(e) => {
+                if (location.pathname === '/') {
+                  e.preventDefault();
+                  document.getElementById('problem')?.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
             >
-              Home
+              Problem
+            </Link>
+            <Link
+              to="/#features"
+              onClick={(e) => {
+                if (location.pathname === '/') {
+                  e.preventDefault();
+                  document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+            >
+              Features
+            </Link>
+            <Link
+              to="/#how-it-works"
+              onClick={(e) => {
+                if (location.pathname === '/') {
+                  e.preventDefault();
+                  document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+            >
+              How it Works
             </Link>
             <Link
               to="/docs"
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                location.pathname === '/docs' ? 'text-primary' : 'text-muted-foreground'
-              }`}
+              className={`text-sm font-medium transition-colors hover:text-primary ${location.pathname === '/docs' ? 'text-primary' : 'text-muted-foreground'
+                }`}
             >
               Documentation
             </Link>
             <Link
               to="/changelog"
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                location.pathname === '/changelog' ? 'text-primary' : 'text-muted-foreground'
-              }`}
+              className={`text-sm font-medium transition-colors hover:text-primary ${location.pathname === '/changelog' ? 'text-primary' : 'text-muted-foreground'
+                }`}
             >
               Changelog
             </Link>
@@ -48,9 +74,9 @@ export function Navigation() {
 
         <div className="flex items-center space-x-4">
           <Button variant="ghost" size="sm" asChild>
-            <a 
-              href="https://github.com/jnahian/code-context-notes" 
-              target="_blank" 
+            <a
+              href="https://github.com/jnahian/code-context-notes"
+              target="_blank"
               rel="noopener noreferrer"
               className="flex items-center space-x-2"
             >
@@ -58,9 +84,9 @@ export function Navigation() {
               <span className="hidden sm:inline">GitHub</span>
             </a>
           </Button>
-          
+
           <Button size="sm" asChild>
-            <a 
+            <a
               href="https://marketplace.visualstudio.com/items?itemName=jnahian.code-context-notes"
               target="_blank"
               rel="noopener noreferrer"
