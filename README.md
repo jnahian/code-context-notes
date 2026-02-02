@@ -41,7 +41,8 @@ Working on complex codebases, developers face a common dilemma:
 ✅ **Team collaboration** - Share notes by committing `.code-notes/` or keep them local with `.gitignore`
 ✅ **Native integration** - Uses VSCode's comment UI for a familiar, seamless experience
 ✅ **Markdown support** - Rich formatting with keyboard shortcuts
-✅ **Zero performance impact** - Efficient caching and content hash tracking  
+✅ **Tags & Categories** - Organize notes with predefined categories and custom tags
+✅ **Zero performance impact** - Efficient caching and content hash tracking
 
 **Perfect for:**
 - 📝 Documenting technical debt and TODOs
@@ -100,6 +101,33 @@ Available on [Open VSX Registry](https://open-vsx.org/extension/jnahian/code-con
 - Automatic author detection using git username
 - Fallback to system username
 - Override via configuration
+
+### Tags & Categories
+
+- 7 predefined categories (TODO, FIXME, BUG, QUESTION, NOTE, IMPROVEMENT, REVIEW)
+- Custom tags for project-specific organization
+- Visual distinction with colors and icons
+- Tag autocomplete from previously used tags
+- Filter notes by tags in sidebar and search
+- Combine multiple tags per note
+
+### Workspace Sidebar
+
+- Dedicated Activity Bar panel for all notes
+- Organized by file with note count per file
+- Sort by file path, date, or author
+- Context menu actions (edit, delete, view history)
+- Collapsible file nodes for clean organization
+- Quick navigation to notes
+
+### Advanced Search
+
+- Full-text search across all notes
+- Filter by author, date range, file pattern, and tags
+- Regex pattern support
+- Search history for quick access
+- Relevance scoring and ranking
+- Fast performance with inverted index
 
 ## Quick Start
 
@@ -244,6 +272,252 @@ Configure how files are sorted in the sidebar (see Configuration section):
 - Click to expand and see notes within each file
 - Use "Collapse All" button to reset to default state
 
+### Search & Filter Notes
+
+The **Search Notes** feature provides powerful search and filtering capabilities to quickly find notes across your entire workspace.
+
+**Opening Search:**
+- **Keyboard Shortcut**: Press `Ctrl+Shift+F` (Windows/Linux) or `Cmd+Shift+F` (Mac)
+- **Sidebar Button**: Click the 🔍 (search) icon in Code Notes sidebar toolbar
+- **Command Palette**: Type "Code Notes: Search Notes"
+
+**Search Features:**
+- ✅ **Full-text search** - Find notes by content
+- ✅ **Regex patterns** - Use `/pattern/flags` for advanced searches
+- ✅ **Filter by author** - Select one or more authors
+- ✅ **Filter by date** - Created or updated date ranges
+- ✅ **Filter by file** - Glob patterns (e.g., `src/**/*.ts`)
+- ✅ **Combine filters** - Use multiple filters together (AND logic)
+- ✅ **Search history** - Quick access to recent searches (last 20)
+- ✅ **Relevance scoring** - Results ranked by match quality
+
+**Search Syntax:**
+```
+# Regular text search
+authentication
+
+# Case-sensitive search (configure in settings)
+Authentication
+
+# Regex pattern search
+/auth.*?token/i
+
+# Multiple terms (all must match)
+user authentication token
+```
+
+**Using Filters:**
+
+1. **Filter by Author**:
+   - Click "Filter by Author" in search panel
+   - Select one or more authors
+   - Results show notes from any selected author (OR logic)
+
+2. **Filter by Date Range**:
+   - Click "Filter by Date Range"
+   - Choose created or updated date
+   - Select preset (Last 7/30/90 days, This year) or custom range
+   - Format: YYYY-MM-DD
+
+3. **Filter by File Pattern**:
+   - Click "Filter by File Pattern"
+   - Enter glob pattern: `src/**/*.ts`, `*.js`, `components/**/*`
+   - Supports standard glob syntax
+
+4. **Combine Filters**:
+   - Apply multiple filters together
+   - All active filters must match (AND logic)
+   - Clear individual filters or use "Clear All Filters"
+
+**Search Results:**
+- Results show file path, line number, preview, and author
+- Click any result to navigate to the note
+- Relevance score displayed (⭐ High, ⭐½ Medium, ☆ Low)
+- Result count shown at top
+- Debounced search (200ms delay for performance)
+
+**Search History:**
+- Recent searches appear when opening search panel
+- Click any history entry to re-run the search
+- History persists across sessions
+- Configurable history size (default: 20 searches)
+
+**Performance:**
+- Inverted index for fast full-text search
+- Background indexing (builds on workspace load)
+- Search results typically < 100ms
+- Optimized for 1000+ notes
+
+### Tags & Categories
+
+Organize and categorize your notes with tags to quickly identify note types and filter related notes across your workspace.
+
+**What are Tags?**
+- Labels attached to notes for organization and filtering
+- Two types: **Predefined Categories** and **Custom Tags**
+- Multiple tags can be assigned to each note
+- Tags appear visually in CodeLens and sidebar
+- Filter notes by tags in sidebar and search
+
+**Predefined Categories**
+
+Built-in categories with distinctive colors and icons:
+
+| Category | Color | Icon | Purpose |
+|----------|-------|------|---------|
+| **TODO** | 🔵 Blue | ✓ | Tasks that need to be completed |
+| **FIXME** | 🔴 Red | 🔧 | Code that needs fixing |
+| **QUESTION** | 🟡 Yellow | ❓ | Questions that need answers |
+| **NOTE** | ⚫ Gray | 📝 | General notes and observations |
+| **BUG** | 🟠 Orange | 🐛 | Known bugs to track |
+| **IMPROVEMENT** | 🟢 Green | 💡 | Enhancement ideas |
+| **REVIEW** | 🟣 Purple | 👁 | Code that needs review |
+
+**Adding Tags to Notes**
+
+When creating a new note:
+
+1. Press `Ctrl+Alt+N` (or `Cmd+Alt+N` on Mac) to add a note
+2. A tag selection UI appears with predefined categories
+3. Select one or more tags from the list:
+   - **Predefined Categories**: Click to select (TODO, FIXME, BUG, etc.)
+   - **Recently Used**: Shows custom tags you've used before
+   - **Custom Tags**: Type a new tag name and it appears as an option
+4. Selected tags are highlighted
+5. Click outside or press Enter to confirm
+6. Write your note and save
+
+**Examples:**
+
+```
+[TODO] Refactor this authentication logic
+[TODO] [BUG] Fix race condition in user login
+[QUESTION] Should we use JWT or session tokens?
+[FIXME] Memory leak in image processing
+[IMPROVEMENT] [custom-tag] Add caching layer
+```
+
+**Tag Autocomplete**
+
+The tag input includes intelligent autocomplete:
+
+- Predefined categories always appear at the top
+- Previously used custom tags appear in "Recently Used" section
+- Start typing to filter the list
+- Type a new tag name to create custom tags on-the-fly
+- Tags are automatically normalized (predefined categories → UPPERCASE)
+
+**Visual Tag Display**
+
+Tags appear alongside notes in multiple places:
+
+1. **CodeLens** (above code):
+   ```
+   📝 [TODO] [authentication] Note: Refactor this logic (username)
+   ```
+
+2. **Sidebar** (note preview):
+   ```
+   src/app.ts:45 [BUG] [critical] Memory leak in... (username)
+   ```
+
+3. **Search Results**:
+   ```
+   [TODO] [refactor] Line 120: Simplify this function
+   ```
+
+**Filtering by Tags**
+
+**Method 1: Sidebar Tag Filter**
+
+1. Open Code Notes sidebar
+2. Click the 🏷️ (tag filter) icon in toolbar
+3. Select one or more tags from the list
+4. Sidebar updates to show only notes with selected tags
+5. Click "Clear Filter" to show all notes again
+
+**Method 2: Search with Tag Filter**
+
+1. Open search panel (`Ctrl+Shift+F` or `Cmd+Shift+F`)
+2. Click "Filter by Tags"
+3. Select tags to filter by
+4. Combine with text search and other filters
+5. Results show only notes matching all criteria
+
+**Tag Filter Logic:**
+
+- **OR Logic** (default): Notes with ANY of the selected tags
+- **AND Logic** (advanced): Notes with ALL of the selected tags
+- Configurable in filter UI
+
+**Managing Tags**
+
+**Editing Tags on Existing Notes:**
+
+1. Open the note in comment editor
+2. Click Edit button
+3. Tag selection UI appears
+4. Modify tags as needed
+5. Save changes
+
+**Tag Validation:**
+
+Tags must follow these rules:
+- Not empty or whitespace-only
+- No commas (used as delimiter in storage)
+- No newlines or carriage returns
+- Maximum 50 characters
+- Special characters allowed: `-`, `_`, `.`, `#`, numbers
+
+**Tag Statistics**
+
+View tag usage across your workspace:
+
+- Most frequently used tags appear first in autocomplete
+- Tag counts visible in filter UI
+- Recently used tags tracked per workspace
+
+**Best Practices**
+
+1. **Use Predefined Categories** for common note types (TODO, BUG, FIXME)
+2. **Create Custom Tags** for project-specific contexts (e.g., `authentication`, `api`, `database`)
+3. **Combine Tags** for better organization: `[TODO] [authentication] [security]`
+4. **Keep Tags Concise** - use short, meaningful names
+5. **Be Consistent** - reuse existing tags rather than creating similar ones
+6. **Use Tag Filters** to focus on specific work areas
+
+**Keyboard Workflow**
+
+For fastest tagging workflow:
+
+1. `Ctrl+Alt+N` - Add note
+2. Type tag names or select from list
+3. Press Enter to confirm tags
+4. Write note content
+5. `Ctrl+Enter` - Save
+
+**Examples by Use Case**
+
+```
+Technical Debt:
+[TODO] [refactor] Simplify this nested logic
+
+Bug Tracking:
+[BUG] [critical] [authentication] Login fails for new users
+
+Code Review:
+[REVIEW] [security] Check for SQL injection vulnerabilities
+
+Documentation:
+[NOTE] [api] This endpoint requires admin privileges
+
+Questions:
+[QUESTION] [architecture] Should we use microservices here?
+
+Improvements:
+[IMPROVEMENT] [performance] Add caching to reduce DB calls
+```
+
 ## Configuration
 
 Open VSCode Settings (`Ctrl+,` or `Cmd+,`) and search for "Code Context Notes":
@@ -296,6 +570,54 @@ Maximum length of note preview text in sidebar (20-200 characters). Default: `50
 
 Automatically expand file nodes in sidebar. Default: `false` (collapsed)
 
+### Search: Fuzzy Matching
+
+```json
+"codeContextNotes.search.fuzzyMatching": false
+```
+
+Enable fuzzy matching for search queries (tolerates typos). Default: `false`
+
+### Search: Case Sensitive
+
+```json
+"codeContextNotes.search.caseSensitive": false
+```
+
+Make search case-sensitive by default. Default: `false`
+
+### Search: Max Results
+
+```json
+"codeContextNotes.search.maxResults": 100
+```
+
+Maximum number of search results to display (10-500). Default: `100`
+
+### Search: Debounce Delay
+
+```json
+"codeContextNotes.search.debounceDelay": 200
+```
+
+Delay in milliseconds before triggering search (50-1000). Default: `200`
+
+### Search: Save History
+
+```json
+"codeContextNotes.search.saveHistory": true
+```
+
+Save search history for quick access to recent searches. Default: `true`
+
+### Search: History Size
+
+```json
+"codeContextNotes.search.historySize": 20
+```
+
+Number of recent searches to keep in history (5-100). Default: `20`
+
 ## Keyboard Shortcuts
 
 | Command       | Windows/Linux  | Mac           | Description                            |
@@ -304,6 +626,7 @@ Automatically expand file nodes in sidebar. Default: `false` (collapsed)
 | Delete Note   | `Ctrl+Alt+D`   | `Cmd+Alt+D`   | Delete note at cursor                  |
 | View History  | `Ctrl+Alt+H`   | `Cmd+Alt+H`   | View note history                      |
 | Refresh Notes | `Ctrl+Alt+R`   | `Cmd+Alt+R`   | Refresh all notes                      |
+| **Search Notes** | **`Ctrl+Shift+F`** | **`Cmd+Shift+F`** | **Open search panel for notes**     |
 | Bold          | `Ctrl+B`       | `Cmd+B`       | Insert bold text (in comment editor)   |
 | Italic        | `Ctrl+I`       | `Cmd+I`       | Insert italic text (in comment editor) |
 | Inline Code   | `Ctrl+Shift+C` | `Cmd+Shift+C` | Insert inline code (in comment editor) |
@@ -334,6 +657,7 @@ Each note file is named by its unique ID and contains:
 **Created:** 2025-10-17T10:30:00.000Z
 **Updated:** 2025-10-17T14:45:00.000Z
 **Content Hash:** abc123def456
+**Tags:** TODO, authentication, security
 
 ## Content
 
@@ -371,6 +695,10 @@ All commands are available in the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+
 - **Code Notes: Delete Note at Cursor** - Delete note at current cursor position
 - **Code Notes: View Note History** - View complete history of a note
 - **Code Notes: Refresh All Notes** - Refresh all note displays
+
+**Search & Filter:**
+- **Code Notes: Search Notes** - Open search panel to find notes by content, author, date, or file
+- **Code Notes: Filter by Tags** - Filter notes in sidebar by selected tags
 
 **Sidebar:**
 - **Code Notes: Refresh Sidebar** - Manually refresh the sidebar view
@@ -465,15 +793,20 @@ See [docs/TESTING.md](docs/TESTING.md) for detailed testing documentation.
 
 ## Roadmap
 
-Future enhancements being considered:
+**✅ Recently Implemented:**
+- ✅ Sidebar view for browsing all notes
+- ✅ Search and filter notes across workspace
+- ✅ Tags and categories
 
-- Sidebar view for browsing all notes
-- Search and filter notes across workspace
-- Export notes to various formats
-- Note templates
-- Tags and categories
-- Rich text editing
-- Team collaboration features
+**🔮 Future Enhancements:**
+- Export notes to various formats (JSON, CSV, Markdown reports)
+- Note templates for common use cases
+- Rich text editing with WYSIWYG editor
+- Team collaboration features (note sharing, comments, mentions)
+- Integration with issue trackers (GitHub, Jira, Linear)
+- AI-powered note suggestions and summarization
+- Note linking and relationships
+- Workspace analytics and insights
 
 ## License
 

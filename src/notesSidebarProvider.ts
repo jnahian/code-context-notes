@@ -3,217 +3,312 @@
  * Implements VSCode TreeDataProvider for displaying notes in sidebar
  */
 
-import * as vscode from 'vscode';
-import { NoteManager } from './noteManager.js';
-import { Note } from './types.js';
-import { RootTreeItem, FileTreeItem, NoteTreeItem, BaseTreeItem } from './noteTreeItem.js';
+import * as vscode from "vscode";
+import { NoteManager } from "./noteManager.js";
+import {
+  BaseTreeItem,
+  FileTreeItem,
+  NoteTreeItem,
+  RootTreeItem,
+} from "./noteTreeItem.js";
+import { Note } from "./types.js";
 
 /**
  * Notes Sidebar Provider
  * Displays all workspace notes in a tree structure organized by file
  */
-export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeItem> {
-	private _onDidChangeTreeData: vscode.EventEmitter<BaseTreeItem | undefined | null | void> =
-		new vscode.EventEmitter<BaseTreeItem | undefined | null | void>();
-	readonly onDidChangeTreeData: vscode.Event<BaseTreeItem | undefined | null | void> =
-		this._onDidChangeTreeData.event;
+export class NotesSidebarProvider
+  implements vscode.TreeDataProvider<BaseTreeItem>
+{
+  private _onDidChangeTreeData: vscode.EventEmitter<
+    BaseTreeItem | undefined | null | void
+  > = new vscode.EventEmitter<BaseTreeItem | undefined | null | void>();
+  readonly onDidChangeTreeData: vscode.Event<
+    BaseTreeItem | undefined | null | void
+  > = this._onDidChangeTreeData.event;
 
-	private debounceTimer: NodeJS.Timeout | null = null;
-	private readonly DEBOUNCE_DELAY = 300; // ms
-	private disposables: vscode.Disposable[] = [];
+  private debounceTimer: NodeJS.Timeout | null = null;
+  private readonly DEBOUNCE_DELAY = 300; // ms
 
-	constructor(
-		private readonly noteManager: NoteManager,
-		private readonly workspaceRoot: string,
-		private readonly context: vscode.ExtensionContext
-	) {
-		// Listen for note changes from NoteManager
-		this.setupEventListeners();
+  // Tag filtering
+  private activeTagFilters: string[] = [];
+  private filterMode: "any" | "all" = "any"; // 'any' = OR logic, 'all' = AND logic
+  private disposables: vscode.Disposable[] = [];
 
-		// Register dispose method so VS Code can clean up when deactivating
-		this.context.subscriptions.push(this);
-	}
+  constructor(
+    private readonly noteManager: NoteManager,
+    private readonly workspaceRoot: string,
+    private readonly context: vscode.ExtensionContext
+  ) {
+    // Listen for note changes from NoteManager
+    this.setupEventListeners();
 
-	/**
-	 * Set up event listeners for real-time updates
-	 */
-	private setupEventListeners(): void {
-		// Listen for note changes (create/update/delete)
-		const noteChangedHandler = () => {
-			this.refresh();
-		};
-		this.noteManager.on('noteChanged', noteChangedHandler);
-		this.disposables.push(new vscode.Disposable(() => {
-			this.noteManager.removeListener('noteChanged', noteChangedHandler);
-		}));
+    // Register dispose method so VS Code can clean up when deactivating
+    this.context.subscriptions.push(this);
+  }
 
-		// Listen for file changes (external modifications)
-		const noteFileChangedHandler = () => {
-			this.refresh();
-		};
-		this.noteManager.on('noteFileChanged', noteFileChangedHandler);
-		this.disposables.push(new vscode.Disposable(() => {
-			this.noteManager.removeListener('noteFileChanged', noteFileChangedHandler);
-		}));
-	}
+  /**
+   * Set up event listeners for real-time updates
+   */
+  private setupEventListeners(): void {
+    // Listen for note changes (create/update/delete)
+    const noteChangedHandler = () => {
+      this.refresh();
+    };
+    this.noteManager.on("noteChanged", noteChangedHandler);
+    this.disposables.push(
+      new vscode.Disposable(() => {
+        this.noteManager.removeListener("noteChanged", noteChangedHandler);
+      })
+    );
 
-	/**
-	 * Refresh the tree view (debounced for performance)
-	 */
-	refresh(): void {
-		// Clear existing timer
-		if (this.debounceTimer) {
-			clearTimeout(this.debounceTimer);
-		}
+    // Listen for file changes (external modifications)
+    const noteFileChangedHandler = () => {
+      this.refresh();
+    };
+    this.noteManager.on("noteFileChanged", noteFileChangedHandler);
+    this.disposables.push(
+      new vscode.Disposable(() => {
+        this.noteManager.removeListener(
+          "noteFileChanged",
+          noteFileChangedHandler
+        );
+      })
+    );
+  }
 
-		// Set new debounced timer
-		this.debounceTimer = setTimeout(() => {
-			this._onDidChangeTreeData.fire();
-			this.debounceTimer = null;
-		}, this.DEBOUNCE_DELAY);
-	}
+  /**
+   * Refresh the tree view (debounced for performance)
+   */
+  refresh(): void {
+    // Clear existing timer
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+    }
 
-	/**
-	 * Get tree item for a node (required by TreeDataProvider)
-	 */
-	getTreeItem(element: BaseTreeItem): vscode.TreeItem {
-		return element;
-	}
+    // Set new debounced timer
+    this.debounceTimer = setTimeout(() => {
+      this._onDidChangeTreeData.fire();
+      this.debounceTimer = null;
+    }, this.DEBOUNCE_DELAY);
+  }
 
-	/**
-	 * Get children for a tree node (required by TreeDataProvider)
-	 * Implements lazy loading for performance
-	 */
-	async getChildren(element?: BaseTreeItem): Promise<BaseTreeItem[]> {
-		// Root level: return RootTreeItem or empty state
-		if (!element) {
-			const noteCount = await this.noteManager.getNoteCount();
+  /**
+   * Get tree item for a node (required by TreeDataProvider)
+   */
+  getTreeItem(element: BaseTreeItem): vscode.TreeItem {
+    return element;
+  }
 
-			// Empty state - no notes
-			if (noteCount === 0) {
-				return [];
-			}
+  /**
+   * Get children for a tree node (required by TreeDataProvider)
+   * Implements lazy loading for performance
+   */
+  async getChildren(element?: BaseTreeItem): Promise<BaseTreeItem[]> {
+    // Root level: return RootTreeItem or empty state
+    if (!element) {
+      const noteCount = await this.noteManager.getNoteCount();
 
-			// Return root node with count
-			return [new RootTreeItem(noteCount)];
-		}
+      // Empty state - no notes
+      if (noteCount === 0) {
+        return [];
+      }
 
-		// Root node: return file nodes
-		if (element.itemType === 'root') {
-			return this.getFileNodes();
-		}
+      // Return root node with count
+      return [new RootTreeItem(noteCount)];
+    }
 
-		// File node: return note nodes
-		if (element.itemType === 'file') {
-			return this.getNoteNodes(element as FileTreeItem);
-		}
+    // Root node: return file nodes
+    if (element.itemType === "root") {
+      return this.getFileNodes();
+    }
 
-		// Note nodes have no children (leaf nodes)
-		return [];
-	}
+    // File node: return note nodes
+    if (element.itemType === "file") {
+      return this.getNoteNodes(element as FileTreeItem);
+    }
 
-	/**
-	 * Get all file nodes (one per file with notes)
-	 */
-	private async getFileNodes(): Promise<FileTreeItem[]> {
-		const notesByFile = await this.noteManager.getNotesByFile();
-		const fileNodes: FileTreeItem[] = [];
-		const sortBy = this.getSortBy();
+    // Note nodes have no children (leaf nodes)
+    return [];
+  }
 
-		// Create file nodes
-		for (const [filePath, notes] of notesByFile.entries()) {
-			if (notes.length > 0) {
-				fileNodes.push(new FileTreeItem(filePath, notes, this.workspaceRoot));
-			}
-		}
+  /**
+   * Get all file nodes (one per file with notes)
+   */
+  private async getFileNodes(): Promise<FileTreeItem[]> {
+    const notesByFile = await this.noteManager.getNotesByFile();
+    const fileNodes: FileTreeItem[] = [];
+    const sortBy = this.getSortBy();
 
-		// Sort file nodes based on configuration
-		switch (sortBy) {
-			case 'date':
-				// Sort by most recent note update time (descending)
-				fileNodes.sort((a, b) => {
-					const aLatest = Math.max(...a.notes.map(n => new Date(n.updatedAt).getTime()));
-					const bLatest = Math.max(...b.notes.map(n => new Date(n.updatedAt).getTime()));
-					return bLatest - aLatest;
-				});
-				break;
+    // Create file nodes, applying tag filters
+    for (const [filePath, notes] of notesByFile.entries()) {
+      // Filter notes by tags if filters are active
+      const filteredNotes =
+        this.activeTagFilters.length > 0
+          ? notes.filter((note) => this.matchesTagFilter(note))
+          : notes;
 
-			case 'author':
-				// Sort by author name (alphabetically), then by file path
-				fileNodes.sort((a, b) => {
-					const aAuthor = a.notes[0]?.author || '';
-					const bAuthor = b.notes[0]?.author || '';
-					if (aAuthor === bAuthor) {
-						return a.filePath.localeCompare(b.filePath);
-					}
-					return aAuthor.localeCompare(bAuthor);
-				});
-				break;
+      // Only create file node if it has notes after filtering
+      if (filteredNotes.length > 0) {
+        fileNodes.push(
+          new FileTreeItem(filePath, filteredNotes, this.workspaceRoot)
+        );
+      }
+    }
 
-			case 'file':
-			default:
-				// Sort alphabetically by file path
-				fileNodes.sort((a, b) => a.filePath.localeCompare(b.filePath));
-				break;
-		}
+    // Sort file nodes based on configuration
+    switch (sortBy) {
+      case "date":
+        // Sort by most recent note update time (descending)
+        fileNodes.sort((a, b) => {
+          const aLatest = Math.max(
+            ...a.notes.map((n) => new Date(n.updatedAt).getTime())
+          );
+          const bLatest = Math.max(
+            ...b.notes.map((n) => new Date(n.updatedAt).getTime())
+          );
+          return bLatest - aLatest;
+        });
+        break;
 
-		return fileNodes;
-	}
+      case "author":
+        // Sort by author name (alphabetically), then by file path
+        fileNodes.sort((a, b) => {
+          const aAuthor = a.notes[0]?.author || "";
+          const bAuthor = b.notes[0]?.author || "";
+          if (aAuthor === bAuthor) {
+            return a.filePath.localeCompare(b.filePath);
+          }
+          return aAuthor.localeCompare(bAuthor);
+        });
+        break;
 
-	/**
-	 * Get note nodes for a file
-	 */
-	private getNoteNodes(fileNode: FileTreeItem): NoteTreeItem[] {
-		const previewLength = this.getPreviewLength();
-		const noteNodes: NoteTreeItem[] = [];
+      case "file":
+      default:
+        // Sort alphabetically by file path
+        fileNodes.sort((a, b) => a.filePath.localeCompare(b.filePath));
+        break;
+    }
 
-		// Notes are already sorted by line range in getNotesByFile()
-		for (const note of fileNode.notes) {
-			noteNodes.push(new NoteTreeItem(note, previewLength));
-		}
+    return fileNodes;
+  }
 
-		return noteNodes;
-	}
+  /**
+   * Get note nodes for a file
+   */
+  private getNoteNodes(fileNode: FileTreeItem): NoteTreeItem[] {
+    const previewLength = this.getPreviewLength();
+    const noteNodes: NoteTreeItem[] = [];
 
-	/**
-	 * Get preview length from configuration
-	 */
-	private getPreviewLength(): number {
-		const config = vscode.workspace.getConfiguration('codeContextNotes');
-		return config.get<number>('sidebar.previewLength', 50);
-	}
+    // Notes are already sorted by line range in getNotesByFile()
+    for (const note of fileNode.notes) {
+      noteNodes.push(new NoteTreeItem(note, previewLength));
+    }
 
-	/**
-	 * Get auto-expand setting from configuration
-	 */
-	private getAutoExpand(): boolean {
-		const config = vscode.workspace.getConfiguration('codeContextNotes');
-		return config.get<boolean>('sidebar.autoExpand', false);
-	}
+    return noteNodes;
+  }
 
-	/**
-	 * Get sort order from configuration
-	 */
-	private getSortBy(): 'file' | 'date' | 'author' {
-		const config = vscode.workspace.getConfiguration('codeContextNotes');
-		return config.get<'file' | 'date' | 'author'>('sidebar.sortBy', 'file');
-	}
+  /**
+   * Get preview length from configuration
+   */
+  private getPreviewLength(): number {
+    const config = vscode.workspace.getConfiguration("codeContextNotes");
+    return config.get<number>("sidebar.previewLength", 50);
+  }
 
-	/**
-	 * Dispose of all event listeners and resources
-	 */
-	dispose(): void {
-		// Clear debounce timer if active
-		if (this.debounceTimer) {
-			clearTimeout(this.debounceTimer);
-			this.debounceTimer = null;
-		}
+  /**
+   * Get auto-expand setting from configuration
+   */
+  private getAutoExpand(): boolean {
+    const config = vscode.workspace.getConfiguration("codeContextNotes");
+    return config.get<boolean>("sidebar.autoExpand", false);
+  }
 
-		// Dispose all event listeners
-		vscode.Disposable.from(...this.disposables).dispose();
-		this.disposables = [];
+  /**
+   * Get sort order from configuration
+   */
+  private getSortBy(): "file" | "date" | "author" {
+    const config = vscode.workspace.getConfiguration("codeContextNotes");
+    return config.get<"file" | "date" | "author">("sidebar.sortBy", "file");
+  }
 
-		// Dispose the event emitter
-		this._onDidChangeTreeData.dispose();
-	}
+  /**
+   * Set tag filters for the sidebar
+   */
+  setTagFilters(tags: string[], mode: "any" | "all" = "any"): void {
+    this.activeTagFilters = tags;
+    this.filterMode = mode;
+    this.refresh();
+  }
+
+  /**
+   * Clear all tag filters
+   */
+  clearTagFilters(): void {
+    this.activeTagFilters = [];
+    this.refresh();
+  }
+
+  /**
+   * Get currently active tag filters
+   */
+  getActiveFilters(): { tags: string[]; mode: "any" | "all" } {
+    return {
+      tags: [...this.activeTagFilters],
+      mode: this.filterMode,
+    };
+  }
+
+  /**
+   * Check if a note matches the active tag filters
+   */
+  private matchesTagFilter(note: Note): boolean {
+    // If no filters, show all notes
+    if (this.activeTagFilters.length === 0) {
+      return true;
+    }
+
+    // If note has no tags, it doesn't match any tag filter
+    if (!note.tags || note.tags.length === 0) {
+      return false;
+    }
+
+    // Apply filter based on mode
+    if (this.filterMode === "all") {
+      // Note must have ALL filter tags (AND logic)
+      return this.activeTagFilters.every((filterTag) =>
+        note.tags!.includes(filterTag)
+      );
+    } else {
+      // Note must have at least ONE filter tag (OR logic)
+      return this.activeTagFilters.some((filterTag) =>
+        note.tags!.includes(filterTag)
+      );
+    }
+  }
+
+  /**
+   * Check if any filters are active
+   */
+  hasActiveFilters(): boolean {
+    return this.activeTagFilters.length > 0;
+  }
+
+  /**
+   * Dispose of all event listeners and resources
+   */
+  dispose(): void {
+    // Clear debounce timer if active
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
+
+    // Dispose all event listeners
+    vscode.Disposable.from(...this.disposables).dispose();
+    this.disposables = [];
+
+    // Dispose the event emitter
+    this._onDidChangeTreeData.dispose();
+  }
 }

@@ -525,12 +525,28 @@ export class CommentController {
       end: thread.range.end.line,
     };
 
+    // Prompt for tags (async, so import at top of file is needed)
+    const { TagInputUI } = await import('./tagInputUI.js');
+    const allNotes = await this.noteManager.getAllNotes();
+    const tags = await TagInputUI.showTagInput(undefined, allNotes);
+
+    // If user cancelled tag input, cancel note creation
+    if (tags === undefined) {
+      thread.dispose();
+      if (tempId) {
+        this.commentThreads.delete(tempId);
+      }
+      this.currentlyCreatingThreadId = null;
+      return;
+    }
+
     // Create the actual note
     const note = await this.noteManager.createNote(
       {
         filePath: document.uri.fsPath,
         lineRange,
         content,
+        tags,
       },
       document
     );
@@ -554,7 +570,8 @@ export class CommentController {
   async handleCreateNote(
     document: vscode.TextDocument,
     range: vscode.Range,
-    content: string
+    content: string,
+    tags?: string[]
   ): Promise<Note> {
     const lineRange: LineRange = {
       start: range.start.line,
@@ -566,6 +583,7 @@ export class CommentController {
         filePath: document.uri.fsPath,
         lineRange,
         content,
+        tags,
       },
       document
     );

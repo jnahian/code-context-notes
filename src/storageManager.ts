@@ -210,6 +210,9 @@ export class StorageManager implements NoteStorage {
     lines.push(`**Author:** ${note.author}`);
     lines.push(`**Created:** ${note.createdAt}`);
     lines.push(`**Updated:** ${note.updatedAt}`);
+    if (note.tags && note.tags.length > 0) {
+      lines.push(`**Tags:** ${note.tags.join(', ')}`);
+    }
     if (note.isDeleted) {
       lines.push(`**Status:** DELETED`);
     }
@@ -289,6 +292,10 @@ export class StorageManager implements NoteStorage {
       }
       else if (line.startsWith('**Updated:**')) {
         note.updatedAt = line.substring(12).trim();
+      }
+      else if (line.startsWith('**Tags:**')) {
+        const tagsStr = line.substring(9).trim();
+        note.tags = tagsStr ? tagsStr.split(',').map(t => t.trim()) : [];
       }
       else if (line.startsWith('**Status:** DELETED')) {
         note.isDeleted = true;

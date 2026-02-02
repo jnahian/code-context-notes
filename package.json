@@ -196,6 +196,12 @@
         "title": "View History",
         "icon": "$(history)",
         "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.searchNotes",
+        "title": "Search Notes",
+        "icon": "$(search)",
+        "category": "Code Notes"
       }
     ],
     "keybindings": [
@@ -222,6 +228,12 @@
         "key": "ctrl+alt+r",
         "mac": "cmd+alt+r",
         "when": "editorTextFocus"
+      },
+      {
+        "command": "codeContextNotes.searchNotes",
+        "key": "ctrl+shift+f",
+        "mac": "cmd+shift+f",
+        "when": "!searchViewletFocus && !replaceInputBoxFocus"
       },
       {
         "command": "codeContextNotes.insertBold",
@@ -269,9 +281,19 @@
           "group": "navigation@1"
         },
         {
-          "command": "codeContextNotes.refreshSidebar",
+          "command": "codeContextNotes.searchNotes",
+          "when": "view == codeContextNotes.sidebarView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "codeContextNotes.collapseAll",
           "when": "view == codeContextNotes.sidebarView",
           "group": "navigation@3"
+        },
+        {
+          "command": "codeContextNotes.refreshSidebar",
+          "when": "view == codeContextNotes.sidebarView",
+          "group": "navigation@4"
         }
       ],
       "view/item/context": [
@@ -418,7 +440,43 @@
             "file"
           ],
           "default": "file",
-          "description": "Sort notes by file path"
+          "description": "Sort notes by: file path, date, or author (file path only in v0.2.0)"
+        },
+        "codeContextNotes.search.fuzzyMatching": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable fuzzy matching for search queries"
+        },
+        "codeContextNotes.search.caseSensitive": {
+          "type": "boolean",
+          "default": false,
+          "description": "Make search case-sensitive by default"
+        },
+        "codeContextNotes.search.maxResults": {
+          "type": "number",
+          "default": 100,
+          "minimum": 10,
+          "maximum": 500,
+          "description": "Maximum number of search results to display"
+        },
+        "codeContextNotes.search.debounceDelay": {
+          "type": "number",
+          "default": 200,
+          "minimum": 50,
+          "maximum": 1000,
+          "description": "Delay in milliseconds before triggering search (default: 200ms)"
+        },
+        "codeContextNotes.search.saveHistory": {
+          "type": "boolean",
+          "default": true,
+          "description": "Save search history for quick access to recent searches"
+        },
+        "codeContextNotes.search.historySize": {
+          "type": "number",
+          "default": 20,
+          "minimum": 5,
+          "maximum": 100,
+          "description": "Number of recent searches to keep in history"
         }
       }
     }
