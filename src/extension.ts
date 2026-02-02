@@ -22,6 +22,8 @@ let searchManager: SearchManager;
 // Debounce timers for performance optimization
 const documentChangeTimers: Map<string, NodeJS.Timeout> = new Map();
 const DEBOUNCE_DELAY = 500; // ms
+const LARGE_INDEX_THRESHOLD = 100; // Show completion message for large indexes
+const INDEX_BUILD_DELAY = 1000; // Delay to not block activation (ms)
 
 /**
  * Extension activation
@@ -126,7 +128,7 @@ export async function activate(context: vscode.ExtensionContext) {
 				console.log(`Code Context Notes: Search index built with ${allNotes.length} notes`);
 
 				// Show completion message for large indexes
-				if (allNotes.length > 100) {
+				if (allNotes.length > LARGE_INDEX_THRESHOLD) {
 					setTimeout(() => {
 						vscode.window.showInformationMessage(`Code Context Notes: Search index ready with ${allNotes.length} notes`);
 					}, 500);
@@ -136,7 +138,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			console.error('Code Context Notes: Failed to build search index:', error);
 			vscode.window.showErrorMessage(`Code Context Notes: Failed to build search index: ${error}`);
 		}
-	}, 1000); // Delay to not block activation
+	}, INDEX_BUILD_DELAY);
 
 	// Set up event listeners
 	setupEventListeners(context);

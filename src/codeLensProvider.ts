@@ -7,6 +7,12 @@ import * as vscode from 'vscode';
 import { Note } from './types.js';
 import { NoteManager } from './noteManager.js';
 
+// Preview length constants
+const MIN_PREVIEW_LENGTH = 10; // Minimum characters for note preview
+const MAX_PREVIEW_LENGTH_SINGLE_NOTE = 50; // Max preview length for single note
+const MAX_PREVIEW_LENGTH_MULTI_NOTE = 35; // Max preview length for multiple notes
+const MAX_TAGS_TO_DISPLAY = 2; // Max tags to show before truncating
+
 /**
  * CodeLensProvider displays indicators above lines with notes
  */
@@ -166,7 +172,7 @@ export class CodeNotesLensProvider implements vscode.CodeLensProvider {
       const firstLine = plainText.split('\n')[0];
 
       // Calculate available space for preview (account for tags) with minimum guard
-      const maxPreviewLength = Math.max(10, 50 - tagsDisplay.length);
+      const maxPreviewLength = Math.max(MIN_PREVIEW_LENGTH, MAX_PREVIEW_LENGTH_SINGLE_NOTE - tagsDisplay.length);
       const preview = firstLine.length > maxPreviewLength
         ? firstLine.substring(0, maxPreviewLength - 3) + '...'
         : firstLine;
@@ -188,14 +194,14 @@ export class CodeNotesLensProvider implements vscode.CodeLensProvider {
         }
       });
 
-      // Format tags for display (limit to first 2 tags if many)
+      // Format tags for display (limit to MAX_TAGS_TO_DISPLAY if many)
       let tagsDisplay = '';
       if (allTags.size > 0) {
         const tagArray = Array.from(allTags);
-        const displayTags = tagArray.slice(0, 2);
+        const displayTags = tagArray.slice(0, MAX_TAGS_TO_DISPLAY);
         tagsDisplay = displayTags.map(tag => `[${tag}]`).join(' ');
-        if (tagArray.length > 2) {
-          tagsDisplay += ` +${tagArray.length - 2}`;
+        if (tagArray.length > MAX_TAGS_TO_DISPLAY) {
+          tagsDisplay += ` +${tagArray.length - MAX_TAGS_TO_DISPLAY}`;
         }
         tagsDisplay += ' ';
       }
@@ -203,7 +209,7 @@ export class CodeNotesLensProvider implements vscode.CodeLensProvider {
       // Get preview from first note
       const plainText = this.stripMarkdown(notes[0].content);
       const firstLine = plainText.split('\n')[0];
-      const maxPreviewLength = Math.max(10, 35 - tagsDisplay.length);
+      const maxPreviewLength = Math.max(MIN_PREVIEW_LENGTH, MAX_PREVIEW_LENGTH_MULTI_NOTE - tagsDisplay.length);
       const preview = firstLine.length > maxPreviewLength
         ? firstLine.substring(0, maxPreviewLength - 3) + '...'
         : firstLine;

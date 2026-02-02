@@ -86,7 +86,14 @@ export class TagInputUI {
     // Handle custom tag input
     quickPick.onDidChangeValue((value) => {
       // If user types something not in the list, add it as a custom tag option
-      if (value && !items.some((item) => item.label.includes(value))) {
+      // Use exact matching by comparing normalized tag names
+      const normalizedValue = value.trim().toUpperCase();
+      const exactMatch = items.some((item) => {
+        const tagName = item.label.replace('$(tag) ', '').trim();
+        return tagName.toUpperCase() === normalizedValue;
+      });
+
+      if (value && !exactMatch) {
         const customTag = value.trim();
 
         // Validate the custom tag

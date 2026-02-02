@@ -11,7 +11,7 @@ interface SearchQuickPickItem extends vscode.QuickPickItem {
   note?: Note;
   result?: SearchResult;
   type: 'result' | 'filter' | 'action' | 'separator';
-  action?: 'clearFilters' | 'showHistory' | 'advancedSearch' | 'filterByAuthor' | 'filterByDate' | 'filterByFile';
+  action?: 'clearFilters' | 'showHistory' | 'advancedSearch' | 'filterByAuthor' | 'filterByDate' | 'filterByFile' | 'clearAuthorFilter' | 'clearDateFilter' | 'clearFileFilter' | 'clearCaseSensitiveFilter';
 }
 
 /**
@@ -285,7 +285,7 @@ export class SearchUI {
         label: `  $(person) Authors: ${this.activeFilters.authors.join(', ')}`,
         description: 'Click to remove',
         type: 'filter',
-        action: 'clearFilters',
+        action: 'clearAuthorFilter',
         alwaysShow: true
       });
     }
@@ -305,7 +305,7 @@ export class SearchUI {
         label: `  $(calendar) ${dateLabel}`,
         description: 'Click to remove',
         type: 'filter',
-        action: 'clearFilters',
+        action: 'clearDateFilter',
         alwaysShow: true
       });
     }
@@ -315,7 +315,7 @@ export class SearchUI {
         label: `  $(file) Files: ${this.activeFilters.filePattern}`,
         description: 'Click to remove',
         type: 'filter',
-        action: 'clearFilters',
+        action: 'clearFileFilter',
         alwaysShow: true
       });
     }
@@ -325,7 +325,7 @@ export class SearchUI {
         label: `  $(case-sensitive) Case Sensitive`,
         description: 'Click to remove',
         type: 'filter',
-        action: 'clearFilters',
+        action: 'clearCaseSensitiveFilter',
         alwaysShow: true
       });
     }
@@ -485,6 +485,22 @@ export class SearchUI {
     switch (item.action) {
       case 'clearFilters':
         await this.clearFilters();
+        break;
+      case 'clearAuthorFilter':
+        delete this.activeFilters.authors;
+        await this.updateQuickPickItems(this.lastSearchQuery);
+        break;
+      case 'clearDateFilter':
+        delete this.activeFilters.dateRange;
+        await this.updateQuickPickItems(this.lastSearchQuery);
+        break;
+      case 'clearFileFilter':
+        delete this.activeFilters.filePattern;
+        await this.updateQuickPickItems(this.lastSearchQuery);
+        break;
+      case 'clearCaseSensitiveFilter':
+        this.activeFilters.caseSensitive = false;
+        await this.updateQuickPickItems(this.lastSearchQuery);
         break;
       case 'filterByAuthor':
         await this.showAuthorFilter();
