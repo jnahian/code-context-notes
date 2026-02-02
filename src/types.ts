@@ -55,6 +55,8 @@ export interface Note {
   history: NoteHistoryEntry[];
   /** Whether this note has been deleted (soft delete) */
   isDeleted?: boolean;
+  /** Tags associated with this note (both predefined and custom) */
+  tags?: string[];
 }
 
 /**
@@ -113,6 +115,8 @@ export interface CreateNoteParams {
   content: string;
   /** Optional author override */
   author?: string;
+  /** Optional tags for the note */
+  tags?: string[];
 }
 
 /**
@@ -125,6 +129,8 @@ export interface UpdateNoteParams {
   content: string;
   /** Optional author override */
   author?: string;
+  /** Optional tags update */
+  tags?: string[];
 }
 
 /**

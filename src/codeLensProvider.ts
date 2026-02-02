@@ -7,6 +7,12 @@ import * as vscode from 'vscode';
 import { Note } from './types.js';
 import { NoteManager } from './noteManager.js';
 
+// Preview length constants
+const MIN_PREVIEW_LENGTH = 10; // Minimum characters for note preview
+const MAX_PREVIEW_LENGTH_SINGLE_NOTE = 50; // Max preview length for single note
+const MAX_PREVIEW_LENGTH_MULTI_NOTE = 35; // Max preview length for multiple notes
+const MAX_TAGS_TO_DISPLAY = 2; // Max tags to show before truncating
+
 /**
  * CodeLensProvider displays indicators above lines with notes
  */
@@ -154,15 +160,25 @@ export class CodeNotesLensProvider implements vscode.CodeLensProvider {
   private formatCodeLensTitle(notes: Note[]): string {
     if (notes.length === 1) {
       const note = notes[0];
+
+      // Format tags for display
+      let tagsDisplay = '';
+      if (note.tags && note.tags.length > 0) {
+        tagsDisplay = note.tags.map(tag => `[${tag}]`).join(' ') + ' ';
+      }
+
       // Strip markdown formatting and get first line
       const plainText = this.stripMarkdown(note.content);
       const firstLine = plainText.split('\n')[0];
-      const preview = firstLine.length > 50
-        ? firstLine.substring(0, 47) + '...'
+
+      // Calculate available space for preview (account for tags) with minimum guard
+      const maxPreviewLength = Math.max(MIN_PREVIEW_LENGTH, MAX_PREVIEW_LENGTH_SINGLE_NOTE - tagsDisplay.length);
+      const preview = firstLine.length > maxPreviewLength
+        ? firstLine.substring(0, maxPreviewLength - 3) + '...'
         : firstLine;
 
-      // Format: "📝 Note: preview text (by author)"
-      return `📝 Note: ${preview} (${note.author})`;
+      // Format: "📝 [TODO] [bug] Note: preview text (by author)"
+      return `📝 ${tagsDisplay}Note: ${preview} (${note.author})`;
     } else {
       // Multiple notes - show count and authors
       const uniqueAuthors = [...new Set(notes.map(n => n.author))];
@@ -170,15 +186,36 @@ export class CodeNotesLensProvider implements vscode.CodeLensProvider {
         ? `${uniqueAuthors.slice(0, 2).join(', ')} +${uniqueAuthors.length - 2} more`
         : uniqueAuthors.join(', ');
 
+      // Collect all unique tags from all notes
+      const allTags = new Set<string>();
+      notes.forEach(note => {
+        if (note.tags) {
+          note.tags.forEach(tag => allTags.add(tag));
+        }
+      });
+
+      // Format tags for display (limit to MAX_TAGS_TO_DISPLAY if many)
+      let tagsDisplay = '';
+      if (allTags.size > 0) {
+        const tagArray = Array.from(allTags);
+        const displayTags = tagArray.slice(0, MAX_TAGS_TO_DISPLAY);
+        tagsDisplay = displayTags.map(tag => `[${tag}]`).join(' ');
+        if (tagArray.length > MAX_TAGS_TO_DISPLAY) {
+          tagsDisplay += ` +${tagArray.length - MAX_TAGS_TO_DISPLAY}`;
+        }
+        tagsDisplay += ' ';
+      }
+
       // Get preview from first note
       const plainText = this.stripMarkdown(notes[0].content);
       const firstLine = plainText.split('\n')[0];
-      const preview = firstLine.length > 35
-        ? firstLine.substring(0, 32) + '...'
+      const maxPreviewLength = Math.max(MIN_PREVIEW_LENGTH, MAX_PREVIEW_LENGTH_MULTI_NOTE - tagsDisplay.length);
+      const preview = firstLine.length > maxPreviewLength
+        ? firstLine.substring(0, maxPreviewLength - 3) + '...'
         : firstLine;
 
-      // Format: "📝 Notes (3): preview... (by author1, author2)"
-      return `📝 Notes (${notes.length}): ${preview} (${authorsDisplay})`;
+      // Format: "📝 [TODO] [bug] Notes (3): preview... (by author1, author2)"
+      return `📝 ${tagsDisplay}Notes (${notes.length}): ${preview} (${authorsDisplay})`;
     }
   }
 
