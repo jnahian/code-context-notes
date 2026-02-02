@@ -93,17 +93,30 @@ export class TagInputUI {
         const validation = TagManager.validateTag(customTag);
 
         if (validation.isValid && validation.normalizedTag) {
-          // Check if this custom tag is already in the list
-          const existingCustom = items.find(
-            (item) =>
-              item.label === `$(tag) ${validation.normalizedTag}` &&
-              item.description === 'Custom tag (type to add)'
-          );
+          const normalizedTag = validation.normalizedTag;
 
-          if (!existingCustom) {
+          // Check if this tag already exists (as category, suggested tag, or custom tag)
+          const existingTag = items.find((item) => {
+            const tagLabel = item.label.replace('$(tag) ', '').trim();
+            return tagLabel.toLowerCase() === normalizedTag.toLowerCase();
+          });
+
+          // Also check if user is typing a predefined category in lowercase
+          if (TagManager.isPredefinedCategory(normalizedTag)) {
+            // Select the existing predefined category item instead of adding duplicate
+            const categoryItem = items.find((item) =>
+              item.label === `$(tag) ${normalizedTag}`
+            );
+            if (categoryItem && !quickPick.selectedItems.includes(categoryItem)) {
+              quickPick.selectedItems = [...quickPick.selectedItems, categoryItem];
+            }
+            return;
+          }
+
+          if (!existingTag) {
             // Add custom tag option at the top (after categories)
             const customTagItem: vscode.QuickPickItem = {
-              label: `$(tag) ${validation.normalizedTag}`,
+              label: `$(tag) ${normalizedTag}`,
               description: 'Custom tag (type to add)',
               alwaysShow: true,
             };

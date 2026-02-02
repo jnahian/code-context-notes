@@ -136,12 +136,17 @@ export class TagManager {
    * Filter notes by tags
    */
   static filterNotesByTags(notes: Note[], params: TagFilterParams): Note[] {
+    // Normalize filter tags
+    const normalizedIncludeTags = params.includeTags?.map(tag => TagManager.normalizeTag(tag));
+    const normalizedExcludeTags = params.excludeTags?.map(tag => TagManager.normalizeTag(tag));
+
     return notes.filter(note => {
-      const noteTags = note.tags || [];
+      // Normalize note tags for consistent comparison
+      const noteTags = (note.tags || []).map(tag => TagManager.normalizeTag(tag));
 
       // Exclude notes with excluded tags
-      if (params.excludeTags && params.excludeTags.length > 0) {
-        const hasExcludedTag = params.excludeTags.some(tag =>
+      if (normalizedExcludeTags && normalizedExcludeTags.length > 0) {
+        const hasExcludedTag = normalizedExcludeTags.some(tag =>
           noteTags.includes(tag)
         );
         if (hasExcludedTag) {
@@ -150,13 +155,13 @@ export class TagManager {
       }
 
       // Include notes with included tags
-      if (params.includeTags && params.includeTags.length > 0) {
+      if (normalizedIncludeTags && normalizedIncludeTags.length > 0) {
         if (params.requireAllTags) {
           // Note must have ALL included tags
-          return params.includeTags.every(tag => noteTags.includes(tag));
+          return normalizedIncludeTags.every(tag => noteTags.includes(tag));
         } else {
           // Note must have at least ONE included tag
-          return params.includeTags.some(tag => noteTags.includes(tag));
+          return normalizedIncludeTags.some(tag => noteTags.includes(tag));
         }
       }
 

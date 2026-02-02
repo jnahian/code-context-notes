@@ -96,8 +96,7 @@ export class NoteTreeItem extends BaseTreeItem {
 	 */
 	private createTooltip(): vscode.MarkdownString {
 		const tooltip = new vscode.MarkdownString();
-		tooltip.isTrusted = true;
-		tooltip.supportHtml = true;
+		tooltip.isTrusted = false;
 
 		const lineRange = `Lines ${this.note.lineRange.start + 1}-${this.note.lineRange.end + 1}`;
 		const created = new Date(this.note.createdAt).toLocaleString();
@@ -108,7 +107,8 @@ export class NoteTreeItem extends BaseTreeItem {
 		tooltip.appendMarkdown(`**Created:** ${created}\n\n`);
 		tooltip.appendMarkdown(`**Updated:** ${updated}\n\n`);
 		tooltip.appendMarkdown(`---\n\n`);
-		tooltip.appendMarkdown(this.note.content);
+		// Use appendText for user content to prevent injection
+		tooltip.appendText(this.note.content);
 
 		return tooltip;
 	}

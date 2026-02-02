@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import { SearchManager } from './searchManager';
-import { NoteManager } from './noteManager';
-import { SearchQuery, SearchResult } from './searchTypes';
-import { Note } from './types';
+import { SearchManager } from './searchManager.js';
+import { NoteManager } from './noteManager.js';
+import { SearchQuery, SearchResult } from './searchTypes.js';
+import { Note } from './types.js';
 
 /**
  * QuickPick item for search results
@@ -11,7 +11,7 @@ interface SearchQuickPickItem extends vscode.QuickPickItem {
   note?: Note;
   result?: SearchResult;
   type: 'result' | 'filter' | 'action' | 'separator';
-  action?: 'clearFilters' | 'showHistory' | 'advancedSearch';
+  action?: 'clearFilters' | 'showHistory' | 'advancedSearch' | 'filterByAuthor' | 'filterByDate' | 'filterByFile';
 }
 
 /**
@@ -405,7 +405,7 @@ export class SearchUI {
       label: '  $(person) Filter by Author',
       description: 'Select one or more authors',
       type: 'action',
-      action: 'clearFilters', // Will be changed to specific actions
+      action: 'filterByAuthor',
       alwaysShow: true
     });
 
@@ -413,7 +413,7 @@ export class SearchUI {
       label: '  $(calendar) Filter by Date Range',
       description: 'Select date range',
       type: 'action',
-      action: 'clearFilters',
+      action: 'filterByDate',
       alwaysShow: true
     });
 
@@ -421,7 +421,7 @@ export class SearchUI {
       label: '  $(file) Filter by File Pattern',
       description: 'Enter file path pattern',
       type: 'action',
-      action: 'clearFilters',
+      action: 'filterByFile',
       alwaysShow: true
     });
 
@@ -482,19 +482,25 @@ export class SearchUI {
    * Handle action items
    */
   private async handleAction(item: SearchQuickPickItem): Promise<void> {
-    if (item.action === 'clearFilters') {
-      await this.clearFilters();
-    } else if (item.action === 'showHistory') {
-      // Populate search input from history item
-      if (this.quickPick) {
-        this.quickPick.value = item.label.trim();
-      }
-    } else if (item.label.includes('Filter by Author')) {
-      await this.showAuthorFilter();
-    } else if (item.label.includes('Filter by Date')) {
-      await this.showDateFilter();
-    } else if (item.label.includes('Filter by File')) {
-      await this.showFileFilter();
+    switch (item.action) {
+      case 'clearFilters':
+        await this.clearFilters();
+        break;
+      case 'filterByAuthor':
+        await this.showAuthorFilter();
+        break;
+      case 'filterByDate':
+        await this.showDateFilter();
+        break;
+      case 'filterByFile':
+        await this.showFileFilter();
+        break;
+      case 'showHistory':
+        // Populate search input from history item
+        if (this.quickPick) {
+          this.quickPick.value = item.label.trim();
+        }
+        break;
     }
   }
 
