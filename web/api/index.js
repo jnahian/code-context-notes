@@ -9,6 +9,7 @@ export default async function handler(req, res) {
 
   try {
     // Read the HTML template
+    // build:vercel copies index.html to project root, so we need to go up from api/ to root
     const templatePath = path.join(__dirname, '..', 'index.html')
     const template = fs.readFileSync(templatePath, 'utf-8')
 

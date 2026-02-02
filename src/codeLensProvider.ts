@@ -77,27 +77,35 @@ export class CodeNotesLensProvider implements vscode.CodeLensProvider {
         codeLenses.push(addNoteLens);
       }
 
-      // Add "Add Note" CodeLens above selection if there's a selection
-      if (editor && editor.document === document && !editor.selection.isEmpty) {
-        const selection = editor.selection;
-        const selectionStart = selection.start.line;
+      // TODO: Re-enable this later with better control (configuration setting)
+      // Add "Add Note" CodeLens above selection if there's a multi-line selection
+      // if (editor && editor.document === document && !editor.selection.isEmpty) {
+      //   const selection = editor.selection;
+      //   const isMultiLineSelection = selection.end.line - selection.start.line > 0;
 
-        // Check if there's already a note at this position
-        const notesAtSelection = await this.noteManager.getNotesAtPosition(
-          document.uri.fsPath,
-          selectionStart
-        );
+      //   // Only show codelens for multi-line selections (at least 2 lines)
+      //   if (!isMultiLineSelection) {
+      //     return codeLenses;
+      //   }
 
-        if (notesAtSelection.length === 0) {
-          const addNoteRange = new vscode.Range(selectionStart, 0, selectionStart, 0);
-          const addNoteLens = new vscode.CodeLens(addNoteRange, {
-            title: '➕ Add Note',
-            command: 'codeContextNotes.addNoteViaCodeLens',
-            arguments: [document, selection]
-          });
-          codeLenses.push(addNoteLens);
-        }
-      }
+      //   const selectionStart = selection.start.line;
+
+      //   // Check if there's already a note at this position
+      //   const notesAtSelection = await this.noteManager.getNotesAtPosition(
+      //     document.uri.fsPath,
+      //     selectionStart
+      //   );
+
+      //   if (notesAtSelection.length === 0) {
+      //     const addNoteRange = new vscode.Range(selectionStart, 0, selectionStart, 0);
+      //     const addNoteLens = new vscode.CodeLens(addNoteRange, {
+      //       title: '➕ Add Note',
+      //       command: 'codeContextNotes.addNoteViaCodeLens',
+      //       arguments: [document, selection]
+      //     });
+      //     codeLenses.push(addNoteLens);
+      //   }
+      // }
     } catch (error) {
       console.error('Error providing CodeLenses:', error);
     }

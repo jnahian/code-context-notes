@@ -3,6 +3,7 @@ import { Navigation } from './components/Navigation'
 import { Footer } from './components/landing/Footer'
 import { LandingPage } from './pages/LandingPage'
 import { DocsPage } from './pages/DocsPage'
+import { ChangelogPage } from './pages/ChangelogPage'
 
 function App() {
   const location = useLocation()
@@ -14,6 +15,7 @@ function App() {
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<LandingPage />} />
           <Route path="/docs" element={<DocsPage />} />
+          <Route path="/changelog" element={<ChangelogPage />} />
         </Routes>
       </main>
       <Footer />
