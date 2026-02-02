@@ -525,12 +525,35 @@ export class CommentController {
       end: thread.range.end.line,
     };
 
+    // Prompt for tags with robust fallback
+    let tags: string[] | undefined;
+    try {
+      const { TagInputUI } = await import('./tagInputUI.js');
+      const allNotes = await this.noteManager.getAllNotes();
+      tags = await TagInputUI.showTagInput(undefined, allNotes);
+    } catch (e) {
+      // Non-interactive failure: proceed with empty tags
+      console.error('Failed to load tag input UI:', e);
+      tags = [];
+    }
+
+    // If user cancelled tag input (explicit dismissal), cancel note creation
+    if (tags === undefined) {
+      thread.dispose();
+      if (tempId) {
+        this.commentThreads.delete(tempId);
+      }
+      this.currentlyCreatingThreadId = null;
+      return;
+    }
+
     // Create the actual note
     const note = await this.noteManager.createNote(
       {
         filePath: document.uri.fsPath,
         lineRange,
         content,
+        tags,
       },
       document
     );
@@ -554,7 +577,8 @@ export class CommentController {
   async handleCreateNote(
     document: vscode.TextDocument,
     range: vscode.Range,
-    content: string
+    content: string,
+    tags?: string[]
   ): Promise<Note> {
     const lineRange: LineRange = {
       start: range.start.line,
@@ -566,6 +590,7 @@ export class CommentController {
         filePath: document.uri.fsPath,
         lineRange,
         content,
+        tags,
       },
       document
     );

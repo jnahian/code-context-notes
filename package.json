@@ -196,6 +196,24 @@
         "title": "View History",
         "icon": "$(history)",
         "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.searchNotes",
+        "title": "Search Notes",
+        "icon": "$(search)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.filterByTags",
+        "title": "Filter by Tags",
+        "icon": "$(tag)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.clearTagFilters",
+        "title": "Clear Tag Filters",
+        "icon": "$(clear-all)",
+        "category": "Code Notes"
       }
     ],
     "keybindings": [
@@ -222,6 +240,12 @@
         "key": "ctrl+alt+r",
         "mac": "cmd+alt+r",
         "when": "editorTextFocus"
+      },
+      {
+        "command": "codeContextNotes.searchNotes",
+        "key": "ctrl+alt+shift+f",
+        "mac": "cmd+alt+shift+f",
+        "when": "editorTextFocus && !searchViewletFocus && !replaceInputBoxFocus"
       },
       {
         "command": "codeContextNotes.insertBold",
@@ -269,9 +293,19 @@
           "group": "navigation@1"
         },
         {
+          "command": "codeContextNotes.searchNotes",
+          "when": "view == codeContextNotes.sidebarView",
+          "group": "navigation@2"
+        },
+        {
           "command": "codeContextNotes.refreshSidebar",
           "when": "view == codeContextNotes.sidebarView",
           "group": "navigation@3"
+        },
+        {
+          "command": "codeContextNotes.filterByTags",
+          "when": "view == codeContextNotes.sidebarView",
+          "group": "navigation@4"
         }
       ],
       "view/item/context": [
