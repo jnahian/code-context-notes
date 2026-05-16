@@ -378,4 +378,58 @@ Hi.
 		assert.strictEqual(note!.scope, undefined);
 		assert.strictEqual(note!.tags, undefined);
 	});
+
+	test('noteToMarkdown emits structured fields when set', async () => {
+		const sm: any = new StorageManager('/tmp');
+		const md = sm.noteToMarkdown({
+			id: 'n1',
+			content: 'do not refactor',
+			author: 'alice',
+			filePath: '/abs/foo.ts',
+			lineRange: { start: 0, end: 0 },
+			contentHash: 'sha256:abc',
+			createdAt: '2026-05-01T00:00:00Z',
+			updatedAt: '2026-05-01T00:00:00Z',
+			history: [],
+			type: 'instruction',
+			scope: 'function',
+			priority: 'high',
+			tags: ['security'],
+			authorType: 'agent',
+			expiresAt: '2026-12-01T00:00:00Z',
+			references: [{ kind: 'pr', value: '#42' }],
+		});
+		assert.ok(md.includes('**Type:** instruction'));
+		assert.ok(md.includes('**Scope:** function'));
+		assert.ok(md.includes('**Priority:** high'));
+		assert.ok(md.includes('**Tags:** security'));
+		assert.ok(md.includes('**AuthorType:** agent'));
+		assert.ok(md.includes('**ExpiresAt:** 2026-12-01T00:00:00Z'));
+		assert.ok(md.includes('**References:** [{"kind":"pr","value":"#42"}]'));
+	});
+
+	test('noteToMarkdown omits fields equal to defaults', async () => {
+		const sm: any = new StorageManager('/tmp');
+		const md = sm.noteToMarkdown({
+			id: 'n1',
+			content: 'hi',
+			author: 'alice',
+			filePath: '/abs/foo.ts',
+			lineRange: { start: 0, end: 0 },
+			contentHash: 'sha256:abc',
+			createdAt: '2026-05-01T00:00:00Z',
+			updatedAt: '2026-05-01T00:00:00Z',
+			history: [],
+			type: 'context',     // default
+			scope: 'line',       // default
+			priority: 'normal',  // default
+			tags: [],            // default
+			authorType: 'human', // default
+		});
+		assert.ok(!md.includes('**Type:**'));
+		assert.ok(!md.includes('**Scope:**'));
+		assert.ok(!md.includes('**Priority:**'));
+		assert.ok(!md.includes('**Tags:**'));
+		assert.ok(!md.includes('**AuthorType:**'));
+	});
 });

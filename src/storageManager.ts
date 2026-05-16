@@ -210,6 +210,30 @@ export class StorageManager implements NoteStorage {
     lines.push(`**Author:** ${note.author}`);
     lines.push(`**Created:** ${note.createdAt}`);
     lines.push(`**Updated:** ${note.updatedAt}`);
+
+    // Structured fields — omitted if equal to default for compactness
+    if (note.type && note.type !== 'context') {
+      lines.push(`**Type:** ${note.type}`);
+    }
+    if (note.scope && note.scope !== 'line') {
+      lines.push(`**Scope:** ${note.scope}`);
+    }
+    if (note.priority && note.priority !== 'normal') {
+      lines.push(`**Priority:** ${note.priority}`);
+    }
+    if (note.tags && note.tags.length > 0) {
+      lines.push(`**Tags:** ${note.tags.join(', ')}`);
+    }
+    if (note.authorType && note.authorType !== 'human') {
+      lines.push(`**AuthorType:** ${note.authorType}`);
+    }
+    if (note.expiresAt) {
+      lines.push(`**ExpiresAt:** ${note.expiresAt}`);
+    }
+    if (note.references && note.references.length > 0) {
+      lines.push(`**References:** ${JSON.stringify(note.references)}`);
+    }
+
     if (note.isDeleted) {
       lines.push(`**Status:** DELETED`);
     }
