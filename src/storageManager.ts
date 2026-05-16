@@ -210,6 +210,30 @@ export class StorageManager implements NoteStorage {
     lines.push(`**Author:** ${note.author}`);
     lines.push(`**Created:** ${note.createdAt}`);
     lines.push(`**Updated:** ${note.updatedAt}`);
+
+    // Structured fields — omitted if equal to default for compactness
+    if (note.type && note.type !== 'context') {
+      lines.push(`**Type:** ${note.type}`);
+    }
+    if (note.scope && note.scope !== 'line') {
+      lines.push(`**Scope:** ${note.scope}`);
+    }
+    if (note.priority && note.priority !== 'normal') {
+      lines.push(`**Priority:** ${note.priority}`);
+    }
+    if (note.tags && note.tags.length > 0) {
+      lines.push(`**Tags:** ${note.tags.join(', ')}`);
+    }
+    if (note.authorType && note.authorType !== 'human') {
+      lines.push(`**AuthorType:** ${note.authorType}`);
+    }
+    if (note.expiresAt) {
+      lines.push(`**ExpiresAt:** ${note.expiresAt}`);
+    }
+    if (note.references && note.references.length > 0) {
+      lines.push(`**References:** ${JSON.stringify(note.references)}`);
+    }
+
     if (note.isDeleted) {
       lines.push(`**Status:** DELETED`);
     }
@@ -292,6 +316,37 @@ export class StorageManager implements NoteStorage {
       }
       else if (line.startsWith('**Status:** DELETED')) {
         note.isDeleted = true;
+      }
+      // Parse new structured fields
+      else if (line.startsWith('**Type:**')) {
+        note.type = line.substring(9).trim() as any;
+      }
+      else if (line.startsWith('**Scope:**')) {
+        note.scope = line.substring(10).trim() as any;
+      }
+      else if (line.startsWith('**Priority:**')) {
+        note.priority = line.substring(13).trim() as any;
+      }
+      else if (line.startsWith('**Tags:**')) {
+        const raw = line.substring(9).trim();
+        note.tags = raw ? raw.split(',').map(t => t.trim()).filter(t => t.length > 0) : [];
+      }
+      else if (line.startsWith('**AuthorType:**')) {
+        note.authorType = line.substring(15).trim() as any;
+      }
+      else if (line.startsWith('**ExpiresAt:**')) {
+        note.expiresAt = line.substring(14).trim();
+      }
+      else if (line.startsWith('**References:**')) {
+        const raw = line.substring(15).trim();
+        if (raw) {
+          try {
+            note.references = JSON.parse(raw);
+          } catch {
+            console.warn(`[code-notes] Failed to parse References for note: ${raw}`);
+            note.references = [];
+          }
+        }
       }
       // Parse current content section
       else if (line === '## Current Content') {

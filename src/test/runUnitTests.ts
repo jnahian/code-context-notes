@@ -35,7 +35,7 @@ async function main() {
 		const unitTestFiles = files.filter(f => {
 			const basename = path.basename(f);
 			// Only include tests that don't require vscode
-			return basename === 'storageManager.test.js' || basename === 'gitIntegration.test.js';
+			return basename === 'storageManager.test.js' || basename === 'gitIntegration.test.js' || basename === 'noteDefaults.test.js' || basename === 'exportGenerator.test.js' || basename === 'exportWriter.test.js';
 		});
 
 		console.log(`Running ${unitTestFiles.length} unit tests (excluding integration tests)`);

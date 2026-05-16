@@ -502,6 +502,39 @@ suite('NoteManager Test Suite', () => {
 			assert.ok(true);
 		});
 	});
+
+	suite('Schema Defaults', () => {
+		test('getNotesForFile applies defaults to legacy notes (no structured fields)', async () => {
+			// Write a legacy-shaped note directly to storage, bypassing NoteManager.
+			// The writer omits fields that equal defaults, so a note without type/scope/tags
+			// written this way will be read back with those fields as undefined.
+			await (storage as any).saveNote({
+				id: 'legacy-1',
+				content: 'old',
+				author: 'alice',
+				filePath: '/abs/x.ts',
+				lineRange: { start: 0, end: 0 },
+				contentHash: 'sha256:legacy',
+				createdAt: '2026-01-01T00:00:00Z',
+				updatedAt: '2026-01-01T00:00:00Z',
+				history: [],
+			});
+
+			// Confirm the storage parser does NOT auto-fill defaults (raw read returns undefined)
+			const rawNotes = await (storage as any).loadNotes('/abs/x.ts');
+			const rawLegacy = rawNotes.find((n: any) => n.id === 'legacy-1');
+			assert.ok(rawLegacy, 'legacy note should be present in storage');
+			assert.strictEqual(rawLegacy.type, undefined, 'storage should NOT fill type default');
+
+			// Now read via NoteManager — defaults must be applied
+			const notes = await noteManager.getNotesForFile('/abs/x.ts');
+			const legacy = notes.find((n: any) => n.id === 'legacy-1');
+			assert.ok(legacy, 'legacy note should be returned by getNotesForFile');
+			assert.strictEqual(legacy!.type, 'context');
+			assert.strictEqual(legacy!.scope, 'line');
+			assert.deepStrictEqual(legacy!.tags, []);
+		});
+	});
 });
 
 /**

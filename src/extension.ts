@@ -11,8 +11,10 @@ import { CommentController } from './commentController.js';
 import { CodeNotesLensProvider } from './codeLensProvider.js';
 import { NotesSidebarProvider } from './notesSidebarProvider.js';
 import { SearchManager } from './searchManager.js';
+import { ExportWriter } from './exportWriter.js';
 
 let noteManager: NoteManager;
+let exportWriter: ExportWriter;
 let searchManager: SearchManager;
 let commentController: CommentController;
 let codeLensProvider: CodeNotesLensProvider;
@@ -88,6 +90,32 @@ export async function activate(context: vscode.ExtensionContext) {
 	const allNotes = await noteManager.getAllNotes();
 	await searchManager.buildIndex(allNotes);
 	console.log(`Code Context Notes: Search index built with ${allNotes.length} notes`);
+
+	// Initialize export writer and hook into note changes
+	const exportsConfig = vscode.workspace.getConfiguration('codeContextNotes.exports');
+	const exportsEnabled = exportsConfig.get<boolean>('enabled', true);
+
+	exportWriter = new ExportWriter(workspaceRoot, storageDirectory, {
+		debounceMs: 200,
+		getConfig: () => {
+			const cfg = vscode.workspace.getConfiguration('codeContextNotes.exports');
+			return {
+				enabled: cfg.get<boolean>('enabled', true),
+				indexJson: cfg.get<boolean>('indexJson', true),
+				agentsMarkdown: cfg.get<boolean>('agentsMarkdown', true),
+			};
+		},
+	});
+	context.subscriptions.push({ dispose: () => exportWriter.dispose() });
+
+	if (exportsEnabled) {
+		// Initial export on activation (covers fresh installs, manual deletes)
+		exportWriter.scheduleRegenerate(() => noteManager.getAllNotes());
+		// Subsequent changes
+		noteManager.on('noteChanged', () => {
+			exportWriter.scheduleRegenerate(() => noteManager.getAllNotes());
+		});
+	}
 
 	// Initialize comment controller
 	commentController = new CommentController(noteManager, context);
@@ -932,6 +960,93 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		}
 	);
 
+	// Regenerate Exports
+	const regenerateExportsCommand = vscode.commands.registerCommand(
+		'codeContextNotes.regenerateExports',
+		async () => {
+			if (!noteManager || !exportWriter) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+
+			try {
+				const notes = await noteManager.getAllNotes();
+				await exportWriter.regenerate(notes);
+				vscode.window.showInformationMessage(`Code Notes: regenerated exports for ${notes.length} notes.`);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to regenerate exports: ${error}`);
+			}
+		}
+	);
+
+	// Filter Notes by Type
+	const filterByTypeCommand = vscode.commands.registerCommand(
+		'codeContextNotes.filterByType',
+		async () => {
+			const choices = ['context', 'instruction', 'warning', 'decision', 'todo', 'handoff', 'rationale'];
+			const picked = await vscode.window.showQuickPick(choices, {
+				canPickMany: true,
+				title: 'Show only notes of these types (cancel to clear filter)',
+			});
+			sidebarProvider.setTypeFilter(picked && picked.length > 0 ? new Set(picked) : null);
+		}
+	);
+
+	// Toggle Expired Notes
+	const toggleExpiredCommand = vscode.commands.registerCommand(
+		'codeContextNotes.toggleExpired',
+		() => {
+			sidebarProvider.toggleHideExpired();
+		}
+	);
+
+	// Set Note Metadata (type, priority, tags, expiry)
+	const setNoteMetadataCommand = vscode.commands.registerCommand(
+		'codeContextNotes.setNoteMetadata',
+		async (noteIdArg?: string) => {
+			if (!noteManager) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+
+			let noteId = noteIdArg;
+			if (!noteId) {
+				const all = await noteManager.getAllNotes();
+				const pick = await vscode.window.showQuickPick(
+					all.map(n => ({ label: n.id, description: n.content.slice(0, 60) })),
+					{ title: 'Pick a note to update' },
+				);
+				if (!pick) return;
+				noteId = pick.label;
+			}
+
+			const type = await vscode.window.showQuickPick(
+				['context', 'instruction', 'warning', 'decision', 'todo', 'handoff', 'rationale'],
+				{ title: 'Type' },
+			);
+			if (!type) return;
+
+			const priority = await vscode.window.showQuickPick(
+				['low', 'normal', 'high', 'critical'],
+				{ title: 'Priority' },
+			);
+			if (!priority) return;
+
+			const tagsRaw = await vscode.window.showInputBox({ title: 'Tags (comma-separated, optional)' });
+			const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+			const expiresRaw = await vscode.window.showInputBox({ title: 'Expires at (ISO 8601, optional)' });
+			const expiresAt = expiresRaw && expiresRaw.trim().length > 0 ? expiresRaw.trim() : undefined;
+
+			try {
+				await noteManager.updateNoteMetadata(noteId, { type: type as any, priority: priority as any, tags, expiresAt });
+				vscode.window.showInformationMessage(`Code Notes: updated metadata for ${noteId}.`);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to update note metadata: ${error}`);
+			}
+		}
+	);
+
 	// Register all commands
 	context.subscriptions.push(
 		addNoteCommand,
@@ -963,7 +1078,11 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		editNoteFromSidebarCommand,
 		deleteNoteFromSidebarCommand,
 		viewNoteHistoryFromSidebarCommand,
-		openFileFromSidebarCommand
+		openFileFromSidebarCommand,
+		regenerateExportsCommand,
+		filterByTypeCommand,
+		toggleExpiredCommand,
+		setNoteMetadataCommand
 	);
 }
 
