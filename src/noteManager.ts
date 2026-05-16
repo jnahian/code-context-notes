@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
-import { Note, CreateNoteParams, UpdateNoteParams, LineRange } from './types.js';
+import { Note, CreateNoteParams, UpdateNoteParams, LineRange, NoteType, NotePriority, NoteScope } from './types.js';
 import { StorageManager } from './storageManager.js';
 import { ContentHashTracker } from './contentHashTracker.js';
 import { GitIntegration } from './gitIntegration.js';
@@ -169,6 +169,34 @@ export class NoteManager extends EventEmitter {
     this.emit('noteChanged', { type: 'updated', note });
 
     return note;
+  }
+
+  /**
+   * Update only the metadata fields of an existing note (type, priority, tags, expiresAt, scope).
+   * Does not touch content, lineRange, contentHash, or history.
+   */
+  async updateNoteMetadata(
+    noteId: string,
+    fields: { type?: NoteType; priority?: NotePriority; tags?: string[]; expiresAt?: string; scope?: NoteScope },
+  ): Promise<Note> {
+    const existing = await this.storage.loadNoteById(noteId);
+    if (!existing) throw new Error(`Note ${noteId} not found`);
+
+    // Merge: only overwrite fields explicitly provided
+    const updated: Note = {
+      ...existing,
+      ...fields,
+      updatedAt: new Date().toISOString(),
+    };
+    await this.storage.saveNote(updated);
+
+    // Mirror the cache-invalidation pattern used in updateNote
+    this.updateNoteInCache(updated);
+    this.clearWorkspaceCache();
+
+    this.emit('noteUpdated', updated);
+    this.emit('noteChanged', { type: 'updated', note: updated });
+    return applyDefaults(updated);
   }
 
   /**

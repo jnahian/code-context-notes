@@ -213,6 +213,11 @@
         "title": "Toggle Expired Notes",
         "category": "Code Notes",
         "icon": "$(eye)"
+      },
+      {
+        "command": "codeContextNotes.setNoteMetadata",
+        "title": "Set Note Type / Tags / Priority…",
+        "category": "Code Notes"
       }
     ],
     "keybindings": [

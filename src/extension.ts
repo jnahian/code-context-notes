@@ -1000,6 +1000,53 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		}
 	);
 
+	// Set Note Metadata (type, priority, tags, expiry)
+	const setNoteMetadataCommand = vscode.commands.registerCommand(
+		'codeContextNotes.setNoteMetadata',
+		async (noteIdArg?: string) => {
+			if (!noteManager) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+
+			let noteId = noteIdArg;
+			if (!noteId) {
+				const all = await noteManager.getAllNotes();
+				const pick = await vscode.window.showQuickPick(
+					all.map(n => ({ label: n.id, description: n.content.slice(0, 60) })),
+					{ title: 'Pick a note to update' },
+				);
+				if (!pick) return;
+				noteId = pick.label;
+			}
+
+			const type = await vscode.window.showQuickPick(
+				['context', 'instruction', 'warning', 'decision', 'todo', 'handoff', 'rationale'],
+				{ title: 'Type' },
+			);
+			if (!type) return;
+
+			const priority = await vscode.window.showQuickPick(
+				['low', 'normal', 'high', 'critical'],
+				{ title: 'Priority' },
+			);
+			if (!priority) return;
+
+			const tagsRaw = await vscode.window.showInputBox({ title: 'Tags (comma-separated, optional)' });
+			const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+			const expiresRaw = await vscode.window.showInputBox({ title: 'Expires at (ISO 8601, optional)' });
+			const expiresAt = expiresRaw && expiresRaw.trim().length > 0 ? expiresRaw.trim() : undefined;
+
+			try {
+				await noteManager.updateNoteMetadata(noteId, { type: type as any, priority: priority as any, tags, expiresAt });
+				vscode.window.showInformationMessage(`Code Notes: updated metadata for ${noteId}.`);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to update note metadata: ${error}`);
+			}
+		}
+	);
+
 	// Register all commands
 	context.subscriptions.push(
 		addNoteCommand,
@@ -1034,7 +1081,8 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		openFileFromSidebarCommand,
 		regenerateExportsCommand,
 		filterByTypeCommand,
-		toggleExpiredCommand
+		toggleExpiredCommand,
+		setNoteMetadataCommand
 	);
 }
 
