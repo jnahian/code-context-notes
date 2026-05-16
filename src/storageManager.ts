@@ -293,6 +293,37 @@ export class StorageManager implements NoteStorage {
       else if (line.startsWith('**Status:** DELETED')) {
         note.isDeleted = true;
       }
+      // Parse new structured fields
+      else if (line.startsWith('**Type:**')) {
+        note.type = line.substring(9).trim() as any;
+      }
+      else if (line.startsWith('**Scope:**')) {
+        note.scope = line.substring(10).trim() as any;
+      }
+      else if (line.startsWith('**Priority:**')) {
+        note.priority = line.substring(13).trim() as any;
+      }
+      else if (line.startsWith('**Tags:**')) {
+        const raw = line.substring(9).trim();
+        note.tags = raw ? raw.split(',').map(t => t.trim()).filter(t => t.length > 0) : [];
+      }
+      else if (line.startsWith('**AuthorType:**')) {
+        note.authorType = line.substring(15).trim() as any;
+      }
+      else if (line.startsWith('**ExpiresAt:**')) {
+        note.expiresAt = line.substring(14).trim();
+      }
+      else if (line.startsWith('**References:**')) {
+        const raw = line.substring(15).trim();
+        if (raw) {
+          try {
+            note.references = JSON.parse(raw);
+          } catch {
+            console.warn(`[code-notes] Failed to parse References for note: ${raw}`);
+            note.references = [];
+          }
+        }
+      }
       // Parse current content section
       else if (line === '## Current Content') {
         inContent = true;
