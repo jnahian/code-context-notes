@@ -6,6 +6,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { Note } from './types.js';
+import { applyDefaults } from './noteDefaults.js';
 
 /**
  * Base class for all tree items
@@ -79,8 +80,12 @@ export class NoteTreeItem extends BaseTreeItem {
 		super(label, vscode.TreeItemCollapsibleState.None);
 
 		this.description = note.author; // Shows right-aligned
+		const filled = applyDefaults(note);
+		if (filled.type && filled.type !== 'context') {
+			this.description = `${this.description ?? ''} · ${filled.type}`.trim();
+		}
 		this.contextValue = 'noteNode';
-		this.tooltip = this.createTooltip();
+		this.tooltip = this.createTooltip(filled.priority);
 		this.iconPath = new vscode.ThemeIcon('note');
 
 		// Command to navigate to note when clicked
@@ -94,7 +99,7 @@ export class NoteTreeItem extends BaseTreeItem {
 	/**
 	 * Create rich tooltip with full note content
 	 */
-	private createTooltip(): vscode.MarkdownString {
+	private createTooltip(priority?: string): vscode.MarkdownString {
 		const tooltip = new vscode.MarkdownString();
 		tooltip.isTrusted = true;
 		tooltip.supportHtml = true;
@@ -103,6 +108,9 @@ export class NoteTreeItem extends BaseTreeItem {
 		const created = new Date(this.note.createdAt).toLocaleString();
 		const updated = new Date(this.note.updatedAt).toLocaleString();
 
+		if (priority === 'high' || priority === 'critical') {
+			tooltip.appendMarkdown(`**[${priority}]**\n\n`);
+		}
 		tooltip.appendMarkdown(`**${lineRange}**\n\n`);
 		tooltip.appendMarkdown(`**Author:** ${this.note.author}\n\n`);
 		tooltip.appendMarkdown(`**Created:** ${created}\n\n`);
