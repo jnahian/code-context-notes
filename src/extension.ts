@@ -11,8 +11,10 @@ import { CommentController } from './commentController.js';
 import { CodeNotesLensProvider } from './codeLensProvider.js';
 import { NotesSidebarProvider } from './notesSidebarProvider.js';
 import { SearchManager } from './searchManager.js';
+import { ExportWriter } from './exportWriter.js';
 
 let noteManager: NoteManager;
+let exportWriter: ExportWriter;
 let searchManager: SearchManager;
 let commentController: CommentController;
 let codeLensProvider: CodeNotesLensProvider;
@@ -88,6 +90,22 @@ export async function activate(context: vscode.ExtensionContext) {
 	const allNotes = await noteManager.getAllNotes();
 	await searchManager.buildIndex(allNotes);
 	console.log(`Code Context Notes: Search index built with ${allNotes.length} notes`);
+
+	// Initialize export writer and hook into note changes
+	const exportsConfig = vscode.workspace.getConfiguration('codeContextNotes.exports');
+	const exportsEnabled = exportsConfig.get<boolean>('enabled', true);
+
+	exportWriter = new ExportWriter(workspaceRoot, storageDirectory, { debounceMs: 200 });
+	context.subscriptions.push({ dispose: () => exportWriter.dispose() });
+
+	if (exportsEnabled) {
+		// Initial export on activation (covers fresh installs, manual deletes)
+		exportWriter.scheduleRegenerate(() => noteManager.getAllNotes());
+		// Subsequent changes
+		noteManager.on('noteChanged', () => {
+			exportWriter.scheduleRegenerate(() => noteManager.getAllNotes());
+		});
+	}
 
 	// Initialize comment controller
 	commentController = new CommentController(noteManager, context);
