@@ -950,6 +950,25 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		}
 	);
 
+	// Regenerate Exports
+	const regenerateExportsCommand = vscode.commands.registerCommand(
+		'codeContextNotes.regenerateExports',
+		async () => {
+			if (!noteManager || !exportWriter) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+
+			try {
+				const notes = await noteManager.getAllNotes();
+				await exportWriter.regenerate(notes);
+				vscode.window.showInformationMessage(`Code Notes: regenerated exports for ${notes.length} notes.`);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to regenerate exports: ${error}`);
+			}
+		}
+	);
+
 	// Register all commands
 	context.subscriptions.push(
 		addNoteCommand,
@@ -981,7 +1000,8 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		editNoteFromSidebarCommand,
 		deleteNoteFromSidebarCommand,
 		viewNoteHistoryFromSidebarCommand,
-		openFileFromSidebarCommand
+		openFileFromSidebarCommand,
+		regenerateExportsCommand
 	);
 }
 

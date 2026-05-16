@@ -196,6 +196,11 @@
         "title": "View History",
         "icon": "$(history)",
         "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.regenerateExports",
+        "title": "Regenerate Exports (INDEX.json / AGENTS.md)",
+        "category": "Code Notes"
       }
     ],
     "keybindings": [
