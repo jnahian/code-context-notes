@@ -36,8 +36,8 @@ export function ChangelogPage() {
           {/* Timeline Items */}
           <div className="space-y-16">
 
-          {/* Version 0.2.1 */}
-          <div id="v0.2.1" className="relative grid grid-cols-1 md:grid-cols-[30%_70%] gap-8 items-start">
+          {/* Version 0.3.0 */}
+          <div id="v0.3.0" className="relative grid grid-cols-1 md:grid-cols-[30%_70%] gap-8 items-start">
             {/* Timeline Node */}
             <div className="absolute left-0 md:left-[30%] transform -translate-x-1/2 top-2">
               <div className="w-4 h-4 rounded-full bg-brand-orange border-4 border-white dark:border-slate-900 shadow-lg"></div>
@@ -47,9 +47,130 @@ export function ChangelogPage() {
             <div className="pl-8 md:pl-0 md:pr-12 text-left md:text-right space-y-2">
               <div className="flex md:flex-col md:items-end items-start gap-2">
                 <h3 className="text-2xl font-bold flex items-center gap-2 md:flex-row-reverse">
-                  <span>Version 0.2.1</span>
+                  <span>Version 0.3.0</span>
                   <Badge className="bg-brand-orange">Latest</Badge>
                 </h3>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground text-sm md:justify-end">
+                <Calendar className="h-4 w-4" />
+                <span>May 16, 2026</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Agent integration foundation: structured note schema, auto-generated workspace exports for coding agents, full-text search, and sidebar enhancements.
+              </p>
+            </div>
+
+            {/* Right Column - Changes */}
+            <div className="pl-8 md:pl-12">
+              <Card className="shadow-brand-drop bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-900 border-2 border-brand-orange">
+                <CardContent className="space-y-6">
+                  {/* Added */}
+                  <div>
+                    <h4 className="font-semibold mb-3 text-green-600 dark:text-green-400 flex items-center space-x-2">
+                      <Plus className="h-4 w-4" />
+                      <span>Added</span>
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="flex items-start space-x-3 bg-white dark:bg-slate-800 p-3 rounded-xl">
+                        <Layers className="h-5 w-5 text-brand-orange mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h5 className="font-semibold text-sm">Structured Note Schema for Agent Integration</h5>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Optional fields turn free-form notes into machine-readable workspace context for coding agents.
+                          </p>
+                          <ul className="text-xs text-muted-foreground mt-2 space-y-1 ml-3">
+                            <li>• <strong>Types:</strong> context, instruction, warning, decision, todo, handoff, rationale</li>
+                            <li>• <strong>Priority:</strong> low, normal, high, critical</li>
+                            <li>• <strong>Scope:</strong> line, function, class, file, directory</li>
+                            <li>• Tags, expiry (ISO 8601), authorType (human/agent), references (PR/issue/commit/test/url)</li>
+                            <li>• New command <code className="bg-brand-navy text-brand-warm px-1 rounded">Set Note Type / Tags / Priority…</code> to enrich any note</li>
+                          </ul>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3 bg-white dark:bg-slate-800 p-3 rounded-xl">
+                        <FileText className="h-5 w-5 text-brand-orange mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h5 className="font-semibold text-sm">Auto-Generated Workspace Exports</h5>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Two files regenerate atomically on every note change so any coding agent can ingest workspace notes as context.
+                          </p>
+                          <ul className="text-xs text-muted-foreground mt-2 space-y-1 ml-3">
+                            <li>• <code className="bg-brand-navy text-brand-warm px-1 rounded">.code-notes/INDEX.json</code> — machine-readable index with byFile/byType/byTag lookups</li>
+                            <li>• <code className="bg-brand-navy text-brand-warm px-1 rounded">.code-notes/AGENTS.md</code> — human-readable digest hoisting instructions, warnings, handoffs, decisions</li>
+                            <li>• Debounced (200ms) writes, atomic temp-then-rename, deterministic output</li>
+                            <li>• Manual <code className="bg-brand-navy text-brand-warm px-1 rounded">Regenerate Exports</code> command for recovery</li>
+                          </ul>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3 bg-white dark:bg-slate-800 p-3 rounded-xl">
+                        <Search className="h-5 w-5 text-brand-orange mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h5 className="font-semibold text-sm">Search and Filter Notes <span className="text-xs text-muted-foreground font-normal">(Issue #10)</span></h5>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Full-text search across all notes with multi-criteria filtering and keyboard-driven QuickPick UI.
+                          </p>
+                          <ul className="text-xs text-muted-foreground mt-2 space-y-1 ml-3">
+                            <li>• Filters: author, date range, file-path glob, type (combinable with AND logic)</li>
+                            <li>• <code className="bg-brand-navy text-brand-warm px-1 rounded">Ctrl+Shift+F</code> / <code className="bg-brand-navy text-brand-warm px-1 rounded">Cmd+Shift+F</code> in notes context</li>
+                            <li>• Regex, case-sensitive options, search history (last 20)</li>
+                            <li>• Background indexing — sub-second search for 100+ notes</li>
+                          </ul>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3 bg-white dark:bg-slate-800 p-3 rounded-xl">
+                        <MousePointerClick className="h-5 w-5 text-brand-orange mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h5 className="font-semibold text-sm">Sidebar Enhancements</h5>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Type badges, priority indicators, and new title-bar filters.
+                          </p>
+                          <ul className="text-xs text-muted-foreground mt-2 space-y-1 ml-3">
+                            <li>• Note type shown as <code className="bg-brand-navy text-brand-warm px-1 rounded">· instruction</code> description suffix</li>
+                            <li>• High/critical priority shown as tooltip badge</li>
+                            <li>• <strong>Filter Notes by Type…</strong> (multi-select Quick Pick) and <strong>Toggle Expired Notes</strong></li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Technical */}
+                  <div>
+                    <h4 className="font-semibold mb-3 text-purple-600 dark:text-purple-400 flex items-center space-x-2">
+                      <Wrench className="h-4 w-4" />
+                      <span>Technical</span>
+                    </h4>
+                    <div className="space-y-1 text-sm text-muted-foreground bg-white dark:bg-slate-800 p-3 rounded-xl">
+                      <p>• New modules: <code className="bg-brand-navy text-brand-warm px-1 rounded">noteDefaults.ts</code>, <code className="bg-brand-navy text-brand-warm px-1 rounded">exportGenerator.ts</code>, <code className="bg-brand-navy text-brand-warm px-1 rounded">exportWriter.ts</code></p>
+                      <p>• <code className="bg-brand-navy text-brand-warm px-1 rounded">NoteManager</code> wraps storage reads with <code className="bg-brand-navy text-brand-warm px-1 rounded">applyDefaults</code> — single boundary for lazy migration of v0.2.x notes</p>
+                      <p>• Storage format extended with optional bold-label fields; fields equal to default are omitted so untouched legacy notes remain byte-identical on disk</p>
+                      <p>• 58+ unit tests covering schema defaults, storage round-trip, export determinism, and debounced atomic writes</p>
+                      <p>• New settings: <code className="bg-brand-navy text-brand-warm px-1 rounded">codeContextNotes.exports.{`{enabled,indexJson,agentsMarkdown}`}</code></p>
+                    </div>
+                  </div>
+
+                  {/* Coming Next */}
+                  <div className="bg-blue-50 dark:bg-slate-800 border-l-4 border-brand-orange p-3 rounded-r-xl">
+                    <p className="text-sm text-muted-foreground">
+                      <strong>Coming next:</strong> v0.4 ships a standalone MCP server backed by INDEX.json for direct agent integration (Cursor, Claude Code, and other MCP clients).
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Version 0.2.1 */}
+          <div id="v0.2.1" className="relative grid grid-cols-1 md:grid-cols-[30%_70%] gap-8 items-start">
+            {/* Timeline Node */}
+            <div className="absolute left-0 md:left-[30%] transform -translate-x-1/2 top-2">
+              <div className="w-4 h-4 rounded-full bg-blue-500 border-4 border-white dark:border-slate-900 shadow-lg"></div>
+            </div>
+
+            {/* Left Column - Version Info */}
+            <div className="pl-8 md:pl-0 md:pr-12 text-left md:text-right space-y-2">
+              <div className="flex md:flex-col md:items-end items-start gap-2">
+                <h3 className="text-2xl font-bold">Version 0.2.1</h3>
               </div>
               <div className="flex items-center gap-2 text-muted-foreground text-sm md:justify-end">
                 <Calendar className="h-4 w-4" />
@@ -62,7 +183,7 @@ export function ChangelogPage() {
 
             {/* Right Column - Changes */}
             <div className="pl-8 md:pl-12">
-          <Card className="shadow-brand-drop bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-900 border-2 border-brand-orange">
+          <Card className="bg-white shadow-brand-drop">
             <CardContent className="space-y-6">
               {/* Added */}
               <div>
