@@ -12,6 +12,7 @@ import { StorageManager } from './storageManager.js';
 import { ContentHashTracker } from './contentHashTracker.js';
 import { GitIntegration } from './gitIntegration.js';
 import { SearchManager } from './searchManager.js';
+import { applyDefaults } from './noteDefaults.js';
 
 /**
  * NoteManager coordinates all note operations
@@ -223,8 +224,8 @@ export class NoteManager extends EventEmitter {
       return this.noteCache.get(filePath)!.filter(n => !n.isDeleted);
     }
 
-    // Load from storage
-    const notes = await this.storage.loadNotes(filePath);
+    // Load from storage and apply defaults at the boundary
+    const notes = (await this.storage.loadNotes(filePath)).map(applyDefaults);
 
     // Update cache
     this.noteCache.set(filePath, notes);
@@ -242,8 +243,8 @@ export class NoteManager extends EventEmitter {
       return this.noteCache.get(filePath)!;
     }
 
-    // Load from storage (including deleted notes)
-    const notes = await this.storage.loadAllNotes(filePath);
+    // Load from storage (including deleted notes) and apply defaults at the boundary
+    const notes = (await this.storage.loadAllNotes(filePath)).map(applyDefaults);
 
     // Update cache
     this.noteCache.set(filePath, notes);
@@ -453,7 +454,9 @@ export class NoteManager extends EventEmitter {
     for (const noteFilePath of allNoteFiles) {
       try {
         const noteId = this.extractNoteIdFromFilePath(noteFilePath);
-        const note = await this.storage.loadNoteById(noteId);
+        const rawNote = await this.storage.loadNoteById(noteId);
+        // Apply defaults at the boundary before cache/consumer use
+        const note = rawNote ? applyDefaults(rawNote) : null;
 
         // Include only non-deleted notes
         if (note && !note.isDeleted) {
