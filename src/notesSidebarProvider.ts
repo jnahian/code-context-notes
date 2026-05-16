@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 import { NoteManager } from './noteManager.js';
 import { Note } from './types.js';
 import { RootTreeItem, FileTreeItem, NoteTreeItem, BaseTreeItem } from './noteTreeItem.js';
+import { applyDefaults, isExpired } from './noteDefaults.js';
 
 /**
  * Notes Sidebar Provider
@@ -21,6 +22,9 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 	private debounceTimer: NodeJS.Timeout | null = null;
 	private readonly DEBOUNCE_DELAY = 300; // ms
 	private disposables: vscode.Disposable[] = [];
+
+	private typeFilter: Set<string> | null = null; // null = no filter
+	private hideExpired: boolean = true;
 
 	constructor(
 		private readonly noteManager: NoteManager,
@@ -71,6 +75,22 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 			this._onDidChangeTreeData.fire();
 			this.debounceTimer = null;
 		}, this.DEBOUNCE_DELAY);
+	}
+
+	/**
+	 * Set the type filter. Pass null to clear the filter.
+	 */
+	setTypeFilter(types: Set<string> | null): void {
+		this.typeFilter = types;
+		this._onDidChangeTreeData.fire();
+	}
+
+	/**
+	 * Toggle visibility of expired notes.
+	 */
+	toggleHideExpired(): void {
+		this.hideExpired = !this.hideExpired;
+		this._onDidChangeTreeData.fire();
 	}
 
 	/**
@@ -161,14 +181,19 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 	}
 
 	/**
-	 * Get note nodes for a file
+	 * Get note nodes for a file, applying type and expiry filters.
 	 */
 	private getNoteNodes(fileNode: FileTreeItem): NoteTreeItem[] {
 		const previewLength = this.getPreviewLength();
 		const noteNodes: NoteTreeItem[] = [];
 
 		// Notes are already sorted by line range in getNotesByFile()
-		for (const note of fileNode.notes) {
+		const filtered = fileNode.notes
+			.map(applyDefaults)
+			.filter(n => !this.hideExpired || !isExpired(n))
+			.filter(n => !this.typeFilter || this.typeFilter.has(n.type!));
+
+		for (const note of filtered) {
 			noteNodes.push(new NoteTreeItem(note, previewLength));
 		}
 

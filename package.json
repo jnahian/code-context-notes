@@ -201,6 +201,18 @@
         "command": "codeContextNotes.regenerateExports",
         "title": "Regenerate Exports (INDEX.json / AGENTS.md)",
         "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.filterByType",
+        "title": "Filter Notes by Type…",
+        "category": "Code Notes",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "codeContextNotes.toggleExpired",
+        "title": "Toggle Expired Notes",
+        "category": "Code Notes",
+        "icon": "$(eye)"
       }
     ],
     "keybindings": [
@@ -277,6 +289,16 @@
           "command": "codeContextNotes.refreshSidebar",
           "when": "view == codeContextNotes.sidebarView",
           "group": "navigation@3"
+        },
+        {
+          "command": "codeContextNotes.filterByType",
+          "when": "view == codeContextNotes.sidebarView",
+          "group": "navigation"
+        },
+        {
+          "command": "codeContextNotes.toggleExpired",
+          "when": "view == codeContextNotes.sidebarView",
+          "group": "navigation"
         }
       ],
       "view/item/context": [

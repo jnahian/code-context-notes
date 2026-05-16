@@ -979,6 +979,27 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		}
 	);
 
+	// Filter Notes by Type
+	const filterByTypeCommand = vscode.commands.registerCommand(
+		'codeContextNotes.filterByType',
+		async () => {
+			const choices = ['context', 'instruction', 'warning', 'decision', 'todo', 'handoff', 'rationale'];
+			const picked = await vscode.window.showQuickPick(choices, {
+				canPickMany: true,
+				title: 'Show only notes of these types (cancel to clear filter)',
+			});
+			sidebarProvider.setTypeFilter(picked && picked.length > 0 ? new Set(picked) : null);
+		}
+	);
+
+	// Toggle Expired Notes
+	const toggleExpiredCommand = vscode.commands.registerCommand(
+		'codeContextNotes.toggleExpired',
+		() => {
+			sidebarProvider.toggleHideExpired();
+		}
+	);
+
 	// Register all commands
 	context.subscriptions.push(
 		addNoteCommand,
@@ -1011,7 +1032,9 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		deleteNoteFromSidebarCommand,
 		viewNoteHistoryFromSidebarCommand,
 		openFileFromSidebarCommand,
-		regenerateExportsCommand
+		regenerateExportsCommand,
+		filterByTypeCommand,
+		toggleExpiredCommand
 	);
 }
 
