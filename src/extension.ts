@@ -95,7 +95,17 @@ export async function activate(context: vscode.ExtensionContext) {
 	const exportsConfig = vscode.workspace.getConfiguration('codeContextNotes.exports');
 	const exportsEnabled = exportsConfig.get<boolean>('enabled', true);
 
-	exportWriter = new ExportWriter(workspaceRoot, storageDirectory, { debounceMs: 200 });
+	exportWriter = new ExportWriter(workspaceRoot, storageDirectory, {
+		debounceMs: 200,
+		getConfig: () => {
+			const cfg = vscode.workspace.getConfiguration('codeContextNotes.exports');
+			return {
+				enabled: cfg.get<boolean>('enabled', true),
+				indexJson: cfg.get<boolean>('indexJson', true),
+				agentsMarkdown: cfg.get<boolean>('agentsMarkdown', true),
+			};
+		},
+	});
 	context.subscriptions.push({ dispose: () => exportWriter.dispose() });
 
 	if (exportsEnabled) {

@@ -424,6 +424,21 @@
           ],
           "default": "file",
           "description": "Sort notes by file path"
+        },
+        "codeContextNotes.exports.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Auto-generate .code-notes/INDEX.json and .code-notes/AGENTS.md on every note change"
+        },
+        "codeContextNotes.exports.indexJson": {
+          "type": "boolean",
+          "default": true,
+          "description": "Generate INDEX.json (machine-readable)"
+        },
+        "codeContextNotes.exports.agentsMarkdown": {
+          "type": "boolean",
+          "default": true,
+          "description": "Generate AGENTS.md (human-readable digest)"
         }
       }
     }

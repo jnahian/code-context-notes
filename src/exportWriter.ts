@@ -13,6 +13,7 @@ import { buildIndex, buildDigest } from './exportGenerator.js';
 
 export interface ExportWriterOptions {
   debounceMs?: number;
+  getConfig?: () => { enabled: boolean; indexJson: boolean; agentsMarkdown: boolean };
 }
 
 export class ExportWriter {
@@ -21,12 +22,14 @@ export class ExportWriter {
   private debounceMs: number;
   private pendingTimer: NodeJS.Timeout | undefined;
   private pendingGetNotes: (() => Promise<Note[]>) | undefined;
+  private getConfig: () => { enabled: boolean; indexJson: boolean; agentsMarkdown: boolean };
   onError: (e: Error) => void = (e) => console.error('[code-notes] export failed:', e);
 
   constructor(workspaceRoot: string, storageDir: string, opts: ExportWriterOptions = {}) {
     this.workspaceRoot = workspaceRoot;
     this.storageDir = storageDir;
     this.debounceMs = opts.debounceMs ?? 200;
+    this.getConfig = opts.getConfig ?? (() => ({ enabled: true, indexJson: true, agentsMarkdown: true }));
   }
 
   /**
@@ -54,12 +57,19 @@ export class ExportWriter {
    */
   async regenerate(notes: Note[]): Promise<void> {
     try {
+      const cfg = this.getConfig();
+      if (!cfg.enabled) return;
+
       const dir = path.join(this.workspaceRoot, this.storageDir);
       await fs.mkdir(dir, { recursive: true });
-      const idx = buildIndex(notes, this.workspaceRoot);
-      const digest = buildDigest(notes, this.workspaceRoot);
-      await this.atomicWrite(path.join(dir, 'INDEX.json'), JSON.stringify(idx, null, 2));
-      await this.atomicWrite(path.join(dir, 'AGENTS.md'), digest);
+      if (cfg.indexJson) {
+        const idx = buildIndex(notes, this.workspaceRoot);
+        await this.atomicWrite(path.join(dir, 'INDEX.json'), JSON.stringify(idx, null, 2));
+      }
+      if (cfg.agentsMarkdown) {
+        const digest = buildDigest(notes, this.workspaceRoot);
+        await this.atomicWrite(path.join(dir, 'AGENTS.md'), digest);
+      }
     } catch (e: unknown) {
       this.onError(e instanceof Error ? e : new Error(String(e)));
     }
