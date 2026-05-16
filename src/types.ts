@@ -18,6 +18,47 @@ export interface LineRange {
 export type NoteAction = 'created' | 'edited' | 'deleted';
 
 /**
+ * Type of note — drives prioritization in agent-facing exports
+ */
+export type NoteType =
+  | 'context'      // default: explanatory background
+  | 'instruction'  // directive: agent/human MUST follow
+  | 'warning'      // hazard: don't do X
+  | 'decision'     // architectural decision + rationale
+  | 'todo'         // outstanding work
+  | 'handoff'      // "next session pick up here" (often agent-authored)
+  | 'rationale';   // why this code exists (links to PRs/commits)
+
+/**
+ * Scope of applicability for a note
+ */
+export type NoteScope =
+  | 'line'      // default — current behavior
+  | 'function'
+  | 'class'
+  | 'file'
+  | 'directory';
+
+/**
+ * Author kind — explicit agent attribution
+ */
+export type AuthorType = 'human' | 'agent';
+
+/**
+ * Priority used for digest ordering and `critical` always-include behavior
+ */
+export type NotePriority = 'low' | 'normal' | 'high' | 'critical';
+
+/**
+ * Reference to an external artifact (PR, commit, test, etc.)
+ */
+export interface NoteReference {
+  kind: 'note' | 'pr' | 'issue' | 'commit' | 'test' | 'url';
+  value: string;
+  label?: string;
+}
+
+/**
  * Represents a single history entry for a note
  */
 export interface NoteHistoryEntry {
@@ -55,6 +96,14 @@ export interface Note {
   history: NoteHistoryEntry[];
   /** Whether this note has been deleted (soft delete) */
   isDeleted?: boolean;
+  // NEW (all optional for back-compat — see noteDefaults.applyDefaults)
+  type?: NoteType;
+  tags?: string[];
+  scope?: NoteScope;
+  references?: NoteReference[];
+  expiresAt?: string;          // ISO 8601
+  authorType?: AuthorType;
+  priority?: NotePriority;
 }
 
 /**
