@@ -469,6 +469,6 @@
     "url": "https://github.com/jnahian/code-context-notes"
   },
   "dependencies": {
-    "uuid": "^13.0.0"
+    "uuid": "^14.0.0"
   }
 }
