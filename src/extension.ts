@@ -108,14 +108,17 @@ export async function activate(context: vscode.ExtensionContext) {
 	});
 	context.subscriptions.push({ dispose: () => exportWriter.dispose() });
 
+	// Initial export on activation (covers fresh installs, manual deletes).
+	// regenerate()/getConfig() re-check the enabled setting on every run, so
+	// this stays correct even if exports are toggled on after activation.
 	if (exportsEnabled) {
-		// Initial export on activation (covers fresh installs, manual deletes)
 		exportWriter.scheduleRegenerate(() => noteManager.getAllNotes());
-		// Subsequent changes
-		noteManager.on('noteChanged', () => {
-			exportWriter.scheduleRegenerate(() => noteManager.getAllNotes());
-		});
 	}
+	// Always subscribe so exports start working as soon as the setting is
+	// enabled, without requiring a reload.
+	noteManager.on('noteChanged', () => {
+		exportWriter.scheduleRegenerate(() => noteManager.getAllNotes());
+	});
 
 	// Initialize comment controller
 	commentController = new CommentController(noteManager, context);
@@ -969,12 +972,30 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 				return;
 			}
 
+			const exportsCfg = vscode.workspace.getConfiguration('codeContextNotes.exports');
+			if (!exportsCfg.get<boolean>('enabled', true)) {
+				vscode.window.showWarningMessage('Code Notes: exports are disabled (codeContextNotes.exports.enabled is false). Nothing was written.');
+				return;
+			}
+
+			// regenerate() never throws — failures go through onError — so wrap
+			// it here to give this manual command an accurate success/failure message.
+			const previousOnError = exportWriter.onError;
+			let failure: Error | undefined;
+			exportWriter.onError = (e) => { failure = e; previousOnError(e); };
+
 			try {
 				const notes = await noteManager.getAllNotes();
 				await exportWriter.regenerate(notes);
-				vscode.window.showInformationMessage(`Code Notes: regenerated exports for ${notes.length} notes.`);
+				if (failure) {
+					vscode.window.showErrorMessage(`Failed to regenerate exports: ${failure.message}`);
+				} else {
+					vscode.window.showInformationMessage(`Code Notes: regenerated exports for ${notes.length} notes.`);
+				}
 			} catch (error) {
 				vscode.window.showErrorMessage(`Failed to regenerate exports: ${error}`);
+			} finally {
+				exportWriter.onError = previousOnError;
 			}
 		}
 	);
@@ -983,6 +1004,10 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 	const filterByTypeCommand = vscode.commands.registerCommand(
 		'codeContextNotes.filterByType',
 		async () => {
+			if (!sidebarProvider) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
 			const choices = ['context', 'instruction', 'warning', 'decision', 'todo', 'handoff', 'rationale'];
 			const picked = await vscode.window.showQuickPick(choices, {
 				canPickMany: true,
@@ -996,6 +1021,10 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 	const toggleExpiredCommand = vscode.commands.registerCommand(
 		'codeContextNotes.toggleExpired',
 		() => {
+			if (!sidebarProvider) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
 			sidebarProvider.toggleHideExpired();
 		}
 	);

@@ -45,7 +45,9 @@ export type NoteScope =
 export type AuthorType = 'human' | 'agent';
 
 /**
- * Priority used for digest ordering and `critical` always-include behavior
+ * Priority used for digest and sidebar ordering — `critical` sorts first.
+ * Expired notes are still excluded by `hideExpired`/expiry filtering
+ * regardless of priority.
  */
 export type NotePriority = 'low' | 'normal' | 'high' | 'critical';
 

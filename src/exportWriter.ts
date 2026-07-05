@@ -23,6 +23,7 @@ export class ExportWriter {
   private pendingTimer: NodeJS.Timeout | undefined;
   private pendingGetNotes: (() => Promise<Note[]>) | undefined;
   private getConfig: () => { enabled: boolean; indexJson: boolean; agentsMarkdown: boolean };
+  private writeQueue: Promise<void> = Promise.resolve();
   onError: (e: Error) => void = (e) => console.error('[code-notes] export failed:', e);
 
   constructor(workspaceRoot: string, storageDir: string, opts: ExportWriterOptions = {}) {
@@ -54,8 +55,18 @@ export class ExportWriter {
   /**
    * Force an immediate (non-debounced) regeneration. Used at startup,
    * by the manual command, and by tests.
+   *
+   * Calls are serialized on `writeQueue` — the debounced timer and a
+   * manual regenerate can otherwise race and clobber each other's
+   * fixed-path temp files in atomicWrite.
    */
-  async regenerate(notes: Note[]): Promise<void> {
+  regenerate(notes: Note[]): Promise<void> {
+    const run = this.writeQueue.then(() => this.doRegenerate(notes));
+    this.writeQueue = run.catch(() => {});
+    return run;
+  }
+
+  private async doRegenerate(notes: Note[]): Promise<void> {
     try {
       const cfg = this.getConfig();
       if (!cfg.enabled) return;
@@ -63,11 +74,11 @@ export class ExportWriter {
       const dir = path.join(this.workspaceRoot, this.storageDir);
       await fs.mkdir(dir, { recursive: true });
       if (cfg.indexJson) {
-        const idx = buildIndex(notes, this.workspaceRoot);
+        const idx = buildIndex(notes, this.workspaceRoot, new Date(), this.storageDir);
         await this.atomicWrite(path.join(dir, 'INDEX.json'), JSON.stringify(idx, null, 2));
       }
       if (cfg.agentsMarkdown) {
-        const digest = buildDigest(notes, this.workspaceRoot);
+        const digest = buildDigest(notes, this.workspaceRoot, new Date(), this.storageDir);
         await this.atomicWrite(path.join(dir, 'AGENTS.md'), digest);
       }
     } catch (e: unknown) {

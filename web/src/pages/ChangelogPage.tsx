@@ -759,53 +759,6 @@ export function ChangelogPage() {
             </div>
           </div>
 
-          {/* Future Versions Note */}
-          <div className="relative grid grid-cols-1 md:grid-cols-[30%_70%] gap-8 items-start">
-            {/* Timeline Node - Future */}
-            <div className="absolute left-0 md:left-[30%] transform -translate-x-1/2 top-2">
-              <div className="w-4 h-4 rounded-full bg-purple-500 border-4 border-white dark:border-slate-900 shadow-lg animate-pulse"></div>
-            </div>
-
-            {/* Left Column - Version Info */}
-            <div className="pl-8 md:pl-0 md:pr-12 text-left md:text-right space-y-2">
-              <h3 className="text-2xl font-bold text-purple-600">Coming in v0.3.0</h3>
-              <div className="flex items-center gap-2 text-muted-foreground text-sm md:justify-end">
-                <Search className="h-4 w-4" />
-                <span>Future Release</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                What's next for Code Context Notes
-              </p>
-            </div>
-
-            {/* Right Column - Changes */}
-            <div className="pl-8 md:pl-12">
-          <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-2 border-purple-300 shadow-brand-drop">
-            <CardContent>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div className="flex items-start space-x-2">
-                  <span className="text-purple-500 font-bold">→</span>
-                  <span>
-                    <strong>Search and Filter Notes</strong> - Full-text search across all note content with filters by author, date range, and file path
-                  </span>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <span className="text-purple-500 font-bold">→</span>
-                  <span>
-                    <strong>Regex Pattern Matching</strong> - Advanced search capabilities for power users
-                  </span>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <span className="text-purple-500 font-bold">→</span>
-                  <span>
-                    <strong>Background Indexing</strong> - Instant search results with automatic index updates
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-            </div>
-          </div>
 
           </div>
           </div>

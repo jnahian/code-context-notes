@@ -107,15 +107,16 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 	async getChildren(element?: BaseTreeItem): Promise<BaseTreeItem[]> {
 		// Root level: return RootTreeItem or empty state
 		if (!element) {
-			const noteCount = await this.noteManager.getNoteCount();
+			const fileNodes = await this.getFileNodes();
 
-			// Empty state - no notes
-			if (noteCount === 0) {
+			// Empty state - no visible notes
+			if (fileNodes.length === 0) {
 				return [];
 			}
 
-			// Return root node with count
-			return [new RootTreeItem(noteCount)];
+			// Return root node with count of notes visible under active filters
+			const visibleNoteCount = fileNodes.reduce((sum, node) => sum + node.notes.length, 0);
+			return [new RootTreeItem(visibleNoteCount)];
 		}
 
 		// Root node: return file nodes
@@ -140,10 +141,14 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 		const fileNodes: FileTreeItem[] = [];
 		const sortBy = this.getSortBy();
 
-		// Create file nodes
+		// Create file nodes from notes visible under the active type/expiry filters
 		for (const [filePath, notes] of notesByFile.entries()) {
-			if (notes.length > 0) {
-				fileNodes.push(new FileTreeItem(filePath, notes, this.workspaceRoot));
+			const visibleNotes = notes
+				.map(applyDefaults)
+				.filter(n => !this.hideExpired || !isExpired(n))
+				.filter(n => !this.typeFilter || this.typeFilter.has(n.type!));
+			if (visibleNotes.length > 0) {
+				fileNodes.push(new FileTreeItem(filePath, visibleNotes, this.workspaceRoot));
 			}
 		}
 
@@ -181,23 +186,12 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 	}
 
 	/**
-	 * Get note nodes for a file, applying type and expiry filters.
+	 * Get note nodes for a file. Type/expiry filters are already applied in
+	 * getFileNodes(), so fileNode.notes here only contains visible notes.
 	 */
 	private getNoteNodes(fileNode: FileTreeItem): NoteTreeItem[] {
 		const previewLength = this.getPreviewLength();
-		const noteNodes: NoteTreeItem[] = [];
-
-		// Notes are already sorted by line range in getNotesByFile()
-		const filtered = fileNode.notes
-			.map(applyDefaults)
-			.filter(n => !this.hideExpired || !isExpired(n))
-			.filter(n => !this.typeFilter || this.typeFilter.has(n.type!));
-
-		for (const note of filtered) {
-			noteNodes.push(new NoteTreeItem(note, previewLength));
-		}
-
-		return noteNodes;
+		return fileNode.notes.map(note => new NoteTreeItem(note, previewLength));
 	}
 
 	/**

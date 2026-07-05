@@ -374,7 +374,7 @@ The Revert button calls existing `noteManager` methods. No new storage primitive
 
 #### 5.4.6 Settings UI
 
-```
+```text
 Code Context Notes › Agent write mode: [direct | queue | audit ▼]
 Code Context Notes › Agent allow-list:  [claude-code, cursor-agent]
 Code Context Notes › Audit log retention: [last 1000 ops]

@@ -50,8 +50,11 @@ function preview(content: string): string {
 
 /**
  * Build the INDEX.json data. `now` is injectable for deterministic tests.
+ * `storageDir` should match the workspace's configured
+ * `codeContextNotes.storageDirectory` (default `.code-notes`) so
+ * `contentPath` entries point at real note files.
  */
-export function buildIndex(rawNotes: Note[], workspaceRoot: string, now: Date = new Date()): IndexFile {
+export function buildIndex(rawNotes: Note[], workspaceRoot: string, now: Date = new Date(), storageDir: string = '.code-notes'): IndexFile {
   const notes = rawNotes.map(applyDefaults);
 
   // Stable sort by id so output is deterministic for the same input set.
@@ -73,7 +76,7 @@ export function buildIndex(rawNotes: Note[], workspaceRoot: string, now: Date = 
     isExpired: isExpired(n, now),
     references: n.references!,
     contentPreview: preview(n.content),
-    contentPath: `.code-notes/${n.id}.md`,
+    contentPath: `${storageDir}/${n.id}.md`,
   }));
 
   const byFile: Record<string, string[]> = {};
@@ -103,19 +106,34 @@ export function buildIndex(rawNotes: Note[], workspaceRoot: string, now: Date = 
 const PRIORITY_RANK: Record<string, number> = { critical: 0, high: 1, normal: 2, low: 3 };
 
 /**
- * Build the AGENTS.md digest content.
+ * Stable tiebreak for notes that rank equally on their primary sort key
+ * (priority, or no sort key at all), so section ordering doesn't depend
+ * on filesystem scan order across regenerations.
  */
-export function buildDigest(rawNotes: Note[], workspaceRoot: string, now: Date = new Date()): string {
+function tiebreak(workspaceRoot: string): (a: Note, b: Note) => number {
+  return (a, b) =>
+    relativePath(a.filePath, workspaceRoot).localeCompare(relativePath(b.filePath, workspaceRoot)) ||
+    (a.lineRange.start - b.lineRange.start) ||
+    (a.lineRange.end - b.lineRange.end) ||
+    a.id.localeCompare(b.id);
+}
+
+/**
+ * Build the AGENTS.md digest content. `storageDir` should match the
+ * workspace's configured `codeContextNotes.storageDirectory`.
+ */
+export function buildDigest(rawNotes: Note[], workspaceRoot: string, now: Date = new Date(), storageDir: string = '.code-notes'): string {
   const notes = rawNotes.map(applyDefaults).filter(n => !isExpired(n, now));
+  const tb = tiebreak(workspaceRoot);
 
   const out: string[] = [];
   out.push('# Code Notes Digest');
-  out.push('*Auto-generated. Do not edit. Source: `.code-notes/INDEX.json`*');
+  out.push(`*Auto-generated. Do not edit. Source: \`${storageDir}/INDEX.json\`*`);
   out.push('');
 
   const critical = notes
     .filter(n => n.type === 'instruction' || n.type === 'warning')
-    .sort((a, b) => (PRIORITY_RANK[a.priority!] ?? 99) - (PRIORITY_RANK[b.priority!] ?? 99));
+    .sort((a, b) => ((PRIORITY_RANK[a.priority!] ?? 99) - (PRIORITY_RANK[b.priority!] ?? 99)) || tb(a, b));
   if (critical.length > 0) {
     out.push('## Critical instructions and warnings');
     for (const n of critical) {
@@ -124,7 +142,7 @@ export function buildDigest(rawNotes: Note[], workspaceRoot: string, now: Date =
     out.push('');
   }
 
-  const handoffs = notes.filter(n => n.type === 'handoff');
+  const handoffs = notes.filter(n => n.type === 'handoff').sort(tb);
   if (handoffs.length > 0) {
     out.push('## Open handoffs');
     for (const n of handoffs) {
@@ -134,7 +152,7 @@ export function buildDigest(rawNotes: Note[], workspaceRoot: string, now: Date =
     out.push('');
   }
 
-  const decisions = notes.filter(n => n.type === 'decision');
+  const decisions = notes.filter(n => n.type === 'decision').sort(tb);
   if (decisions.length > 0) {
     out.push('## Decisions worth knowing');
     for (const n of decisions) {
@@ -155,7 +173,7 @@ export function buildDigest(rawNotes: Note[], workspaceRoot: string, now: Date =
   const fileKeys = Array.from(byFile.keys()).sort();
   for (const file of fileKeys) {
     out.push(`### \`${file}\``);
-    const fileNotes = byFile.get(file)!.sort((a, b) => a.lineRange.start - b.lineRange.start);
+    const fileNotes = byFile.get(file)!.sort((a, b) => (a.lineRange.start - b.lineRange.start) || (a.lineRange.end - b.lineRange.end) || a.id.localeCompare(b.id));
     for (const n of fileNotes) {
       const tags = n.tags!.length > 0 ? ` [${n.tags!.join(', ')}]` : '';
       out.push(`- L${n.lineRange.start + 1} — ${n.type} (${n.priority})${tags}: ${preview(n.content)}`);

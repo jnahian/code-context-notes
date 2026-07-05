@@ -364,15 +364,16 @@ You can add `.code-notes/` to `.gitignore` if you want notes to be local only, o
 
 ### Generated exports
 
-When auto-exports are enabled, two files are regenerated in `.code-notes/`
-on every note change:
+When auto-exports are enabled, two files are automatically regenerated
+(debounced by 200ms) in your configured notes directory (`.code-notes/` by
+default; see `codeContextNotes.storageDirectory`) whenever notes change:
 
 - **`INDEX.json`** — machine-readable index. Used by integrations like the MCP server (v0.4+).
 - **`AGENTS.md`** — human-readable digest, hoisting instructions/warnings/handoffs. Useful as workspace context for coding agents.
 
-Both are deterministic given the same notes. To exclude them from git, add to `.gitignore`:
+Note content and ordering are deterministic given the same notes; only the `generatedAt` timestamp in `INDEX.json` changes on every regeneration. To exclude them from git, add to `.gitignore`:
 
-```
+```gitignore
 .code-notes/INDEX.json
 .code-notes/AGENTS.md
 ```

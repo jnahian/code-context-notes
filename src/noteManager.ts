@@ -96,23 +96,28 @@ export class NoteManager extends EventEmitter {
       isDeleted: false
     };
 
+    // Normalize before save/cache so this note matches the shape every other
+    // load path guarantees (applyDefaults is a no-op for on-disk serialization
+    // since storageManager omits fields already equal to their default).
+    const normalized = applyDefaults(note);
+
     // Save to storage
-    await this.storage.saveNote(note);
+    await this.storage.saveNote(normalized);
 
     // Update cache
-    this.addNoteToCache(note);
+    this.addNoteToCache(normalized);
 
     // Update search index
     if (this.searchManager) {
-      await this.searchManager.updateIndex(note);
+      await this.searchManager.updateIndex(normalized);
     }
 
     // Clear workspace cache and emit events
     this.clearWorkspaceCache();
-    this.emit('noteCreated', note);
-    this.emit('noteChanged', { type: 'created', note });
+    this.emit('noteCreated', normalized);
+    this.emit('noteChanged', { type: 'created', note: normalized });
 
-    return note;
+    return normalized;
   }
 
   /**
@@ -181,22 +186,30 @@ export class NoteManager extends EventEmitter {
   ): Promise<Note> {
     const existing = await this.storage.loadNoteById(noteId);
     if (!existing) throw new Error(`Note ${noteId} not found`);
+    if (existing.isDeleted) throw new Error(`Cannot update deleted note ${noteId}`);
 
-    // Merge: only overwrite fields explicitly provided
-    const updated: Note = {
+    // Merge: only overwrite fields explicitly provided, then normalize
+    // defaults so cache/consumers see the same shape as every other load path.
+    const updated = applyDefaults({
       ...existing,
       ...fields,
       updatedAt: new Date().toISOString(),
-    };
+    });
     await this.storage.saveNote(updated);
 
     // Mirror the cache-invalidation pattern used in updateNote
     this.updateNoteInCache(updated);
+
+    // Update search index
+    if (this.searchManager) {
+      await this.searchManager.updateIndex(updated);
+    }
+
     this.clearWorkspaceCache();
 
     this.emit('noteUpdated', updated);
     this.emit('noteChanged', { type: 'updated', note: updated });
-    return applyDefaults(updated);
+    return updated;
   }
 
   /**
