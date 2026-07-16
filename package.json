@@ -505,9 +505,9 @@
     "@vscode/vsce": "^3.6.2",
     "chai": "^6.2.0",
     "esbuild": "^0.25.11",
-    "glob": "^11.0.3",
+    "glob": "^11.1.0",
     "mocha": "^11.7.4",
-    "nyc": "^17.1.0",
+    "nyc": "^18.0.0",
     "ovsx": "^0.10.6",
     "typescript": "^5.9.3"
   },
@@ -517,6 +517,6 @@
     "url": "https://github.com/jnahian/code-context-notes"
   },
   "dependencies": {
-    "uuid": "^13.0.0"
+    "uuid": "^14.0.0"
   }
 }
