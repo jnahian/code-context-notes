@@ -4,7 +4,7 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { StorageManager, ExportWriter, ContentHashTracker, NoteManager, SearchManager } from '@jnahian/code-notes-core';
+import { StorageManager, ExportWriter, ContentHashTracker, NoteManager, SearchManager, LockManager } from '@jnahian/code-notes-core';
 import { GitIntegration } from './gitIntegration.js';
 import { CommentController } from './commentController.js';
 import { CodeNotesLensProvider } from './codeLensProvider.js';
@@ -69,12 +69,13 @@ export async function activate(context: vscode.ExtensionContext) {
 	const storage = new StorageManager(workspaceRoot, storageDirectory);
 	const hashTracker = new ContentHashTracker();
 	const gitIntegration = new GitIntegration(workspaceRoot, authorName);
+	const lockManager = new LockManager(path.join(workspaceRoot, storageDirectory, '.locks'), 'extension');
 
 	// Create storage directory
 	await storage.createStorage();
 
 	// Initialize note manager
-	noteManager = new NoteManager(storage, hashTracker, gitIntegration);
+	noteManager = new NoteManager(storage, hashTracker, gitIntegration, { lockManager });
 
 	// Initialize search manager
 	searchManager = new SearchManager(context.globalState);

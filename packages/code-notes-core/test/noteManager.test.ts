@@ -10,6 +10,7 @@ import * as os from 'os';
 import { NoteManager } from '../src/noteManager.js';
 import { ContentHashTracker } from '../src/contentHashTracker.js';
 import { StorageManager } from '../src/storageManager.js';
+import { LockManager } from '../src/lockManager.js';
 import { CreateNoteParams, UpdateNoteParams, NoteDocument, AuthorProvider } from '../src/types.js';
 
 class FakeAuthorProvider implements AuthorProvider {
@@ -566,6 +567,46 @@ describe('NoteManager Test Suite', () => {
 			const cached = notes.find(n => n.id === 'meta-1');
 			expect(cached!.type).toBe('instruction');
 			expect(cached!.scope).toBe('line');
+		});
+	});
+
+	describe('Locking', () => {
+		it('creates and releases the note lock file around a write', async () => {
+			const locksDir = path.join(tempDir, '.test-notes', '.locks');
+			const lockManager = new LockManager(locksDir, 'test');
+			const lockedNoteManager = new NoteManager(storage, hashTracker, gitIntegration, { lockManager });
+
+			const doc = createMockDocument('function test() {}');
+			const note = await lockedNoteManager.createNote(
+				{ content: 'locked note', filePath: '/test/file.ts', lineRange: { start: 0, end: 0 } },
+				doc,
+			);
+
+			const lockPath = path.join(locksDir, `${note.id}.lock`);
+			const exists = await fs.stat(lockPath).catch(() => null);
+			expect(exists).toBeNull();
+		});
+
+		it('rejects with lock_timeout when the note lock is already held', async () => {
+			const doc = createMockDocument('function test() {}');
+			const note = await noteManager.createNote(
+				{ content: 'pre-existing note', filePath: '/test/file.ts', lineRange: { start: 0, end: 0 } },
+				doc,
+			);
+
+			const locksDir = path.join(tempDir, '.test-notes', '.locks');
+			await fs.mkdir(locksDir, { recursive: true });
+			await fs.writeFile(
+				path.join(locksDir, `${note.id}.lock`),
+				JSON.stringify({ pid: 99999, ts: new Date().toISOString(), holder: 'other' }),
+			);
+
+			const lockManager = new LockManager(locksDir, 'test', { retryMs: 200 });
+			const lockedNoteManager = new NoteManager(storage, hashTracker, gitIntegration, { lockManager });
+
+			await expect(
+				lockedNoteManager.updateNoteMetadata(note.id, { priority: 'high' }),
+			).rejects.toThrow(/lock_timeout/);
 		});
 	});
 });

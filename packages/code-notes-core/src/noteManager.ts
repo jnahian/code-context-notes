@@ -10,6 +10,7 @@ import { Note, CreateNoteParams, UpdateNoteParams, LineRange, NoteType, NotePrio
 import { applyDefaults } from './noteDefaults.js';
 import { StorageManager } from './storageManager.js';
 import { ContentHashTracker } from './contentHashTracker.js';
+import { LockManager } from './lockManager.js';
 
 /**
  * NoteManager coordinates all note operations
@@ -24,20 +25,31 @@ export class NoteManager extends EventEmitter {
   private workspaceNotesCache: Note[] | null = null; // cache for all notes
   private workspaceNotesByFileCache: Map<string, Note[]> | null = null; // cache for notes grouped by file
   private defaultAuthor: string = 'Unknown User';
+  private lockManager?: LockManager;
 
   constructor(
     storage: StorageManager,
     hashTracker: ContentHashTracker,
-    gitIntegration: AuthorProvider
+    gitIntegration: AuthorProvider,
+    opts?: { lockManager?: LockManager }
   ) {
     super();
     this.storage = storage;
     this.hashTracker = hashTracker;
     this.gitIntegration = gitIntegration;
     this.noteCache = new Map();
+    this.lockManager = opts?.lockManager;
 
     // Initialize default author
     this.initializeDefaultAuthor();
+  }
+
+  /**
+   * Run fn under the note's lock if a LockManager was provided; otherwise
+   * run it directly (behavior unchanged for callers without locking).
+   */
+  private withNoteLock<T>(noteId: string, fn: () => Promise<T>): Promise<T> {
+    return this.lockManager ? this.lockManager.withLock(noteId, fn) : fn();
   }
 
   /**
@@ -65,112 +77,119 @@ export class NoteManager extends EventEmitter {
     // Validate parameters
     this.validateLineRange(params.lineRange, document);
 
-    // Generate content hash
-    const contentHash = this.hashTracker.generateHash(document, params.lineRange);
+    // Generate the id up front so it can serve as the lock key
+    const noteId = uuidv4();
 
-    // Get author
-    const author = params.author || await this.gitIntegration.getAuthorName();
+    return this.withNoteLock(noteId, async () => {
+      // Generate content hash
+      const contentHash = this.hashTracker.generateHash(document, params.lineRange);
 
-    // Create note object
-    const now = new Date().toISOString();
-    const note: Note = {
-      id: uuidv4(),
-      content: params.content.trim(),
-      author,
-      filePath: params.filePath,
-      lineRange: params.lineRange,
-      contentHash,
-      createdAt: now,
-      updatedAt: now,
-      history: [
-        {
-          content: params.content.trim(),
-          author,
-          timestamp: now,
-          action: 'created'
-        }
-      ],
-      isDeleted: false
-    };
+      // Get author
+      const author = params.author || await this.gitIntegration.getAuthorName();
 
-    // Normalize before save/cache so this note matches the shape every other
-    // load path guarantees (applyDefaults is a no-op for on-disk serialization
-    // since storageManager omits fields already equal to their default).
-    const normalized = applyDefaults(note);
+      // Create note object
+      const now = new Date().toISOString();
+      const note: Note = {
+        id: noteId,
+        content: params.content.trim(),
+        author,
+        filePath: params.filePath,
+        lineRange: params.lineRange,
+        contentHash,
+        createdAt: now,
+        updatedAt: now,
+        history: [
+          {
+            content: params.content.trim(),
+            author,
+            timestamp: now,
+            action: 'created'
+          }
+        ],
+        isDeleted: false
+      };
 
-    // Save to storage
-    await this.storage.saveNote(normalized);
+      // Normalize before save/cache so this note matches the shape every other
+      // load path guarantees (applyDefaults is a no-op for on-disk serialization
+      // since storageManager omits fields already equal to their default).
+      const normalized = applyDefaults(note);
 
-    // Update cache
-    this.addNoteToCache(normalized);
+      // Save to storage
+      await this.storage.saveNote(normalized);
 
-    // Update search index
-    if (this.searchManager) {
-      await this.searchManager.updateIndex(normalized);
-    }
+      // Update cache
+      this.addNoteToCache(normalized);
 
-    // Clear workspace cache and emit events
-    this.clearWorkspaceCache();
-    this.emit('noteCreated', normalized);
-    this.emit('noteChanged', { type: 'created', note: normalized });
+      // Update search index
+      if (this.searchManager) {
+        await this.searchManager.updateIndex(normalized);
+      }
 
-    return normalized;
+      // Clear workspace cache and emit events
+      this.clearWorkspaceCache();
+      this.emit('noteCreated', normalized);
+      this.emit('noteChanged', { type: 'created', note: normalized });
+
+      return normalized;
+    });
   }
 
   /**
    * Update an existing note
    */
   async updateNote(params: UpdateNoteParams, document: NoteDocument): Promise<Note> {
-    // Load existing note (including deleted notes to properly handle all cases)
-    const filePath = document.uri.fsPath;
-    const notes = await this.getAllNotesForFile(filePath);
-    const note = notes.find(n => n.id === params.id);
+    return this.withNoteLock(params.id, async () => {
+      // Load existing note (including deleted notes to properly handle all cases)
+      const filePath = document.uri.fsPath;
+      const notes = await this.getAllNotesForFile(filePath);
+      const note = notes.find(n => n.id === params.id);
 
-    if (!note) {
-      throw new Error(`Note with id ${params.id} not found`);
-    }
+      if (!note) {
+        throw new Error(`Note with id ${params.id} not found`);
+      }
 
-    if (note.isDeleted) {
-      throw new Error(`Cannot update deleted note ${params.id}`);
-    }
+      if (note.isDeleted) {
+        throw new Error(`Cannot update deleted note ${params.id}`);
+      }
 
-    // Get author
-    const author = params.author || await this.gitIntegration.getAuthorName();
+      // Get author
+      const author = params.author || await this.gitIntegration.getAuthorName();
 
-    // Update note
-    const now = new Date().toISOString();
-    note.content = params.content.trim();
-    note.author = author;
-    note.updatedAt = now;
+      // Update note
+      const now = new Date().toISOString();
+      note.content = params.content.trim();
+      note.author = author;
+      note.updatedAt = now;
 
-    // Add history entry
-    note.history.push({
-      content: params.content.trim(),
-      author,
-      timestamp: now,
-      action: 'edited'
+      // Add history entry
+      note.history.push({
+        content: params.content.trim(),
+        author,
+        timestamp: now,
+        action: 'edited'
+      });
+
+      // Update content hash (may change if code was edited)
+      note.contentHash = this.hashTracker.generateHash(document, note.lineRange);
+
+      // Save to storage (file named by note ID, so always same file)
+      await this.storage.saveNote(note);
+
+      // Update cache
+      this.updateNoteInCache(note);
+
+      // Update search index
+      if (this.searchManager) {
+        await this.searchManager.updateIndex(note);
+      }
+
+      // Clear workspace cache and emit events
+      this.clearWorkspaceCache();
+      this.emit('noteUpdated', note);
+      this.emit('noteChanged', { type: 'updated', note });
+
+      return note;
     });
-
-    // Update content hash (may change if code was edited)
-    note.contentHash = this.hashTracker.generateHash(document, note.lineRange);
-
-    // Save to storage (file named by note ID, so always same file)
-    await this.storage.saveNote(note);
-
-    // Update cache
-    this.updateNoteInCache(note);
-
-    // Update search index
-    if (this.searchManager) {
-      await this.searchManager.updateIndex(note);
-    }
-
-    // Clear workspace cache and emit events
-    this.clearWorkspaceCache();
-    this.emit('noteUpdated', note);
-    this.emit('noteChanged', { type: 'updated', note });
-
-    return note;
   }
 
   /**
@@ -181,77 +200,81 @@ export class NoteManager extends EventEmitter {
     noteId: string,
     fields: { type?: NoteType; priority?: NotePriority; tags?: string[]; expiresAt?: string; scope?: NoteScope },
   ): Promise<Note> {
-    const existing = await this.storage.loadNoteById(noteId);
-    if (!existing) throw new Error(`Note ${noteId} not found`);
-    if (existing.isDeleted) throw new Error(`Cannot update deleted note ${noteId}`);
+    return this.withNoteLock(noteId, async () => {
+      const existing = await this.storage.loadNoteById(noteId);
+      if (!existing) throw new Error(`Note ${noteId} not found`);
+      if (existing.isDeleted) throw new Error(`Cannot update deleted note ${noteId}`);
 
-    // Merge: only overwrite fields explicitly provided, then normalize
-    // defaults so cache/consumers see the same shape as every other load path.
-    const updated: Note = applyDefaults({
-      ...existing,
-      ...fields,
-      updatedAt: new Date().toISOString(),
+      // Merge: only overwrite fields explicitly provided, then normalize
+      // defaults so cache/consumers see the same shape as every other load path.
+      const updated: Note = applyDefaults({
+        ...existing,
+        ...fields,
+        updatedAt: new Date().toISOString(),
+      });
+      await this.storage.saveNote(updated);
+
+      // Mirror the cache-invalidation pattern used in updateNote
+      this.updateNoteInCache(updated);
+      this.clearWorkspaceCache();
+
+      // Keep search index in sync (updatedAt / metadata affect search results)
+      if (this.searchManager) {
+        await this.searchManager.updateIndex(updated);
+      }
+
+      this.emit('noteUpdated', updated);
+      this.emit('noteChanged', { type: 'updated', note: updated });
+      return updated;
     });
-    await this.storage.saveNote(updated);
-
-    // Mirror the cache-invalidation pattern used in updateNote
-    this.updateNoteInCache(updated);
-    this.clearWorkspaceCache();
-
-    // Keep search index in sync (updatedAt / metadata affect search results)
-    if (this.searchManager) {
-      await this.searchManager.updateIndex(updated);
-    }
-
-    this.emit('noteUpdated', updated);
-    this.emit('noteChanged', { type: 'updated', note: updated });
-    return updated;
   }
 
   /**
    * Delete a note (soft delete)
    */
   async deleteNote(noteId: string, filePath: string): Promise<void> {
-    const notes = await this.getAllNotesForFile(filePath);
-    const note = notes.find(n => n.id === noteId);
+    return this.withNoteLock(noteId, async () => {
+      const notes = await this.getAllNotesForFile(filePath);
+      const note = notes.find(n => n.id === noteId);
 
-    if (!note) {
-      throw new Error(`Note with id ${noteId} not found`);
-    }
+      if (!note) {
+        throw new Error(`Note with id ${noteId} not found`);
+      }
 
-    if (note.isDeleted) {
-      throw new Error(`Note ${noteId} is already deleted`);
-    }
+      if (note.isDeleted) {
+        throw new Error(`Note ${noteId} is already deleted`);
+      }
 
-    // Mark as deleted
-    note.isDeleted = true;
-    note.updatedAt = new Date().toISOString();
+      // Mark as deleted
+      note.isDeleted = true;
+      note.updatedAt = new Date().toISOString();
 
-    // Add history entry
-    note.history.push({
-      content: note.content,
-      author: await this.gitIntegration.getAuthorName(),
-      timestamp: note.updatedAt,
-      action: 'deleted'
+      // Add history entry
+      note.history.push({
+        content: note.content,
+        author: await this.gitIntegration.getAuthorName(),
+        timestamp: note.updatedAt,
+        action: 'deleted'
+      });
+
+      // Save to storage
+      await this.storage.saveNote(note);
+
+      // Keep the soft-deleted note in the cache (the cache holds ALL notes;
+      // getNotesForFile filters deleted ones at return). Removing it here
+      // would make "already deleted" lookups report "not found" instead.
+      this.updateNoteInCache(note);
+
+      // Remove from search index
+      if (this.searchManager) {
+        await this.searchManager.removeFromIndex(noteId);
+      }
+
+      // Clear workspace cache and emit events
+      this.clearWorkspaceCache();
+      this.emit('noteDeleted', { noteId, filePath });
+      this.emit('noteChanged', { type: 'deleted', noteId, filePath });
     });
-
-    // Save to storage
-    await this.storage.saveNote(note);
-
-    // Keep the soft-deleted note in the cache (the cache holds ALL notes;
-    // getNotesForFile filters deleted ones at return). Removing it here
-    // would make "already deleted" lookups report "not found" instead.
-    this.updateNoteInCache(note);
-
-    // Remove from search index
-    if (this.searchManager) {
-      await this.searchManager.removeFromIndex(noteId);
-    }
-
-    // Clear workspace cache and emit events
-    this.clearWorkspaceCache();
-    this.emit('noteDeleted', { noteId, filePath });
-    this.emit('noteChanged', { type: 'deleted', noteId, filePath });
   }
 
   /**
