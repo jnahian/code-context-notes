@@ -1,6 +1,6 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { ListToolsRequestSchema, CallToolRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import {
@@ -18,6 +18,9 @@ import { deleteNoteToolDef, deleteNoteInput, deleteNote } from './tools/delete_n
 import { addHandoffToolDef, addHandoffInput, addHandoff } from './tools/add_handoff.js';
 import { addDecisionToolDef, addDecisionInput, addDecision } from './tools/add_decision.js';
 import { errorResult } from './tools/errors.js';
+import { digestResourceDef, readDigest } from './resources/digest.js';
+import { indexResourceDef, readIndex } from './resources/indexResource.js';
+import { FILE_RESOURCE_URI_PREFIX, readFileResource } from './resources/file.js';
 
 const READ_TOOLS = [
   getNoteToolDef,
@@ -107,12 +110,22 @@ export async function startServer(args: StartArgs): Promise<void> {
     { capabilities: { tools: {}, resources: {} } },
   );
 
-  // Resources registered in a subsequent task
-  // registerResources(server, { workspace, storageDir });
-
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: buildToolList(readOnly),
   }));
+
+  server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+    resources: [digestResourceDef, indexResourceDef],
+    // code-notes://file/{path} is dynamic (per-file) and intentionally not enumerated.
+  }));
+
+  server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    const uri = request.params.uri;
+    if (uri === digestResourceDef.uri) return readDigest({ workspace, storageDir, noteManager });
+    if (uri === indexResourceDef.uri) return readIndex({ workspace, storageDir, noteManager });
+    if (uri.startsWith(FILE_RESOURCE_URI_PREFIX)) return readFileResource(uri, { workspace, noteManager });
+    throw new Error(`unknown resource: ${uri}`);
+  });
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     return handleToolCall(request.params.name, request.params.arguments, { noteManager, workspace, readOnly });
