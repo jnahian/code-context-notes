@@ -23,6 +23,7 @@ export class ExportWriter {
   private pendingTimer: NodeJS.Timeout | undefined;
   private pendingGetNotes: (() => Promise<Note[]>) | undefined;
   private getConfig: () => { enabled: boolean; indexJson: boolean; agentsMarkdown: boolean };
+  private tmpSeq = 0;
   onError: (e: Error) => void = (e) => console.error('[code-notes] export failed:', e);
 
   constructor(workspaceRoot: string, storageDir: string, opts: ExportWriterOptions = {}) {
@@ -53,30 +54,36 @@ export class ExportWriter {
 
   /**
    * Force an immediate (non-debounced) regeneration. Used at startup,
-   * by the manual command, and by tests.
+   * by the manual command, and by tests. Returns what happened so callers
+   * (e.g. the manual command) can report honestly; errors still route
+   * through onError rather than throwing.
    */
-  async regenerate(notes: Note[]): Promise<void> {
+  async regenerate(notes: Note[]): Promise<'written' | 'disabled' | 'failed'> {
     try {
       const cfg = this.getConfig();
-      if (!cfg.enabled) return;
+      if (!cfg.enabled) return 'disabled';
 
       const dir = path.join(this.workspaceRoot, this.storageDir);
       await fs.mkdir(dir, { recursive: true });
       if (cfg.indexJson) {
-        const idx = buildIndex(notes, this.workspaceRoot);
+        const idx = buildIndex(notes, this.workspaceRoot, new Date(), this.storageDir);
         await this.atomicWrite(path.join(dir, 'INDEX.json'), JSON.stringify(idx, null, 2));
       }
       if (cfg.agentsMarkdown) {
         const digest = buildDigest(notes, this.workspaceRoot);
         await this.atomicWrite(path.join(dir, 'AGENTS.md'), digest);
       }
+      return 'written';
     } catch (e: unknown) {
       this.onError(e instanceof Error ? e : new Error(String(e)));
+      return 'failed';
     }
   }
 
   private async atomicWrite(targetPath: string, content: string): Promise<void> {
-    const tmpPath = `${targetPath}.tmp`;
+    // Unique temp name so overlapping regenerations can't clobber each
+    // other's temp file; the final rename stays atomic.
+    const tmpPath = `${targetPath}.${process.pid}.${++this.tmpSeq}.tmp`;
     await fs.writeFile(tmpPath, content, 'utf-8');
     await fs.rename(tmpPath, targetPath);
   }
