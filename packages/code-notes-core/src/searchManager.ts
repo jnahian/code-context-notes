@@ -1,5 +1,4 @@
-import * as vscode from 'vscode';
-import { Note } from '@jnahian/code-notes-core';
+import { Note, HistoryStore } from './types.js';
 import {
   SearchQuery,
   SearchResult,
@@ -74,10 +73,10 @@ export class SearchManager {
   private readonly MAX_TIMING_SAMPLES = 100;
 
   // Configuration
-  private context: vscode.ExtensionContext;
+  private historyStore: HistoryStore;
 
-  constructor(context: vscode.ExtensionContext) {
-    this.context = context;
+  constructor(historyStore: HistoryStore) {
+    this.historyStore = historyStore;
     this.loadSearchHistory();
   }
 
@@ -832,7 +831,7 @@ export class SearchManager {
    */
   private loadSearchHistory(): void {
     try {
-      const stored = this.context.globalState.get<SerializableSearchHistoryEntry[]>('searchHistory');
+      const stored = this.historyStore.get<SerializableSearchHistoryEntry[]>('searchHistory');
       if (stored && Array.isArray(stored)) {
         this.searchHistory = stored
           .map(entry => {
@@ -912,7 +911,7 @@ export class SearchManager {
         };
       });
 
-      await this.context.globalState.update('searchHistory', serializable);
+      await this.historyStore.update('searchHistory', serializable);
     } catch (error) {
       console.error('Failed to persist search history:', error);
     }

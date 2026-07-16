@@ -1,4 +1,4 @@
-import { Note } from '@jnahian/code-notes-core';
+import { Note } from './types.js';
 
 /**
  * Search query parameters

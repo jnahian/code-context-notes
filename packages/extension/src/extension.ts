@@ -4,12 +4,11 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { StorageManager, ExportWriter, ContentHashTracker, NoteManager } from '@jnahian/code-notes-core';
+import { StorageManager, ExportWriter, ContentHashTracker, NoteManager, SearchManager } from '@jnahian/code-notes-core';
 import { GitIntegration } from './gitIntegration.js';
 import { CommentController } from './commentController.js';
 import { CodeNotesLensProvider } from './codeLensProvider.js';
 import { NotesSidebarProvider } from './notesSidebarProvider.js';
-import { SearchManager } from './searchManager.js';
 
 let noteManager: NoteManager;
 let exportWriter: ExportWriter;
@@ -78,7 +77,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	noteManager = new NoteManager(storage, hashTracker, gitIntegration);
 
 	// Initialize search manager
-	searchManager = new SearchManager(context);
+	searchManager = new SearchManager(context.globalState);
 
 	// Connect search manager to note manager
 	noteManager.setSearchManager(searchManager);

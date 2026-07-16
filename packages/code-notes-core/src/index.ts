@@ -7,3 +7,5 @@ export * from './exportWriter.js';
 export * from './scopeResolver.js';
 export * from './contentHashTracker.js';
 export * from './noteManager.js';
+export * from './searchTypes.js';
+export * from './searchManager.js';

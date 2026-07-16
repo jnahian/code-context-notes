@@ -240,3 +240,13 @@ export interface SearchIndexSync {
   updateIndex(note: Note): Promise<void>;
   removeFromIndex(noteId: string): Promise<void>;
 }
+
+/**
+ * Key-value persistence for search history, injected into SearchManager so
+ * it doesn't depend on vscode.ExtensionContext directly. vscode.Memento
+ * (context.globalState) satisfies this structurally.
+ */
+export interface HistoryStore {
+  get<T>(key: string): T | undefined;
+  update(key: string, value: unknown): Promise<void> | PromiseLike<void>;
+}
