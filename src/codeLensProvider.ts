@@ -134,8 +134,9 @@ export class CodeNotesLensProvider implements vscode.CodeLensProvider {
       .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
       // Remove images
       .replace(/!\[([^\]]*)\]\([^\)]+\)/g, '$1')
-      // Remove headings
-      .replace(/^#{1,6}\s+/gm, '')
+      // Remove heading markers (line-start and after whitespace — previews
+      // are single lines, so stray mid-text markers should go too)
+      .replace(/(^|\s)#{1,6}\s+/g, '$1')
       // Remove blockquotes
       .replace(/^>\s+/gm, '')
       // Remove list markers
@@ -155,8 +156,9 @@ export class CodeNotesLensProvider implements vscode.CodeLensProvider {
     if (notes.length === 1) {
       const note = notes[0];
       // Strip markdown formatting and get first line
-      const plainText = this.stripMarkdown(note.content);
-      const firstLine = plainText.split('\n')[0];
+      // Take the first line BEFORE stripping — stripMarkdown collapses
+      // newlines into spaces, which would merge all lines into one.
+      const firstLine = this.stripMarkdown(note.content.split('\n')[0]);
       const preview = firstLine.length > 50
         ? firstLine.substring(0, 47) + '...'
         : firstLine;
@@ -171,8 +173,7 @@ export class CodeNotesLensProvider implements vscode.CodeLensProvider {
         : uniqueAuthors.join(', ');
 
       // Get preview from first note
-      const plainText = this.stripMarkdown(notes[0].content);
-      const firstLine = plainText.split('\n')[0];
+      const firstLine = this.stripMarkdown(notes[0].content.split('\n')[0]);
       const preview = firstLine.length > 35
         ? firstLine.substring(0, 32) + '...'
         : firstLine;
