@@ -56,7 +56,7 @@ export function ChangelogPage() {
                 <span>May 16, 2026</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Agent integration foundation: structured note schema, auto-generated workspace exports for coding agents, full-text search, and sidebar enhancements.
+                Agent integration foundation: structured note schema, auto-generated workspace exports for coding agents, and sidebar enhancements.
               </p>
             </div>
 
@@ -99,21 +99,6 @@ export function ChangelogPage() {
                             <li>• <code className="bg-brand-navy text-brand-warm px-1 rounded">.code-notes/AGENTS.md</code> — human-readable digest hoisting instructions, warnings, handoffs, decisions</li>
                             <li>• Debounced (200ms) writes, atomic temp-then-rename, deterministic output</li>
                             <li>• Manual <code className="bg-brand-navy text-brand-warm px-1 rounded">Regenerate Exports</code> command for recovery</li>
-                          </ul>
-                        </div>
-                      </div>
-                      <div className="flex items-start space-x-3 bg-white dark:bg-slate-800 p-3 rounded-xl">
-                        <Search className="h-5 w-5 text-brand-orange mt-0.5 flex-shrink-0" />
-                        <div>
-                          <h5 className="font-semibold text-sm">Search and Filter Notes <span className="text-xs text-muted-foreground font-normal">(Issue #10)</span></h5>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Full-text search across all notes with multi-criteria filtering and keyboard-driven QuickPick UI.
-                          </p>
-                          <ul className="text-xs text-muted-foreground mt-2 space-y-1 ml-3">
-                            <li>• Filters: author, date range, file-path glob, type (combinable with AND logic)</li>
-                            <li>• <code className="bg-brand-navy text-brand-warm px-1 rounded">Ctrl+Shift+F</code> / <code className="bg-brand-navy text-brand-warm px-1 rounded">Cmd+Shift+F</code> in notes context</li>
-                            <li>• Regex, case-sensitive options, search history (last 20)</li>
-                            <li>• Background indexing — sub-second search for 100+ notes</li>
                           </ul>
                         </div>
                       </div>
@@ -768,7 +753,7 @@ export function ChangelogPage() {
 
             {/* Left Column - Version Info */}
             <div className="pl-8 md:pl-0 md:pr-12 text-left md:text-right space-y-2">
-              <h3 className="text-2xl font-bold text-purple-600">Coming in v0.3.0</h3>
+              <h3 className="text-2xl font-bold text-purple-600">Coming Next</h3>
               <div className="flex items-center gap-2 text-muted-foreground text-sm md:justify-end">
                 <Search className="h-4 w-4" />
                 <span>Future Release</span>
@@ -786,19 +771,13 @@ export function ChangelogPage() {
                 <div className="flex items-start space-x-2">
                   <span className="text-purple-500 font-bold">→</span>
                   <span>
+                    <strong>MCP Server (v0.4)</strong> - Standalone <code>@jnahian/code-notes-mcp</code> server so any MCP-capable agent can read and write notes
+                  </span>
+                </div>
+                <div className="flex items-start space-x-2">
+                  <span className="text-purple-500 font-bold">→</span>
+                  <span>
                     <strong>Search and Filter Notes</strong> - Full-text search across all note content with filters by author, date range, and file path
-                  </span>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <span className="text-purple-500 font-bold">→</span>
-                  <span>
-                    <strong>Regex Pattern Matching</strong> - Advanced search capabilities for power users
-                  </span>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <span className="text-purple-500 font-bold">→</span>
-                  <span>
-                    <strong>Background Indexing</strong> - Instant search results with automatic index updates
                   </span>
                 </div>
               </div>

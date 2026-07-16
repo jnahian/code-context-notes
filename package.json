@@ -455,7 +455,7 @@
         "codeContextNotes.exports.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Auto-generate .code-notes/INDEX.json and .code-notes/AGENTS.md on every note change"
+          "description": "Auto-generate INDEX.json and AGENTS.md in the notes storage directory (default .code-notes) on every note change"
         },
         "codeContextNotes.exports.indexJson": {
           "type": "boolean",

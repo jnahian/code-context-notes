@@ -1312,7 +1312,7 @@ on every note change:
 
 Both are deterministic given the same notes. To exclude them from git, add to `.gitignore`:
 
-```
+```gitignore
 .code-notes/INDEX.json
 .code-notes/AGENTS.md
 ```
