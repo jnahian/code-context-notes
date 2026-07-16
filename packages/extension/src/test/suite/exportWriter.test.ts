@@ -3,7 +3,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 import { ExportWriter } from '../../exportWriter.js';
-import { Note } from '../../types.js';
+import { Note } from '@jnahian/code-notes-core';
 
 async function tmpdir(): Promise<string> {
   return await fs.mkdtemp(path.join(os.tmpdir(), 'cn-export-'));

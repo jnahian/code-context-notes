@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Note } from './types.js';
+import { Note } from '@jnahian/code-notes-core';
 import {
   SearchQuery,
   SearchResult,

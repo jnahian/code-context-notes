@@ -14,7 +14,7 @@ import { NoteManager } from '../../noteManager.js';
 import { StorageManager } from '../../storageManager.js';
 import { ContentHashTracker } from '../../contentHashTracker.js';
 import { GitIntegration } from '../../gitIntegration.js';
-import { Note, LineRange } from '../../types.js';
+import { Note, LineRange } from '@jnahian/code-notes-core';
 
 suite('CommentController Test Suite', () => {
 	let tempDir: string;

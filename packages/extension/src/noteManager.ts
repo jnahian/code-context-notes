@@ -7,12 +7,11 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
-import { Note, CreateNoteParams, UpdateNoteParams, LineRange, NoteType, NotePriority, NoteScope } from './types.js';
+import { Note, CreateNoteParams, UpdateNoteParams, LineRange, NoteType, NotePriority, NoteScope, applyDefaults } from '@jnahian/code-notes-core';
 import { StorageManager } from './storageManager.js';
 import { ContentHashTracker } from './contentHashTracker.js';
 import { GitIntegration } from './gitIntegration.js';
 import { SearchManager } from './searchManager.js';
-import { applyDefaults } from './noteDefaults.js';
 
 /**
  * NoteManager coordinates all note operations

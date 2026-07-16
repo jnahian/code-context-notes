@@ -6,7 +6,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { RootTreeItem, FileTreeItem, NoteTreeItem } from '../../noteTreeItem.js';
-import { Note } from '../../types.js';
+import { Note } from '@jnahian/code-notes-core';
 
 suite('NoteTreeItem Test Suite', () => {
 	suite('NoteTreeItem.stripMarkdown()', () => {

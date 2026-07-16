@@ -9,7 +9,7 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import { StorageManager } from '../../storageManager.js';
-import { Note } from '../../types.js';
+import { Note } from '@jnahian/code-notes-core';
 
 suite('StorageManager Test Suite', () => {
 	let tempDir: string;

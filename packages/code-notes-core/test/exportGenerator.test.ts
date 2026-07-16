@@ -1,6 +1,6 @@
-import * as assert from 'assert';
-import { buildIndex, buildDigest } from '../../exportGenerator.js';
-import { Note } from '../../types.js';
+import { describe, it, expect } from 'vitest';
+import { buildIndex, buildDigest } from '../src/exportGenerator.js';
+import { Note } from '../src/types.js';
 
 const n = (overrides: Partial<Note>): Note => ({
   id: 'id',
@@ -21,52 +21,52 @@ const n = (overrides: Partial<Note>): Note => ({
   ...overrides,
 });
 
-suite('exportGenerator', () => {
-  test('buildIndex contentPath honors a custom storage directory', () => {
+describe('exportGenerator', () => {
+  it('buildIndex contentPath honors a custom storage directory', () => {
     const idx = buildIndex([n({ id: 'a' })], '/ws', new Date('2026-05-01T00:00:00Z'), '.my-notes');
-    assert.strictEqual(idx.notes[0].contentPath, '.my-notes/a.md');
+    expect(idx.notes[0].contentPath).toBe('.my-notes/a.md');
     // default stays .code-notes
     const idxDefault = buildIndex([n({ id: 'a' })], '/ws', new Date('2026-05-01T00:00:00Z'));
-    assert.strictEqual(idxDefault.notes[0].contentPath, '.code-notes/a.md');
+    expect(idxDefault.notes[0].contentPath).toBe('.code-notes/a.md');
   });
 
-  test('buildIndex includes notes, byFile, byType, byTag', () => {
+  it('buildIndex includes notes, byFile, byType, byTag', () => {
     const notes = [
       n({ id: 'a', filePath: '/ws/src/foo.ts', type: 'instruction', tags: ['security'] }),
       n({ id: 'b', filePath: '/ws/src/bar.ts', type: 'context' }),
     ];
     const idx = buildIndex(notes, '/ws');
-    assert.strictEqual(idx.version, 1);
-    assert.strictEqual(idx.workspaceRoot, '/ws');
-    assert.strictEqual(idx.notes.length, 2);
-    assert.deepStrictEqual(idx.byFile['src/foo.ts'], ['a']);
-    assert.deepStrictEqual(idx.byFile['src/bar.ts'], ['b']);
-    assert.deepStrictEqual(idx.byType['instruction'], ['a']);
-    assert.deepStrictEqual(idx.byType['context'], ['b']);
-    assert.deepStrictEqual(idx.byTag['security'], ['a']);
+    expect(idx.version).toBe(1);
+    expect(idx.workspaceRoot).toBe('/ws');
+    expect(idx.notes.length).toBe(2);
+    expect(idx.byFile['src/foo.ts']).toEqual(['a']);
+    expect(idx.byFile['src/bar.ts']).toEqual(['b']);
+    expect(idx.byType['instruction']).toEqual(['a']);
+    expect(idx.byType['context']).toEqual(['b']);
+    expect(idx.byTag['security']).toEqual(['a']);
   });
 
-  test('buildIndex marks expired notes', () => {
+  it('buildIndex marks expired notes', () => {
     const past = new Date('2025-01-01T00:00:00Z').toISOString();
     const idx = buildIndex(
       [n({ id: 'a', expiresAt: past })],
       '/ws',
       new Date('2026-05-01T00:00:00Z'),
     );
-    assert.strictEqual(idx.notes[0].isExpired, true);
+    expect(idx.notes[0].isExpired).toBe(true);
   });
 
-  test('buildIndex output is deterministic for same input', () => {
+  it('buildIndex output is deterministic for same input', () => {
     const notes = [
       n({ id: 'b', filePath: '/ws/b.ts' }),
       n({ id: 'a', filePath: '/ws/a.ts' }),
     ];
     const idx1 = buildIndex(notes, '/ws', new Date('2026-05-01T00:00:00Z'));
     const idx2 = buildIndex(notes, '/ws', new Date('2026-05-01T00:00:00Z'));
-    assert.strictEqual(JSON.stringify(idx1), JSON.stringify(idx2));
+    expect(JSON.stringify(idx1)).toBe(JSON.stringify(idx2));
   });
 
-  test('buildDigest hoists instructions and warnings', () => {
+  it('buildDigest hoists instructions and warnings', () => {
     const notes = [
       n({ id: 'i', type: 'instruction', priority: 'high', content: 'do not bypass auth', filePath: '/ws/auth.ts', lineRange: { start: 41, end: 41 } }),
       n({ id: 'c', type: 'context', content: 'just background', filePath: '/ws/auth.ts' }),
@@ -74,17 +74,17 @@ suite('exportGenerator', () => {
     const md = buildDigest(notes, '/ws');
     const instructionPos = md.indexOf('do not bypass auth');
     const contextPos = md.indexOf('just background');
-    assert.ok(instructionPos !== -1);
-    assert.ok(contextPos !== -1);
-    assert.ok(instructionPos < contextPos, 'instructions must appear before context');
+    expect(instructionPos !== -1).toBe(true);
+    expect(contextPos !== -1).toBe(true);
+    expect(instructionPos < contextPos).toBe(true);
   });
 
-  test('buildDigest hoists open handoffs to a dedicated section', () => {
+  it('buildDigest hoists open handoffs to a dedicated section', () => {
     const md = buildDigest(
       [n({ id: 'h', type: 'handoff', content: 'pick up here', author: 'claude-code', authorType: 'agent' })],
       '/ws',
     );
-    assert.ok(md.includes('## Open handoffs'));
-    assert.ok(md.includes('pick up here'));
+    expect(md.includes('## Open handoffs')).toBe(true);
+    expect(md.includes('pick up here')).toBe(true);
   });
 });

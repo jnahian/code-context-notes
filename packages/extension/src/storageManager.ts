@@ -6,8 +6,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { Note, NoteStorage, NoteMetadata, NoteType, NoteScope, NotePriority, AuthorType, NoteReference } from './types.js';
-import { NOTE_DEFAULTS } from './noteDefaults.js';
+import { Note, NoteStorage, NoteMetadata, NoteType, NoteScope, NotePriority, AuthorType, NoteReference, NOTE_DEFAULTS } from '@jnahian/code-notes-core';
 
 // Allowed values for structured fields parsed from note markdown.
 // Must stay in sync with the union types in types.ts.

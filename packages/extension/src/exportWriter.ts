@@ -8,8 +8,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { Note } from './types.js';
-import { buildIndex, buildDigest } from './exportGenerator.js';
+import { Note, buildIndex, buildDigest } from '@jnahian/code-notes-core';
 
 export interface ExportWriterOptions {
   debounceMs?: number;

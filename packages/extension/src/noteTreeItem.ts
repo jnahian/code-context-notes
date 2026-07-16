@@ -5,8 +5,7 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { Note } from './types.js';
-import { applyDefaults } from './noteDefaults.js';
+import { Note, applyDefaults } from '@jnahian/code-notes-core';
 
 /**
  * Base class for all tree items

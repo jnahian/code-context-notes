@@ -511,6 +511,7 @@
     "url": "https://github.com/jnahian/code-context-notes"
   },
   "dependencies": {
+    "@jnahian/code-notes-core": "0.1.0",
     "uuid": "^14.0.0"
   }
 }

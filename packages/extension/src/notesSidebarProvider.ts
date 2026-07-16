@@ -5,9 +5,8 @@
 
 import * as vscode from 'vscode';
 import { NoteManager } from './noteManager.js';
-import { Note } from './types.js';
+import { Note, applyDefaults, isExpired } from '@jnahian/code-notes-core';
 import { RootTreeItem, FileTreeItem, NoteTreeItem, BaseTreeItem } from './noteTreeItem.js';
-import { applyDefaults, isExpired } from './noteDefaults.js';
 
 /**
  * Notes Sidebar Provider

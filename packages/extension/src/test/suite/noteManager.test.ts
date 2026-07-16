@@ -12,7 +12,7 @@ import { NoteManager } from '../../noteManager.js';
 import { StorageManager } from '../../storageManager.js';
 import { ContentHashTracker } from '../../contentHashTracker.js';
 import { GitIntegration } from '../../gitIntegration.js';
-import { CreateNoteParams, UpdateNoteParams, LineRange } from '../../types.js';
+import { CreateNoteParams, UpdateNoteParams, LineRange } from '@jnahian/code-notes-core';
 
 suite('NoteManager Test Suite', () => {
 	let tempDir: string;
