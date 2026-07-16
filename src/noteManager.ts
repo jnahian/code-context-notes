@@ -241,8 +241,10 @@ export class NoteManager extends EventEmitter {
     // Save to storage
     await this.storage.saveNote(note);
 
-    // Remove from cache
-    this.removeNoteFromCache(noteId, filePath);
+    // Keep the soft-deleted note in the cache (the cache holds ALL notes;
+    // getNotesForFile filters deleted ones at return). Removing it here
+    // would make "already deleted" lookups report "not found" instead.
+    this.updateNoteInCache(note);
 
     // Remove from search index
     if (this.searchManager) {
@@ -264,8 +266,11 @@ export class NoteManager extends EventEmitter {
       return this.noteCache.get(filePath)!.filter(n => !n.isDeleted);
     }
 
-    // Load from storage and apply defaults at the boundary
-    const notes = (await this.storage.loadNotes(filePath)).map(applyDefaults);
+    // Load from storage and apply defaults at the boundary. The cache always
+    // holds ALL notes (including soft-deleted) — getAllNotesForFile shares
+    // this cache, so caching a pre-filtered list here would make deleted
+    // notes invisible to it.
+    const notes = (await this.storage.loadAllNotes(filePath)).map(applyDefaults);
 
     // Update cache
     this.noteCache.set(filePath, notes);
@@ -297,7 +302,9 @@ export class NoteManager extends EventEmitter {
    */
   async getNoteById(noteId: string, filePath: string): Promise<Note | undefined> {
     const notes = await this.getAllNotesForFile(filePath);
-    return notes.find(n => n.id === noteId);
+    // Soft-deleted notes are not retrievable through the by-id lookup —
+    // consumers (comment threads, edit mode) must treat them as gone
+    return notes.find(n => n.id === noteId && !n.isDeleted);
   }
 
   /**
@@ -383,17 +390,6 @@ export class NoteManager extends EventEmitter {
       if (index !== -1) {
         notes[index] = applyDefaults(updatedNote);
       }
-    }
-  }
-
-  /**
-   * Remove a note from the cache
-   */
-  private removeNoteFromCache(noteId: string, filePath: string): void {
-    const notes = this.noteCache.get(filePath);
-    if (notes) {
-      const filtered = notes.filter(n => n.id !== noteId);
-      this.noteCache.set(filePath, filtered);
     }
   }
 
