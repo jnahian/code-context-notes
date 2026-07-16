@@ -72,7 +72,10 @@ async function main() {
 
   // Step 4: Package extension
   log('📦 Step 4: Packaging extension...', 'blue');
-  exec('vsce package');
+  // --no-dependencies: the esbuild bundle is self-contained; without it vsce
+  // follows the @jnahian/code-notes-core workspace symlink and tries to
+  // package the whole monorepo
+  exec('vsce package --no-dependencies');
   const packageFile = `${name}-${version}.vsix`;
   log(`✅ Package created: ${packageFile}`, 'green');
   console.log();

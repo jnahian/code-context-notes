@@ -204,7 +204,7 @@
       },
       {
         "command": "codeContextNotes.filterByType",
-        "title": "Filter Notes by Type…",
+        "title": "Filter Notes by Type\u2026",
         "category": "Code Notes",
         "icon": "$(filter)"
       },
@@ -216,7 +216,7 @@
       },
       {
         "command": "codeContextNotes.setNoteMetadata",
-        "title": "Set Note Type / Tags / Priority…",
+        "title": "Set Note Type / Tags / Priority\u2026",
         "category": "Code Notes"
       }
     ],
@@ -485,8 +485,8 @@
     "publish": "node scripts/publish.mjs",
     "publish:bash": "./scripts/publish.sh",
     "package": "node scripts/package.mjs",
-    "package:simple": "vsce package",
-    "package:dev": "vsce package --no-git-tag-version"
+    "package:simple": "vsce package --no-dependencies",
+    "package:dev": "vsce package --no-git-tag-version --no-dependencies"
   },
   "devDependencies": {
     "@types/chai": "^5.2.2",
