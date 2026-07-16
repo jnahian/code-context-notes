@@ -181,22 +181,28 @@ export class NoteManager extends EventEmitter {
   ): Promise<Note> {
     const existing = await this.storage.loadNoteById(noteId);
     if (!existing) throw new Error(`Note ${noteId} not found`);
+    if (existing.isDeleted) throw new Error(`Cannot update deleted note ${noteId}`);
 
     // Merge: only overwrite fields explicitly provided
-    const updated: Note = {
+    const updated: Note = applyDefaults({
       ...existing,
       ...fields,
       updatedAt: new Date().toISOString(),
-    };
+    });
     await this.storage.saveNote(updated);
 
     // Mirror the cache-invalidation pattern used in updateNote
     this.updateNoteInCache(updated);
     this.clearWorkspaceCache();
 
+    // Keep search index in sync (updatedAt / metadata affect search results)
+    if (this.searchManager) {
+      await this.searchManager.updateIndex(updated);
+    }
+
     this.emit('noteUpdated', updated);
     this.emit('noteChanged', { type: 'updated', note: updated });
-    return applyDefaults(updated);
+    return updated;
   }
 
   /**
@@ -351,23 +357,25 @@ export class NoteManager extends EventEmitter {
   }
 
   /**
-   * Add a note to the cache
+   * Add a note to the cache. Defaults are applied here so cached notes
+   * always honor the NoteManager boundary guarantee.
    */
   private addNoteToCache(note: Note): void {
     const notes = this.noteCache.get(note.filePath) || [];
-    notes.push(note);
+    notes.push(applyDefaults(note));
     this.noteCache.set(note.filePath, notes);
   }
 
   /**
-   * Update a note in the cache
+   * Update a note in the cache. Defaults are applied here so cached notes
+   * always honor the NoteManager boundary guarantee.
    */
   private updateNoteInCache(updatedNote: Note): void {
     const notes = this.noteCache.get(updatedNote.filePath);
     if (notes) {
       const index = notes.findIndex(n => n.id === updatedNote.id);
       if (index !== -1) {
-        notes[index] = updatedNote;
+        notes[index] = applyDefaults(updatedNote);
       }
     }
   }

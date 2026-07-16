@@ -535,6 +535,58 @@ suite('NoteManager Test Suite', () => {
 			assert.deepStrictEqual(legacy!.tags, []);
 		});
 	});
+
+	suite('Metadata Updates', () => {
+		test('updateNoteMetadata rejects soft-deleted notes', async () => {
+			await (storage as any).saveNote({
+				id: 'deleted-1',
+				content: 'gone',
+				author: 'alice',
+				filePath: '/abs/x.ts',
+				lineRange: { start: 0, end: 0 },
+				contentHash: 'sha256:x',
+				createdAt: '2026-01-01T00:00:00Z',
+				updatedAt: '2026-01-01T00:00:00Z',
+				history: [],
+				isDeleted: true,
+			});
+
+			await assert.rejects(
+				() => noteManager.updateNoteMetadata('deleted-1', { type: 'instruction' }),
+				/deleted/i
+			);
+		});
+
+		test('updateNoteMetadata persists fields and returns a defaults-applied note', async () => {
+			await (storage as any).saveNote({
+				id: 'meta-1',
+				content: 'hi',
+				author: 'alice',
+				filePath: '/abs/x.ts',
+				lineRange: { start: 0, end: 0 },
+				contentHash: 'sha256:x',
+				createdAt: '2026-01-01T00:00:00Z',
+				updatedAt: '2026-01-01T00:00:00Z',
+				history: [],
+			});
+
+			const updated = await noteManager.updateNoteMetadata('meta-1', {
+				type: 'instruction',
+				priority: 'high',
+			});
+			assert.strictEqual(updated.type, 'instruction');
+			assert.strictEqual(updated.priority, 'high');
+			// Untouched fields come back defaulted, not undefined
+			assert.strictEqual(updated.scope, 'line');
+			assert.deepStrictEqual(updated.tags, []);
+
+			// Cache must serve the defaults-applied note too
+			const notes = await noteManager.getNotesForFile('/abs/x.ts');
+			const cached = notes.find(n => n.id === 'meta-1');
+			assert.strictEqual(cached!.type, 'instruction');
+			assert.strictEqual(cached!.scope, 'line');
+		});
+	});
 });
 
 /**
