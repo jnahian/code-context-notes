@@ -103,7 +103,7 @@ export function buildIndex(rawNotes: Note[], workspaceRoot: string, now: Date = 
   };
 }
 
-const PRIORITY_RANK: Record<string, number> = { critical: 0, high: 1, normal: 2, low: 3 };
+export const PRIORITY_RANK: Record<string, number> = { critical: 0, high: 1, normal: 2, low: 3 };
 
 /**
  * Stable tiebreak for notes that rank equally on their primary sort key
