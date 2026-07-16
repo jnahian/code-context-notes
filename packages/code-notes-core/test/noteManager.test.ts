@@ -616,6 +616,28 @@ describe('NoteManager Test Suite', () => {
 			expect(cached!.type).toBe('instruction');
 			expect(cached!.scope).toBe('line');
 		});
+
+		it('updateNoteMetadata accepts references and authorType', async () => {
+			await (storage as any).saveNote({
+				id: 'meta-2',
+				content: 'hi',
+				author: 'alice',
+				filePath: '/abs/x.ts',
+				lineRange: { start: 0, end: 0 },
+				contentHash: 'sha256:x',
+				createdAt: '2026-01-01T00:00:00Z',
+				updatedAt: '2026-01-01T00:00:00Z',
+				history: [],
+			});
+
+			const references = [{ kind: 'pr' as const, value: '#42' }];
+			const updated = await noteManager.updateNoteMetadata('meta-2', {
+				references,
+				authorType: 'agent',
+			});
+			expect(updated.references).toEqual(references);
+			expect(updated.authorType).toBe('agent');
+		});
 	});
 
 	describe('Locking', () => {

@@ -6,7 +6,7 @@
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
-import { Note, CreateNoteParams, UpdateNoteParams, LineRange, NoteType, NotePriority, NoteScope, NoteDocument, AuthorProvider, SearchIndexSync } from './types.js';
+import { Note, CreateNoteParams, UpdateNoteParams, LineRange, NoteType, NotePriority, NoteScope, NoteReference, AuthorType, NoteDocument, AuthorProvider, SearchIndexSync } from './types.js';
 import { applyDefaults } from './noteDefaults.js';
 import { StorageManager } from './storageManager.js';
 import { ContentHashTracker } from './contentHashTracker.js';
@@ -198,7 +198,7 @@ export class NoteManager extends EventEmitter {
    */
   async updateNoteMetadata(
     noteId: string,
-    fields: { type?: NoteType; priority?: NotePriority; tags?: string[]; expiresAt?: string; scope?: NoteScope },
+    fields: { type?: NoteType; priority?: NotePriority; tags?: string[]; expiresAt?: string; scope?: NoteScope; references?: NoteReference[]; authorType?: AuthorType },
   ): Promise<Note> {
     return this.withNoteLock(noteId, async () => {
       const existing = await this.storage.loadNoteById(noteId);
