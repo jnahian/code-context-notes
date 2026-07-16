@@ -4,3 +4,4 @@ export * from './exportGenerator.js';
 export * from './lockManager.js';
 export * from './storageManager.js';
 export * from './exportWriter.js';
+export * from './scopeResolver.js';
