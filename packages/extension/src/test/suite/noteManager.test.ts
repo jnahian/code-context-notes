@@ -9,10 +9,9 @@ import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as vscode from 'vscode';
 import { NoteManager } from '../../noteManager.js';
-import { StorageManager } from '../../storageManager.js';
 import { ContentHashTracker } from '../../contentHashTracker.js';
 import { GitIntegration } from '../../gitIntegration.js';
-import { CreateNoteParams, UpdateNoteParams, LineRange } from '@jnahian/code-notes-core';
+import { CreateNoteParams, UpdateNoteParams, LineRange, StorageManager } from '@jnahian/code-notes-core';
 
 suite('NoteManager Test Suite', () => {
 	let tempDir: string;

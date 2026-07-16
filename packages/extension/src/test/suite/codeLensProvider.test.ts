@@ -11,9 +11,9 @@ import * as fs from 'fs/promises';
 import * as os from 'os';
 import { CodeNotesLensProvider } from '../../codeLensProvider.js';
 import { NoteManager } from '../../noteManager.js';
-import { StorageManager } from '../../storageManager.js';
 import { ContentHashTracker } from '../../contentHashTracker.js';
 import { GitIntegration } from '../../gitIntegration.js';
+import { StorageManager } from '@jnahian/code-notes-core';
 
 suite('CodeLensProvider Test Suite', () => {
 	let tempDir: string;

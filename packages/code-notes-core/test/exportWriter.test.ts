@@ -1,9 +1,9 @@
-import * as assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
-import { ExportWriter } from '../../exportWriter.js';
-import { Note } from '@jnahian/code-notes-core';
+import { ExportWriter } from '../src/exportWriter.js';
+import { Note } from '../src/types.js';
 
 async function tmpdir(): Promise<string> {
   return await fs.mkdtemp(path.join(os.tmpdir(), 'cn-export-'));
@@ -21,21 +21,21 @@ const sampleNote = (id: string, ws: string): Note => ({
   history: [],
 });
 
-suite('ExportWriter', () => {
-  test('writes INDEX.json and AGENTS.md atomically', async () => {
+describe('ExportWriter', () => {
+  it('writes INDEX.json and AGENTS.md atomically', async () => {
     const ws = await tmpdir();
     await fs.mkdir(path.join(ws, '.code-notes'), { recursive: true });
     const writer = new ExportWriter(ws, '.code-notes', { debounceMs: 0 });
     await writer.regenerate([sampleNote('a', ws)]);
     const idxRaw = await fs.readFile(path.join(ws, '.code-notes', 'INDEX.json'), 'utf-8');
     const idx = JSON.parse(idxRaw);
-    assert.strictEqual(idx.version, 1);
-    assert.strictEqual(idx.notes[0].id, 'a');
+    expect(idx.version).toBe(1);
+    expect(idx.notes[0].id).toBe('a');
     const digest = await fs.readFile(path.join(ws, '.code-notes', 'AGENTS.md'), 'utf-8');
-    assert.ok(digest.startsWith('# Code Notes Digest'));
+    expect(digest.startsWith('# Code Notes Digest')).toBe(true);
   });
 
-  test('debounces rapid scheduleRegenerate calls', async () => {
+  it('debounces rapid scheduleRegenerate calls', async () => {
     const ws = await tmpdir();
     await fs.mkdir(path.join(ws, '.code-notes'), { recursive: true });
     const writer = new ExportWriter(ws, '.code-notes', { debounceMs: 50 });
@@ -45,15 +45,15 @@ suite('ExportWriter', () => {
     writer.scheduleRegenerate(getNotes);
     writer.scheduleRegenerate(getNotes);
     await new Promise(r => setTimeout(r, 100));
-    assert.strictEqual(callCount, 1, 'getNotes should be called once after debounce');
+    expect(callCount).toBe(1);
   });
 
-  test('regeneration failure surfaces via onError without throwing', async () => {
+  it('regeneration failure surfaces via onError without throwing', async () => {
     const ws = '/this/path/does/not/exist/anywhere';
     const writer = new ExportWriter(ws, '.code-notes', { debounceMs: 0 });
     let captured: Error | undefined;
     writer.onError = (e) => { captured = e; };
     await writer.regenerate([]);
-    assert.ok(captured, 'onError should have been called');
+    expect(captured).toBeTruthy();
   });
 });

@@ -4,19 +4,19 @@
  * and edge cases
  */
 
-import * as assert from 'assert';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as os from 'os';
-import { StorageManager } from '../../storageManager.js';
-import { Note } from '@jnahian/code-notes-core';
+import { StorageManager } from '../src/storageManager.js';
+import { Note } from '../src/types.js';
 
-suite('StorageManager Test Suite', () => {
+describe('StorageManager Test Suite', () => {
 	let tempDir: string;
 	let storageManager: StorageManager;
 	let testNote: Note;
 
-	setup(async () => {
+	beforeEach(async () => {
 		// Create a temporary directory for tests
 		tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'code-notes-test-'));
 		storageManager = new StorageManager(tempDir, '.test-notes');
@@ -43,7 +43,7 @@ suite('StorageManager Test Suite', () => {
 		};
 	});
 
-	teardown(async () => {
+	afterEach(async () => {
 		// Clean up temp directory after each test
 		try {
 			await fs.rm(tempDir, { recursive: true, force: true });
@@ -52,60 +52,60 @@ suite('StorageManager Test Suite', () => {
 		}
 	});
 
-	test('getNoteFilePath should return correct file path', () => {
+	it('getNoteFilePath should return correct file path', () => {
 		const filePath = storageManager.getNoteFilePath('abc123');
 		const expected = path.join(tempDir, '.test-notes', 'abc123.md');
-		assert.strictEqual(filePath, expected);
+		expect(filePath).toBe(expected);
 	});
 
-	test('storageExists should return false when storage does not exist', async () => {
+	it('storageExists should return false when storage does not exist', async () => {
 		const exists = await storageManager.storageExists();
-		assert.strictEqual(exists, false);
+		expect(exists).toBe(false);
 	});
 
-	test('createStorage should create storage directory', async () => {
+	it('createStorage should create storage directory', async () => {
 		await storageManager.createStorage();
 		const exists = await storageManager.storageExists();
-		assert.strictEqual(exists, true);
+		expect(exists).toBe(true);
 	});
 
-	test('saveNote should create storage and save note file', async () => {
+	it('saveNote should create storage and save note file', async () => {
 		await storageManager.saveNote(testNote);
 
 		// Verify file exists (now named by note ID)
 		const filePath = storageManager.getNoteFilePath(testNote.id);
 		const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
-		assert.strictEqual(fileExists, true);
+		expect(fileExists).toBe(true);
 
 		// Verify file content is markdown
 		const content = await fs.readFile(filePath, 'utf-8');
-		assert.ok(content.includes('# Code Context Note'));
-		assert.ok(content.includes(testNote.filePath));
-		assert.ok(content.includes(testNote.id));
-		assert.ok(content.includes(testNote.content));
+		expect(content.includes('# Code Context Note')).toBe(true);
+		expect(content.includes(testNote.filePath)).toBe(true);
+		expect(content.includes(testNote.id)).toBe(true);
+		expect(content.includes(testNote.content)).toBe(true);
 	});
 
-	test('loadNoteById should load saved note', async () => {
+	it('loadNoteById should load saved note', async () => {
 		await storageManager.saveNote(testNote);
 		const loadedNote = await storageManager.loadNoteById(testNote.id);
 
-		assert.ok(loadedNote);
-		assert.strictEqual(loadedNote!.id, testNote.id);
-		assert.strictEqual(loadedNote!.content, testNote.content);
-		assert.strictEqual(loadedNote!.author, testNote.author);
-		assert.strictEqual(loadedNote!.filePath, testNote.filePath);
-		assert.strictEqual(loadedNote!.contentHash, testNote.contentHash);
-		assert.strictEqual(loadedNote!.lineRange.start, testNote.lineRange.start);
-		assert.strictEqual(loadedNote!.lineRange.end, testNote.lineRange.end);
-		assert.strictEqual(loadedNote!.isDeleted, false);
+		expect(loadedNote).toBeTruthy();
+		expect(loadedNote!.id).toBe(testNote.id);
+		expect(loadedNote!.content).toBe(testNote.content);
+		expect(loadedNote!.author).toBe(testNote.author);
+		expect(loadedNote!.filePath).toBe(testNote.filePath);
+		expect(loadedNote!.contentHash).toBe(testNote.contentHash);
+		expect(loadedNote!.lineRange.start).toBe(testNote.lineRange.start);
+		expect(loadedNote!.lineRange.end).toBe(testNote.lineRange.end);
+		expect(loadedNote!.isDeleted).toBe(false);
 	});
 
-	test('loadNoteById should return null for non-existent note', async () => {
+	it('loadNoteById should return null for non-existent note', async () => {
 		const loadedNote = await storageManager.loadNoteById('nonexistent');
-		assert.strictEqual(loadedNote, null);
+		expect(loadedNote).toBe(null);
 	});
 
-	test('loadNotes should return all notes for a file', async () => {
+	it('loadNotes should return all notes for a file', async () => {
 		// Create multiple notes for the same file
 		const note1 = { ...testNote, contentHash: 'hash1', id: 'note1' };
 		const note2 = { ...testNote, contentHash: 'hash2', id: 'note2' };
@@ -118,64 +118,63 @@ suite('StorageManager Test Suite', () => {
 		// Load notes for the test file
 		const notes = await storageManager.loadNotes(testNote.filePath);
 
-		assert.strictEqual(notes.length, 2);
-		assert.ok(notes.some(n => n.id === 'note1'));
-		assert.ok(notes.some(n => n.id === 'note2'));
-		assert.ok(!notes.some(n => n.id === 'note3'));
+		expect(notes.length).toBe(2);
+		expect(notes.some(n => n.id === 'note1')).toBe(true);
+		expect(notes.some(n => n.id === 'note2')).toBe(true);
+		expect(!notes.some(n => n.id === 'note3')).toBe(true);
 	});
 
-	test('loadNotes should not return deleted notes', async () => {
+	it('loadNotes should not return deleted notes', async () => {
 		const deletedNote = { ...testNote, isDeleted: true };
 		await storageManager.saveNote(deletedNote);
 
 		const notes = await storageManager.loadNotes(testNote.filePath);
-		assert.strictEqual(notes.length, 0);
+		expect(notes.length).toBe(0);
 	});
 
-	test('loadNotes should return empty array when no notes exist', async () => {
+	it('loadNotes should return empty array when no notes exist', async () => {
 		const notes = await storageManager.loadNotes('/some/file.ts');
-		assert.strictEqual(notes.length, 0);
+		expect(notes.length).toBe(0);
 	});
 
-	test('deleteNote should mark note as deleted', async () => {
+	it('deleteNote should mark note as deleted', async () => {
 		await storageManager.saveNote(testNote);
 		await storageManager.deleteNote(testNote.id, testNote.filePath);
 
 		// Load the note directly by ID to see if it's marked deleted
 		const note = await storageManager.loadNoteById(testNote.id);
-		assert.ok(note);
-		assert.strictEqual(note!.isDeleted, true);
+		expect(note).toBeTruthy();
+		expect(note!.isDeleted).toBe(true);
 
 		// Verify history entry was added
 		const lastHistoryEntry = note!.history[note!.history.length - 1];
-		assert.strictEqual(lastHistoryEntry.action, 'deleted');
+		expect(lastHistoryEntry.action).toBe('deleted');
 	});
 
-	test('deleteNote should throw error for non-existent note', async () => {
-		await assert.rejects(
-			async () => await storageManager.deleteNote('nonexistent', '/some/file.ts'),
-			/Note with id nonexistent not found/
-		);
+	it('deleteNote should throw error for non-existent note', async () => {
+		await expect(
+			storageManager.deleteNote('nonexistent', '/some/file.ts')
+		).rejects.toThrow(/Note with id nonexistent not found/);
 	});
 
-	test('markdown serialization should preserve all note data', async () => {
+	it('markdown serialization should preserve all note data', async () => {
 		await storageManager.saveNote(testNote);
 		const loadedNote = await storageManager.loadNoteById(testNote.id);
 
-		assert.ok(loadedNote);
-		assert.deepStrictEqual(loadedNote!.id, testNote.id);
-		assert.deepStrictEqual(loadedNote!.content, testNote.content);
-		assert.deepStrictEqual(loadedNote!.author, testNote.author);
-		assert.deepStrictEqual(loadedNote!.filePath, testNote.filePath);
-		assert.deepStrictEqual(loadedNote!.lineRange, testNote.lineRange);
-		assert.deepStrictEqual(loadedNote!.contentHash, testNote.contentHash);
-		assert.deepStrictEqual(loadedNote!.createdAt, testNote.createdAt);
-		assert.deepStrictEqual(loadedNote!.updatedAt, testNote.updatedAt);
-		assert.deepStrictEqual(loadedNote!.isDeleted, testNote.isDeleted);
-		assert.strictEqual(loadedNote!.history.length, testNote.history.length);
+		expect(loadedNote).toBeTruthy();
+		expect(loadedNote!.id).toEqual(testNote.id);
+		expect(loadedNote!.content).toEqual(testNote.content);
+		expect(loadedNote!.author).toEqual(testNote.author);
+		expect(loadedNote!.filePath).toEqual(testNote.filePath);
+		expect(loadedNote!.lineRange).toEqual(testNote.lineRange);
+		expect(loadedNote!.contentHash).toEqual(testNote.contentHash);
+		expect(loadedNote!.createdAt).toEqual(testNote.createdAt);
+		expect(loadedNote!.updatedAt).toEqual(testNote.updatedAt);
+		expect(loadedNote!.isDeleted).toEqual(testNote.isDeleted);
+		expect(loadedNote!.history.length).toBe(testNote.history.length);
 	});
 
-	test('markdown serialization should preserve history entries', async () => {
+	it('markdown serialization should preserve history entries', async () => {
 		const noteWithHistory: Note = {
 			...testNote,
 			history: [
@@ -203,16 +202,16 @@ suite('StorageManager Test Suite', () => {
 		await storageManager.saveNote(noteWithHistory);
 		const loadedNote = await storageManager.loadNoteById(noteWithHistory.id);
 
-		assert.ok(loadedNote);
-		assert.strictEqual(loadedNote!.history.length, 3);
-		assert.strictEqual(loadedNote!.history[0].content, 'First version');
-		assert.strictEqual(loadedNote!.history[0].author, 'Author 1');
-		assert.strictEqual(loadedNote!.history[0].action, 'created');
-		assert.strictEqual(loadedNote!.history[1].content, 'Second version');
-		assert.strictEqual(loadedNote!.history[2].content, 'Third version');
+		expect(loadedNote).toBeTruthy();
+		expect(loadedNote!.history.length).toBe(3);
+		expect(loadedNote!.history[0].content).toBe('First version');
+		expect(loadedNote!.history[0].author).toBe('Author 1');
+		expect(loadedNote!.history[0].action).toBe('created');
+		expect(loadedNote!.history[1].content).toBe('Second version');
+		expect(loadedNote!.history[2].content).toBe('Third version');
 	});
 
-	test('markdown serialization should handle special characters', async () => {
+	it('markdown serialization should handle special characters', async () => {
 		const noteWithSpecialChars: Note = {
 			...testNote,
 			content: 'Content with **bold**, *italic*, `code`, and [links](http://example.com)',
@@ -222,12 +221,12 @@ suite('StorageManager Test Suite', () => {
 		await storageManager.saveNote(noteWithSpecialChars);
 		const loadedNote = await storageManager.loadNoteById(noteWithSpecialChars.id);
 
-		assert.ok(loadedNote);
-		assert.strictEqual(loadedNote!.content, noteWithSpecialChars.content);
-		assert.strictEqual(loadedNote!.author, noteWithSpecialChars.author);
+		expect(loadedNote).toBeTruthy();
+		expect(loadedNote!.content).toBe(noteWithSpecialChars.content);
+		expect(loadedNote!.author).toBe(noteWithSpecialChars.author);
 	});
 
-	test('markdown serialization should handle multiline content', async () => {
+	it('markdown serialization should handle multiline content', async () => {
 		const noteWithMultiline: Note = {
 			...testNote,
 			content: 'Line 1\nLine 2\nLine 3\n\nLine 5 after blank line'
@@ -236,11 +235,11 @@ suite('StorageManager Test Suite', () => {
 		await storageManager.saveNote(noteWithMultiline);
 		const loadedNote = await storageManager.loadNoteById(noteWithMultiline.id);
 
-		assert.ok(loadedNote);
-		assert.strictEqual(loadedNote!.content, noteWithMultiline.content);
+		expect(loadedNote).toBeTruthy();
+		expect(loadedNote!.content).toBe(noteWithMultiline.content);
 	});
 
-	test('markdown serialization should handle code blocks', async () => {
+	it('markdown serialization should handle code blocks', async () => {
 		const noteWithCodeBlock: Note = {
 			...testNote,
 			content: '```typescript\nfunction test() {\n  return true;\n}\n```'
@@ -249,11 +248,11 @@ suite('StorageManager Test Suite', () => {
 		await storageManager.saveNote(noteWithCodeBlock);
 		const loadedNote = await storageManager.loadNoteById(noteWithCodeBlock.id);
 
-		assert.ok(loadedNote);
-		assert.strictEqual(loadedNote!.content, noteWithCodeBlock.content);
+		expect(loadedNote).toBeTruthy();
+		expect(loadedNote!.content).toBe(noteWithCodeBlock.content);
 	});
 
-	test('markdown serialization should handle lists', async () => {
+	it('markdown serialization should handle lists', async () => {
 		const noteWithLists: Note = {
 			...testNote,
 			content: '- Item 1\n- Item 2\n- Item 3\n\n1. Numbered 1\n2. Numbered 2'
@@ -262,11 +261,11 @@ suite('StorageManager Test Suite', () => {
 		await storageManager.saveNote(noteWithLists);
 		const loadedNote = await storageManager.loadNoteById(noteWithLists.id);
 
-		assert.ok(loadedNote);
-		assert.strictEqual(loadedNote!.content, noteWithLists.content);
+		expect(loadedNote).toBeTruthy();
+		expect(loadedNote!.content).toBe(noteWithLists.content);
 	});
 
-	test('markdown serialization should handle empty history', async () => {
+	it('markdown serialization should handle empty history', async () => {
 		const noteWithEmptyHistory: Note = {
 			...testNote,
 			history: []
@@ -275,25 +274,25 @@ suite('StorageManager Test Suite', () => {
 		await storageManager.saveNote(noteWithEmptyHistory);
 		const loadedNote = await storageManager.loadNoteById(noteWithEmptyHistory.id);
 
-		assert.ok(loadedNote);
-		assert.strictEqual(loadedNote!.history.length, 0);
+		expect(loadedNote).toBeTruthy();
+		expect(loadedNote!.history.length).toBe(0);
 	});
 
-	test('getAllNoteFiles should return all note files', async () => {
+	it('getAllNoteFiles should return all note files', async () => {
 		await storageManager.saveNote({ ...testNote, id: 'note1' });
 		await storageManager.saveNote({ ...testNote, id: 'note2' });
 		await storageManager.saveNote({ ...testNote, id: 'note3' });
 
 		const files = await storageManager.getAllNoteFiles();
-		assert.strictEqual(files.length, 3);
+		expect(files.length).toBe(3);
 	});
 
-	test('getAllNoteFiles should return empty array when storage does not exist', async () => {
+	it('getAllNoteFiles should return empty array when storage does not exist', async () => {
 		const files = await storageManager.getAllNoteFiles();
-		assert.strictEqual(files.length, 0);
+		expect(files.length).toBe(0);
 	});
 
-	test('saveNote should overwrite existing file', async () => {
+	it('saveNote should overwrite existing file', async () => {
 		await storageManager.saveNote(testNote);
 
 		// Update and save again (same note ID, so overwrites)
@@ -305,22 +304,22 @@ suite('StorageManager Test Suite', () => {
 		await storageManager.saveNote(updatedNote);
 
 		const loadedNote = await storageManager.loadNoteById(testNote.id);
-		assert.ok(loadedNote);
-		assert.strictEqual(loadedNote!.content, 'Updated content');
-		assert.strictEqual(loadedNote!.updatedAt, '2025-01-02T00:00:00.000Z');
+		expect(loadedNote).toBeTruthy();
+		expect(loadedNote!.content).toBe('Updated content');
+		expect(loadedNote!.updatedAt).toBe('2025-01-02T00:00:00.000Z');
 	});
 
-	test('markdown should include deleted status', async () => {
+	it('markdown should include deleted status', async () => {
 		const deletedNote = { ...testNote, isDeleted: true };
 		await storageManager.saveNote(deletedNote);
 
 		const filePath = storageManager.getNoteFilePath(deletedNote.id);
 		const content = await fs.readFile(filePath, 'utf-8');
 
-		assert.ok(content.includes('**Status:** DELETED'));
+		expect(content.includes('**Status:** DELETED')).toBe(true);
 	});
 
-	test('markdownToNote drops invalid structured field values', async () => {
+	it('markdownToNote drops invalid structured field values', async () => {
 		const markdown = `# Code Context Note
 
 **File:** /abs/foo.ts
@@ -343,15 +342,15 @@ Hi.
 `;
 		const sm: any = new StorageManager('/tmp');
 		const note = sm.markdownToNote(markdown);
-		assert.ok(note);
-		assert.strictEqual(note!.type, undefined, 'invalid type must be dropped');
-		assert.strictEqual(note!.scope, undefined, 'invalid scope must be dropped');
-		assert.strictEqual(note!.priority, undefined, 'invalid priority must be dropped');
-		assert.strictEqual(note!.authorType, undefined, 'invalid authorType must be dropped');
-		assert.deepStrictEqual(note!.references, [{ kind: 'pr', value: '#42' }], 'only valid references survive');
+		expect(note).toBeTruthy();
+		expect(note!.type).toBe(undefined);
+		expect(note!.scope).toBe(undefined);
+		expect(note!.priority).toBe(undefined);
+		expect(note!.authorType).toBe(undefined);
+		expect(note!.references).toEqual([{ kind: 'pr', value: '#42' }]);
 	});
 
-	test('markdownToNote parses new structured fields when present', async () => {
+	it('markdownToNote parses new structured fields when present', async () => {
 		const markdown = `# Code Context Note
 
 **File:** /abs/foo.ts
@@ -376,17 +375,17 @@ Do not bypass.
 `;
 		const sm: any = new StorageManager('/tmp');
 		const note = sm.markdownToNote(markdown);
-		assert.ok(note);
-		assert.strictEqual(note!.type, 'instruction');
-		assert.strictEqual(note!.scope, 'function');
-		assert.strictEqual(note!.priority, 'high');
-		assert.deepStrictEqual(note!.tags, ['security', 'legacy']);
-		assert.strictEqual(note!.authorType, 'human');
-		assert.strictEqual(note!.expiresAt, '2026-12-01T00:00:00Z');
-		assert.deepStrictEqual(note!.references, [{ kind: 'pr', value: '#42' }]);
+		expect(note).toBeTruthy();
+		expect(note!.type).toBe('instruction');
+		expect(note!.scope).toBe('function');
+		expect(note!.priority).toBe('high');
+		expect(note!.tags).toEqual(['security', 'legacy']);
+		expect(note!.authorType).toBe('human');
+		expect(note!.expiresAt).toBe('2026-12-01T00:00:00Z');
+		expect(note!.references).toEqual([{ kind: 'pr', value: '#42' }]);
 	});
 
-	test('markdownToNote leaves new fields undefined for legacy notes', async () => {
+	it('markdownToNote leaves new fields undefined for legacy notes', async () => {
 		const markdown = `# Code Context Note
 
 **File:** /abs/foo.ts
@@ -404,13 +403,13 @@ Hi.
 `;
 		const sm: any = new StorageManager('/tmp');
 		const note = sm.markdownToNote(markdown);
-		assert.ok(note);
-		assert.strictEqual(note!.type, undefined);
-		assert.strictEqual(note!.scope, undefined);
-		assert.strictEqual(note!.tags, undefined);
+		expect(note).toBeTruthy();
+		expect(note!.type).toBe(undefined);
+		expect(note!.scope).toBe(undefined);
+		expect(note!.tags).toBe(undefined);
 	});
 
-	test('noteToMarkdown emits structured fields when set', async () => {
+	it('noteToMarkdown emits structured fields when set', async () => {
 		const sm: any = new StorageManager('/tmp');
 		const md = sm.noteToMarkdown({
 			id: 'n1',
@@ -430,16 +429,16 @@ Hi.
 			expiresAt: '2026-12-01T00:00:00Z',
 			references: [{ kind: 'pr', value: '#42' }],
 		});
-		assert.ok(md.includes('**Type:** instruction'));
-		assert.ok(md.includes('**Scope:** function'));
-		assert.ok(md.includes('**Priority:** high'));
-		assert.ok(md.includes('**Tags:** security'));
-		assert.ok(md.includes('**AuthorType:** agent'));
-		assert.ok(md.includes('**ExpiresAt:** 2026-12-01T00:00:00Z'));
-		assert.ok(md.includes('**References:** [{"kind":"pr","value":"#42"}]'));
+		expect(md.includes('**Type:** instruction')).toBe(true);
+		expect(md.includes('**Scope:** function')).toBe(true);
+		expect(md.includes('**Priority:** high')).toBe(true);
+		expect(md.includes('**Tags:** security')).toBe(true);
+		expect(md.includes('**AuthorType:** agent')).toBe(true);
+		expect(md.includes('**ExpiresAt:** 2026-12-01T00:00:00Z')).toBe(true);
+		expect(md.includes('**References:** [{"kind":"pr","value":"#42"}]')).toBe(true);
 	});
 
-	test('noteToMarkdown omits fields equal to defaults', async () => {
+	it('noteToMarkdown omits fields equal to defaults', async () => {
 		const sm: any = new StorageManager('/tmp');
 		const md = sm.noteToMarkdown({
 			id: 'n1',
@@ -457,10 +456,10 @@ Hi.
 			tags: [],            // default
 			authorType: 'human', // default
 		});
-		assert.ok(!md.includes('**Type:**'));
-		assert.ok(!md.includes('**Scope:**'));
-		assert.ok(!md.includes('**Priority:**'));
-		assert.ok(!md.includes('**Tags:**'));
-		assert.ok(!md.includes('**AuthorType:**'));
+		expect(!md.includes('**Type:**')).toBe(true);
+		expect(!md.includes('**Scope:**')).toBe(true);
+		expect(!md.includes('**Priority:**')).toBe(true);
+		expect(!md.includes('**Tags:**')).toBe(true);
+		expect(!md.includes('**AuthorType:**')).toBe(true);
 	});
 });
