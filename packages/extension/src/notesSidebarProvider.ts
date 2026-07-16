@@ -4,8 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import { NoteManager } from './noteManager.js';
-import { Note, applyDefaults, isExpired } from '@jnahian/code-notes-core';
+import { Note, applyDefaults, isExpired, NoteManager } from '@jnahian/code-notes-core';
 import { RootTreeItem, FileTreeItem, NoteTreeItem, BaseTreeItem } from './noteTreeItem.js';
 
 /**

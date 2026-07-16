@@ -7,9 +7,8 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { EventEmitter } from 'events';
 import { NotesSidebarProvider } from '../../notesSidebarProvider.js';
-import { NoteManager } from '../../noteManager.js';
 import { RootTreeItem, FileTreeItem, NoteTreeItem } from '../../noteTreeItem.js';
-import { Note } from '@jnahian/code-notes-core';
+import { Note, NoteManager } from '@jnahian/code-notes-core';
 
 suite('NotesSidebarProvider Test Suite', () => {
 	let provider: NotesSidebarProvider;

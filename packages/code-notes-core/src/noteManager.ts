@@ -3,14 +3,13 @@
  * Central coordinator for all note operations
  */
 
-import * as vscode from 'vscode';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
-import { Note, CreateNoteParams, UpdateNoteParams, LineRange, NoteType, NotePriority, NoteScope, applyDefaults, StorageManager } from '@jnahian/code-notes-core';
+import { Note, CreateNoteParams, UpdateNoteParams, LineRange, NoteType, NotePriority, NoteScope, NoteDocument, AuthorProvider, SearchIndexSync } from './types.js';
+import { applyDefaults } from './noteDefaults.js';
+import { StorageManager } from './storageManager.js';
 import { ContentHashTracker } from './contentHashTracker.js';
-import { GitIntegration } from './gitIntegration.js';
-import { SearchManager } from './searchManager.js';
 
 /**
  * NoteManager coordinates all note operations
@@ -19,8 +18,8 @@ import { SearchManager } from './searchManager.js';
 export class NoteManager extends EventEmitter {
   private storage: StorageManager;
   private hashTracker: ContentHashTracker;
-  private gitIntegration: GitIntegration;
-  private searchManager?: SearchManager; // optional to avoid circular dependency
+  private gitIntegration: AuthorProvider;
+  private searchManager?: SearchIndexSync; // optional to avoid circular dependency
   private noteCache: Map<string, Note[]>; // filePath -> notes
   private workspaceNotesCache: Note[] | null = null; // cache for all notes
   private workspaceNotesByFileCache: Map<string, Note[]> | null = null; // cache for notes grouped by file
@@ -29,7 +28,7 @@ export class NoteManager extends EventEmitter {
   constructor(
     storage: StorageManager,
     hashTracker: ContentHashTracker,
-    gitIntegration: GitIntegration
+    gitIntegration: AuthorProvider
   ) {
     super();
     this.storage = storage;
@@ -44,7 +43,7 @@ export class NoteManager extends EventEmitter {
   /**
    * Set the search manager (called after both managers are created to avoid circular dependency)
    */
-  setSearchManager(searchManager: SearchManager): void {
+  setSearchManager(searchManager: SearchIndexSync): void {
     this.searchManager = searchManager;
   }
 
@@ -62,7 +61,7 @@ export class NoteManager extends EventEmitter {
   /**
    * Create a new note
    */
-  async createNote(params: CreateNoteParams, document: vscode.TextDocument): Promise<Note> {
+  async createNote(params: CreateNoteParams, document: NoteDocument): Promise<Note> {
     // Validate parameters
     this.validateLineRange(params.lineRange, document);
 
@@ -121,7 +120,7 @@ export class NoteManager extends EventEmitter {
   /**
    * Update an existing note
    */
-  async updateNote(params: UpdateNoteParams, document: vscode.TextDocument): Promise<Note> {
+  async updateNote(params: UpdateNoteParams, document: NoteDocument): Promise<Note> {
     // Load existing note (including deleted notes to properly handle all cases)
     const filePath = document.uri.fsPath;
     const notes = await this.getAllNotesForFile(filePath);
@@ -309,7 +308,7 @@ export class NoteManager extends EventEmitter {
    * Update note positions when document changes
    * Returns notes that were updated
    */
-  async updateNotePositions(document: vscode.TextDocument): Promise<Note[]> {
+  async updateNotePositions(document: NoteDocument): Promise<Note[]> {
     const filePath = document.uri.fsPath;
     const notes = await this.getNotesForFile(filePath);
     const updatedNotes: Note[] = [];
@@ -353,7 +352,7 @@ export class NoteManager extends EventEmitter {
   /**
    * Validate a line range against document bounds
    */
-  private validateLineRange(lineRange: LineRange, document: vscode.TextDocument): void {
+  private validateLineRange(lineRange: LineRange, document: NoteDocument): void {
     if (lineRange.start < 0 || lineRange.end < 0) {
       throw new Error('Line range cannot contain negative numbers');
     }

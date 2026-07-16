@@ -4,8 +4,7 @@
  */
 
 import * as crypto from 'crypto';
-import * as vscode from 'vscode';
-import { LineRange, ContentHashResult } from '@jnahian/code-notes-core';
+import { LineRange, ContentHashResult, NoteDocument } from './types.js';
 
 /**
  * ContentHashTracker manages content-based note tracking
@@ -17,7 +16,7 @@ export class ContentHashTracker {
   /**
    * Generate a hash for content in a specific line range
    */
-  generateHash(document: vscode.TextDocument, lineRange: LineRange): string {
+  generateHash(document: NoteDocument, lineRange: LineRange): string {
     const content = this.getContentForRange(document, lineRange);
     const normalized = this.normalizeContent(content);
     return this.hashContent(normalized);
@@ -26,7 +25,7 @@ export class ContentHashTracker {
   /**
    * Extract content from a line range in a document
    */
-  getContentForRange(document: vscode.TextDocument, lineRange: LineRange): string {
+  getContentForRange(document: NoteDocument, lineRange: LineRange): string {
     const lines: string[] = [];
 
     // Validate line range
@@ -71,7 +70,7 @@ export class ContentHashTracker {
    * Returns the new line range if found, or null if not found
    */
   async findContentByHash(
-    document: vscode.TextDocument,
+    document: NoteDocument,
     targetHash: string,
     originalRange: LineRange
   ): Promise<ContentHashResult> {
@@ -129,7 +128,7 @@ export class ContentHashTracker {
    * Uses Levenshtein distance for fuzzy matching
    */
   private async findSimilarContent(
-    document: vscode.TextDocument,
+    document: NoteDocument,
     originalRange: LineRange,
     targetHash: string,
     rangeSize: number
@@ -225,7 +224,7 @@ export class ContentHashTracker {
    * Validate if content at a line range matches the expected hash
    */
   validateContentHash(
-    document: vscode.TextDocument,
+    document: NoteDocument,
     lineRange: LineRange,
     expectedHash: string
   ): boolean {
@@ -236,7 +235,7 @@ export class ContentHashTracker {
   /**
    * Get the current hash for a line range (convenience method)
    */
-  getCurrentHash(document: vscode.TextDocument, lineRange: LineRange): string {
+  getCurrentHash(document: NoteDocument, lineRange: LineRange): string {
     return this.generateHash(document, lineRange);
   }
 
@@ -245,7 +244,7 @@ export class ContentHashTracker {
    * Returns true if the similarity is below the threshold
    */
   async hasContentChangedSignificantly(
-    document: vscode.TextDocument,
+    document: NoteDocument,
     lineRange: LineRange,
     originalHash: string
   ): Promise<boolean> {

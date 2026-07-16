@@ -5,3 +5,5 @@ export * from './lockManager.js';
 export * from './storageManager.js';
 export * from './exportWriter.js';
 export * from './scopeResolver.js';
+export * from './contentHashTracker.js';
+export * from './noteManager.js';

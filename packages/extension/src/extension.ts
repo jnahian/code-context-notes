@@ -4,10 +4,8 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { StorageManager, ExportWriter } from '@jnahian/code-notes-core';
-import { ContentHashTracker } from './contentHashTracker.js';
+import { StorageManager, ExportWriter, ContentHashTracker, NoteManager } from '@jnahian/code-notes-core';
 import { GitIntegration } from './gitIntegration.js';
-import { NoteManager } from './noteManager.js';
 import { CommentController } from './commentController.js';
 import { CodeNotesLensProvider } from './codeLensProvider.js';
 import { NotesSidebarProvider } from './notesSidebarProvider.js';

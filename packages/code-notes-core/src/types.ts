@@ -211,3 +211,32 @@ export interface MultiNoteThreadState {
   /** File path for this thread */
   filePath: string;
 }
+
+/**
+ * Minimal structural subset of vscode.TextDocument that NoteManager and
+ * ContentHashTracker need. A real vscode.TextDocument satisfies this
+ * structurally, so extension call sites don't need to wrap it.
+ */
+export interface NoteDocument {
+  lineCount: number;
+  lineAt(line: number): { text: string };
+  uri: { fsPath: string };
+}
+
+/**
+ * Author name lookup, injected into NoteManager so it doesn't depend on
+ * the extension's git/vscode-backed GitIntegration class directly.
+ */
+export interface AuthorProvider {
+  getAuthorName(): Promise<string>;
+  updateConfigOverride(override?: string): void;
+}
+
+/**
+ * Search index sync hooks NoteManager calls on note mutation. The
+ * extension's SearchManager satisfies this structurally.
+ */
+export interface SearchIndexSync {
+  updateIndex(note: Note): Promise<void>;
+  removeFromIndex(noteId: string): Promise<void>;
+}

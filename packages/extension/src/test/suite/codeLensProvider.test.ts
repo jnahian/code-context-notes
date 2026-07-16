@@ -10,10 +10,8 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import { CodeNotesLensProvider } from '../../codeLensProvider.js';
-import { NoteManager } from '../../noteManager.js';
-import { ContentHashTracker } from '../../contentHashTracker.js';
 import { GitIntegration } from '../../gitIntegration.js';
-import { StorageManager } from '@jnahian/code-notes-core';
+import { StorageManager, NoteManager, ContentHashTracker } from '@jnahian/code-notes-core';
 
 suite('CodeLensProvider Test Suite', () => {
 	let tempDir: string;

@@ -3,35 +3,44 @@
  * Tests CRUD operations, caching, and note position updates
  */
 
-import * as assert from 'assert';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as os from 'os';
-import * as vscode from 'vscode';
-import { NoteManager } from '../../noteManager.js';
-import { ContentHashTracker } from '../../contentHashTracker.js';
-import { GitIntegration } from '../../gitIntegration.js';
-import { CreateNoteParams, UpdateNoteParams, LineRange, StorageManager } from '@jnahian/code-notes-core';
+import { NoteManager } from '../src/noteManager.js';
+import { ContentHashTracker } from '../src/contentHashTracker.js';
+import { StorageManager } from '../src/storageManager.js';
+import { CreateNoteParams, UpdateNoteParams, NoteDocument, AuthorProvider } from '../src/types.js';
 
-suite('NoteManager Test Suite', () => {
+class FakeAuthorProvider implements AuthorProvider {
+	constructor(private authorName: string) {}
+	async getAuthorName(): Promise<string> {
+		return this.authorName;
+	}
+	updateConfigOverride(override?: string): void {
+		if (override) this.authorName = override;
+	}
+}
+
+describe('NoteManager Test Suite', () => {
 	let tempDir: string;
 	let noteManager: NoteManager;
 	let storage: StorageManager;
 	let hashTracker: ContentHashTracker;
-	let gitIntegration: GitIntegration;
+	let gitIntegration: AuthorProvider;
 
-	setup(async () => {
+	beforeEach(async () => {
 		// Create temporary directory
 		tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'note-manager-test-'));
 
 		// Initialize components
 		storage = new StorageManager(tempDir, '.test-notes');
 		hashTracker = new ContentHashTracker();
-		gitIntegration = new GitIntegration(tempDir, 'Test Author');
+		gitIntegration = new FakeAuthorProvider('Test Author');
 		noteManager = new NoteManager(storage, hashTracker, gitIntegration);
 	});
 
-	teardown(async () => {
+	afterEach(async () => {
 		// Clean up
 		try {
 			await fs.rm(tempDir, { recursive: true, force: true });
@@ -40,9 +49,9 @@ suite('NoteManager Test Suite', () => {
 		}
 	});
 
-	suite('Note Creation', () => {
-		test('should create a new note', async () => {
-			const doc = await createMockDocument('function test() {\n  return true;\n}');
+	describe('Note Creation', () => {
+		it('should create a new note', async () => {
+			const doc = createMockDocument('function test() {\n  return true;\n}');
 			const params: CreateNoteParams = {
 				content: 'This is a test note',
 				filePath: '/test/file.ts',
@@ -51,21 +60,21 @@ suite('NoteManager Test Suite', () => {
 
 			const note = await noteManager.createNote(params, doc);
 
-			assert.ok(note.id);
-			assert.strictEqual(note.content, 'This is a test note');
-			assert.strictEqual(note.author, 'Test Author');
-			assert.strictEqual(note.filePath, '/test/file.ts');
-			assert.deepStrictEqual(note.lineRange, { start: 0, end: 2 });
-			assert.ok(note.contentHash);
-			assert.ok(note.createdAt);
-			assert.ok(note.updatedAt);
-			assert.strictEqual(note.isDeleted, false);
-			assert.strictEqual(note.history.length, 1);
-			assert.strictEqual(note.history[0].action, 'created');
+			expect(note.id).toBeTruthy();
+			expect(note.content).toBe('This is a test note');
+			expect(note.author).toBe('Test Author');
+			expect(note.filePath).toBe('/test/file.ts');
+			expect(note.lineRange).toEqual({ start: 0, end: 2 });
+			expect(note.contentHash).toBeTruthy();
+			expect(note.createdAt).toBeTruthy();
+			expect(note.updatedAt).toBeTruthy();
+			expect(note.isDeleted).toBe(false);
+			expect(note.history.length).toBe(1);
+			expect(note.history[0].action).toBe('created');
 		});
 
-		test('should trim note content', async () => {
-			const doc = await createMockDocument('function test() {}');
+		it('should trim note content', async () => {
+			const doc = createMockDocument('function test() {}');
 			const params: CreateNoteParams = {
 				content: '  This is a test note  ',
 				filePath: '/test/file.ts',
@@ -73,11 +82,11 @@ suite('NoteManager Test Suite', () => {
 			};
 
 			const note = await noteManager.createNote(params, doc);
-			assert.strictEqual(note.content, 'This is a test note');
+			expect(note.content).toBe('This is a test note');
 		});
 
-		test('should use provided author if specified', async () => {
-			const doc = await createMockDocument('function test() {}');
+		it('should use provided author if specified', async () => {
+			const doc = createMockDocument('function test() {}');
 			const params: CreateNoteParams = {
 				content: 'Test note',
 				filePath: '/test/file.ts',
@@ -86,11 +95,11 @@ suite('NoteManager Test Suite', () => {
 			};
 
 			const note = await noteManager.createNote(params, doc);
-			assert.strictEqual(note.author, 'Custom Author');
+			expect(note.author).toBe('Custom Author');
 		});
 
-		test('should generate content hash', async () => {
-			const doc = await createMockDocument('function test() {\n  return true;\n}');
+		it('should generate content hash', async () => {
+			const doc = createMockDocument('function test() {\n  return true;\n}');
 			const params: CreateNoteParams = {
 				content: 'Test note',
 				filePath: '/test/file.ts',
@@ -98,57 +107,48 @@ suite('NoteManager Test Suite', () => {
 			};
 
 			const note = await noteManager.createNote(params, doc);
-			assert.ok(note.contentHash);
-			assert.strictEqual(typeof note.contentHash, 'string');
-			assert.strictEqual(note.contentHash.length, 64); // SHA-256 hex
+			expect(note.contentHash).toBeTruthy();
+			expect(typeof note.contentHash).toBe('string');
+			expect(note.contentHash.length).toBe(64); // SHA-256 hex
 		});
 
-		test('should throw error for invalid line range', async () => {
-			const doc = await createMockDocument('line 1\nline 2');
+		it('should throw error for invalid line range', async () => {
+			const doc = createMockDocument('line 1\nline 2');
 			const params: CreateNoteParams = {
 				content: 'Test note',
 				filePath: '/test/file.ts',
 				lineRange: { start: 0, end: 10 } // Beyond document
 			};
 
-			await assert.rejects(
-				async () => await noteManager.createNote(params, doc),
-				/exceeds document line count/
-			);
+			await expect(noteManager.createNote(params, doc)).rejects.toThrow(/exceeds document line count/);
 		});
 
-		test('should throw error for negative line numbers', async () => {
-			const doc = await createMockDocument('line 1\nline 2');
+		it('should throw error for negative line numbers', async () => {
+			const doc = createMockDocument('line 1\nline 2');
 			const params: CreateNoteParams = {
 				content: 'Test note',
 				filePath: '/test/file.ts',
 				lineRange: { start: -1, end: 1 }
 			};
 
-			await assert.rejects(
-				async () => await noteManager.createNote(params, doc),
-				/cannot contain negative numbers/
-			);
+			await expect(noteManager.createNote(params, doc)).rejects.toThrow(/cannot contain negative numbers/);
 		});
 
-		test('should throw error for inverted line range', async () => {
-			const doc = await createMockDocument('line 1\nline 2');
+		it('should throw error for inverted line range', async () => {
+			const doc = createMockDocument('line 1\nline 2');
 			const params: CreateNoteParams = {
 				content: 'Test note',
 				filePath: '/test/file.ts',
 				lineRange: { start: 2, end: 0 } // Start > end
 			};
 
-			await assert.rejects(
-				async () => await noteManager.createNote(params, doc),
-				/start must be less than or equal to end/
-			);
+			await expect(noteManager.createNote(params, doc)).rejects.toThrow(/start must be less than or equal to end/);
 		});
 	});
 
-	suite('Note Updates', () => {
-		test('should update an existing note', async () => {
-			const doc = await createMockDocument('function test() {\n  return true;\n}');
+	describe('Note Updates', () => {
+		it('should update an existing note', async () => {
+			const doc = createMockDocument('function test() {\n  return true;\n}');
 
 			// Create note
 			const createParams: CreateNoteParams = {
@@ -165,15 +165,15 @@ suite('NoteManager Test Suite', () => {
 			};
 			const updatedNote = await noteManager.updateNote(updateParams, doc);
 
-			assert.strictEqual(updatedNote.id, note.id);
-			assert.strictEqual(updatedNote.content, 'Updated content');
-			assert.strictEqual(updatedNote.history.length, 2);
-			assert.strictEqual(updatedNote.history[1].action, 'edited');
-			assert.strictEqual(updatedNote.history[1].content, 'Updated content');
+			expect(updatedNote.id).toBe(note.id);
+			expect(updatedNote.content).toBe('Updated content');
+			expect(updatedNote.history.length).toBe(2);
+			expect(updatedNote.history[1].action).toBe('edited');
+			expect(updatedNote.history[1].content).toBe('Updated content');
 		});
 
-		test('should trim updated content', async () => {
-			const doc = await createMockDocument('function test() {}');
+		it('should trim updated content', async () => {
+			const doc = createMockDocument('function test() {}');
 			const note = await noteManager.createNote({
 				content: 'Original',
 				filePath: doc.uri.fsPath,
@@ -185,11 +185,11 @@ suite('NoteManager Test Suite', () => {
 				content: '  Updated  '
 			}, doc);
 
-			assert.strictEqual(updatedNote.content, 'Updated');
+			expect(updatedNote.content).toBe('Updated');
 		});
 
-		test('should update timestamps', async () => {
-			const doc = await createMockDocument('function test() {}');
+		it('should update timestamps', async () => {
+			const doc = createMockDocument('function test() {}');
 			const note = await noteManager.createNote({
 				content: 'Original',
 				filePath: doc.uri.fsPath,
@@ -206,23 +206,20 @@ suite('NoteManager Test Suite', () => {
 				content: 'Updated'
 			}, doc);
 
-			assert.notStrictEqual(updatedNote.updatedAt, originalUpdatedAt);
+			expect(updatedNote.updatedAt).not.toBe(originalUpdatedAt);
 		});
 
-		test('should throw error for non-existent note', async () => {
-			const doc = await createMockDocument('function test() {}');
+		it('should throw error for non-existent note', async () => {
+			const doc = createMockDocument('function test() {}');
 
-			await assert.rejects(
-				async () => await noteManager.updateNote({
-					id: 'non-existent-id',
-					content: 'Updated'
-				}, doc),
-				/not found/
-			);
+			await expect(noteManager.updateNote({
+				id: 'non-existent-id',
+				content: 'Updated'
+			}, doc)).rejects.toThrow(/not found/);
 		});
 
-		test('should throw error when updating deleted note', async () => {
-			const doc = await createMockDocument('function test() {}');
+		it('should throw error when updating deleted note', async () => {
+			const doc = createMockDocument('function test() {}');
 			const note = await noteManager.createNote({
 				content: 'Original',
 				filePath: doc.uri.fsPath,
@@ -233,17 +230,14 @@ suite('NoteManager Test Suite', () => {
 			await noteManager.deleteNote(note.id, doc.uri.fsPath);
 
 			// Try to update
-			await assert.rejects(
-				async () => await noteManager.updateNote({
-					id: note.id,
-					content: 'Updated'
-				}, doc),
-				/Cannot update deleted note/
-			);
+			await expect(noteManager.updateNote({
+				id: note.id,
+				content: 'Updated'
+			}, doc)).rejects.toThrow(/Cannot update deleted note/);
 		});
 
-		test('should use custom author if provided', async () => {
-			const doc = await createMockDocument('function test() {}');
+		it('should use custom author if provided', async () => {
+			const doc = createMockDocument('function test() {}');
 			const note = await noteManager.createNote({
 				content: 'Original',
 				filePath: doc.uri.fsPath,
@@ -256,13 +250,13 @@ suite('NoteManager Test Suite', () => {
 				author: 'Custom Author'
 			}, doc);
 
-			assert.strictEqual(updatedNote.history[1].author, 'Custom Author');
+			expect(updatedNote.history[1].author).toBe('Custom Author');
 		});
 	});
 
-	suite('Note Deletion', () => {
-		test('should soft delete a note', async () => {
-			const doc = await createMockDocument('function test() {}');
+	describe('Note Deletion', () => {
+		it('should soft delete a note', async () => {
+			const doc = createMockDocument('function test() {}');
 			const note = await noteManager.createNote({
 				content: 'Test note',
 				filePath: doc.uri.fsPath,
@@ -275,13 +269,13 @@ suite('NoteManager Test Suite', () => {
 			const allNotes = await noteManager.getAllNotesForFile(doc.uri.fsPath);
 			const deletedNote = allNotes.find(n => n.id === note.id);
 
-			assert.ok(deletedNote);
-			assert.strictEqual(deletedNote!.isDeleted, true);
-			assert.strictEqual(deletedNote!.history[deletedNote!.history.length - 1].action, 'deleted');
+			expect(deletedNote).toBeTruthy();
+			expect(deletedNote!.isDeleted).toBe(true);
+			expect(deletedNote!.history[deletedNote!.history.length - 1].action).toBe('deleted');
 		});
 
-		test('should not return deleted notes in getNotesForFile', async () => {
-			const doc = await createMockDocument('function test() {}');
+		it('should not return deleted notes in getNotesForFile', async () => {
+			const doc = createMockDocument('function test() {}');
 			const note = await noteManager.createNote({
 				content: 'Test note',
 				filePath: doc.uri.fsPath,
@@ -291,18 +285,15 @@ suite('NoteManager Test Suite', () => {
 			await noteManager.deleteNote(note.id, doc.uri.fsPath);
 
 			const notes = await noteManager.getNotesForFile(doc.uri.fsPath);
-			assert.strictEqual(notes.length, 0);
+			expect(notes.length).toBe(0);
 		});
 
-		test('should throw error for non-existent note', async () => {
-			await assert.rejects(
-				async () => await noteManager.deleteNote('non-existent', '/test/file.ts'),
-				/not found/
-			);
+		it('should throw error for non-existent note', async () => {
+			await expect(noteManager.deleteNote('non-existent', '/test/file.ts')).rejects.toThrow(/not found/);
 		});
 
-		test('should throw error when deleting already deleted note', async () => {
-			const doc = await createMockDocument('function test() {}');
+		it('should throw error when deleting already deleted note', async () => {
+			const doc = createMockDocument('function test() {}');
 			const note = await noteManager.createNote({
 				content: 'Test note',
 				filePath: doc.uri.fsPath,
@@ -311,16 +302,13 @@ suite('NoteManager Test Suite', () => {
 
 			await noteManager.deleteNote(note.id, doc.uri.fsPath);
 
-			await assert.rejects(
-				async () => await noteManager.deleteNote(note.id, doc.uri.fsPath),
-				/already deleted/
-			);
+			await expect(noteManager.deleteNote(note.id, doc.uri.fsPath)).rejects.toThrow(/already deleted/);
 		});
 	});
 
-	suite('Note Retrieval', () => {
-		test('should get all notes for a file', async () => {
-			const doc = await createMockDocument('line 1\nline 2\nline 3');
+	describe('Note Retrieval', () => {
+		it('should get all notes for a file', async () => {
+			const doc = createMockDocument('line 1\nline 2\nline 3');
 
 			await noteManager.createNote({
 				content: 'Note 1',
@@ -335,12 +323,12 @@ suite('NoteManager Test Suite', () => {
 			}, doc);
 
 			const notes = await noteManager.getNotesForFile(doc.uri.fsPath);
-			assert.strictEqual(notes.length, 2);
+			expect(notes.length).toBe(2);
 		});
 
-		test('should not return notes from different files', async () => {
-			const doc1 = await createMockDocument('file 1');
-			const doc2 = await createMockDocument('file 2');
+		it('should not return notes from different files', async () => {
+			const doc1 = createMockDocument('file 1');
+			const doc2 = createMockDocument('file 2');
 
 			await noteManager.createNote({
 				content: 'Note 1',
@@ -357,13 +345,13 @@ suite('NoteManager Test Suite', () => {
 			const notes1 = await noteManager.getNotesForFile(doc1.uri.fsPath);
 			const notes2 = await noteManager.getNotesForFile(doc2.uri.fsPath);
 
-			assert.strictEqual(notes1.length, 1);
-			assert.strictEqual(notes2.length, 1);
-			assert.notStrictEqual(notes1[0].id, notes2[0].id);
+			expect(notes1.length).toBe(1);
+			expect(notes2.length).toBe(1);
+			expect(notes1[0].id).not.toBe(notes2[0].id);
 		});
 
-		test('should get note by ID', async () => {
-			const doc = await createMockDocument('function test() {}');
+		it('should get note by ID', async () => {
+			const doc = createMockDocument('function test() {}');
 			const note = await noteManager.createNote({
 				content: 'Test note',
 				filePath: doc.uri.fsPath,
@@ -371,24 +359,24 @@ suite('NoteManager Test Suite', () => {
 			}, doc);
 
 			const retrieved = await noteManager.getNoteById(note.id, doc.uri.fsPath);
-			assert.ok(retrieved);
-			assert.strictEqual(retrieved!.id, note.id);
+			expect(retrieved).toBeTruthy();
+			expect(retrieved!.id).toBe(note.id);
 		});
 
-		test('should return undefined for non-existent note ID', async () => {
+		it('should return undefined for non-existent note ID', async () => {
 			const retrieved = await noteManager.getNoteById('non-existent', '/test/file.ts');
-			assert.strictEqual(retrieved, undefined);
+			expect(retrieved).toBe(undefined);
 		});
 
-		test('should return empty array for file with no notes', async () => {
+		it('should return empty array for file with no notes', async () => {
 			const notes = await noteManager.getNotesForFile('/test/file.ts');
-			assert.strictEqual(notes.length, 0);
+			expect(notes.length).toBe(0);
 		});
 	});
 
-	suite('Caching', () => {
-		test('should cache notes after first load', async () => {
-			const doc = await createMockDocument('function test() {}');
+	describe('Caching', () => {
+		it('should cache notes after first load', async () => {
+			const doc = createMockDocument('function test() {}');
 			await noteManager.createNote({
 				content: 'Test note',
 				filePath: doc.uri.fsPath,
@@ -401,12 +389,12 @@ suite('NoteManager Test Suite', () => {
 			// Second call should use cache
 			const notes2 = await noteManager.getNotesForFile(doc.uri.fsPath);
 
-			assert.strictEqual(notes1.length, notes2.length);
-			assert.strictEqual(notes1[0].id, notes2[0].id);
+			expect(notes1.length).toBe(notes2.length);
+			expect(notes1[0].id).toBe(notes2[0].id);
 		});
 
-		test('should clear cache for specific file', async () => {
-			const doc = await createMockDocument('function test() {}');
+		it('should clear cache for specific file', async () => {
+			const doc = createMockDocument('function test() {}');
 			await noteManager.createNote({
 				content: 'Test note',
 				filePath: doc.uri.fsPath,
@@ -418,12 +406,12 @@ suite('NoteManager Test Suite', () => {
 
 			// Should reload from storage
 			const notes = await noteManager.getNotesForFile(doc.uri.fsPath);
-			assert.ok(notes);
+			expect(notes).toBeTruthy();
 		});
 
-		test('should clear all cache', async () => {
-			const doc1 = await createMockDocument('file 1');
-			const doc2 = await createMockDocument('file 2');
+		it('should clear all cache', async () => {
+			const doc1 = createMockDocument('file 1');
+			const doc2 = createMockDocument('file 2');
 
 			await noteManager.createNote({
 				content: 'Note 1',
@@ -446,12 +434,12 @@ suite('NoteManager Test Suite', () => {
 			const notes1 = await noteManager.getNotesForFile(doc1.uri.fsPath);
 			const notes2 = await noteManager.getNotesForFile(doc2.uri.fsPath);
 
-			assert.ok(notes1);
-			assert.ok(notes2);
+			expect(notes1).toBeTruthy();
+			expect(notes2).toBeTruthy();
 		});
 
-		test('should refresh notes for file', async () => {
-			const doc = await createMockDocument('function test() {}');
+		it('should refresh notes for file', async () => {
+			const doc = createMockDocument('function test() {}');
 			await noteManager.createNote({
 				content: 'Test note',
 				filePath: doc.uri.fsPath,
@@ -461,13 +449,13 @@ suite('NoteManager Test Suite', () => {
 			const notes1 = await noteManager.getNotesForFile(doc.uri.fsPath);
 			const notes2 = await noteManager.refreshNotesForFile(doc.uri.fsPath);
 
-			assert.strictEqual(notes1.length, notes2.length);
+			expect(notes1.length).toBe(notes2.length);
 		});
 	});
 
-	suite('Note History', () => {
-		test('should get note history', async () => {
-			const doc = await createMockDocument('function test() {}');
+	describe('Note History', () => {
+		it('should get note history', async () => {
+			const doc = createMockDocument('function test() {}');
 			const note = await noteManager.createNote({
 				content: 'Original',
 				filePath: doc.uri.fsPath,
@@ -481,29 +469,26 @@ suite('NoteManager Test Suite', () => {
 
 			const history = await noteManager.getNoteHistory(note.id, doc.uri.fsPath);
 
-			assert.strictEqual(history.length, 2);
-			assert.strictEqual(history[0].action, 'created');
-			assert.strictEqual(history[1].action, 'edited');
+			expect(history.length).toBe(2);
+			expect(history[0].action).toBe('created');
+			expect(history[1].action).toBe('edited');
 		});
 
-		test('should throw error for non-existent note', async () => {
-			await assert.rejects(
-				async () => await noteManager.getNoteHistory('non-existent', '/test/file.ts'),
-				/not found/
-			);
+		it('should throw error for non-existent note', async () => {
+			await expect(noteManager.getNoteHistory('non-existent', '/test/file.ts')).rejects.toThrow(/not found/);
 		});
 	});
 
-	suite('Configuration', () => {
-		test('should update configuration', () => {
+	describe('Configuration', () => {
+		it('should update configuration', () => {
 			noteManager.updateConfiguration('New Author');
 			// Configuration updated successfully (no error thrown)
-			assert.ok(true);
+			expect(true).toBe(true);
 		});
 	});
 
-	suite('Schema Defaults', () => {
-		test('getNotesForFile applies defaults to legacy notes (no structured fields)', async () => {
+	describe('Schema Defaults', () => {
+		it('getNotesForFile applies defaults to legacy notes (no structured fields)', async () => {
 			// Write a legacy-shaped note directly to storage, bypassing NoteManager.
 			// The writer omits fields that equal defaults, so a note without type/scope/tags
 			// written this way will be read back with those fields as undefined.
@@ -522,21 +507,21 @@ suite('NoteManager Test Suite', () => {
 			// Confirm the storage parser does NOT auto-fill defaults (raw read returns undefined)
 			const rawNotes = await (storage as any).loadNotes('/abs/x.ts');
 			const rawLegacy = rawNotes.find((n: any) => n.id === 'legacy-1');
-			assert.ok(rawLegacy, 'legacy note should be present in storage');
-			assert.strictEqual(rawLegacy.type, undefined, 'storage should NOT fill type default');
+			expect(rawLegacy).toBeTruthy();
+			expect(rawLegacy.type).toBe(undefined);
 
 			// Now read via NoteManager — defaults must be applied
 			const notes = await noteManager.getNotesForFile('/abs/x.ts');
 			const legacy = notes.find((n: any) => n.id === 'legacy-1');
-			assert.ok(legacy, 'legacy note should be returned by getNotesForFile');
-			assert.strictEqual(legacy!.type, 'context');
-			assert.strictEqual(legacy!.scope, 'line');
-			assert.deepStrictEqual(legacy!.tags, []);
+			expect(legacy).toBeTruthy();
+			expect(legacy!.type).toBe('context');
+			expect(legacy!.scope).toBe('line');
+			expect(legacy!.tags).toEqual([]);
 		});
 	});
 
-	suite('Metadata Updates', () => {
-		test('updateNoteMetadata rejects soft-deleted notes', async () => {
+	describe('Metadata Updates', () => {
+		it('updateNoteMetadata rejects soft-deleted notes', async () => {
 			await (storage as any).saveNote({
 				id: 'deleted-1',
 				content: 'gone',
@@ -550,13 +535,10 @@ suite('NoteManager Test Suite', () => {
 				isDeleted: true,
 			});
 
-			await assert.rejects(
-				() => noteManager.updateNoteMetadata('deleted-1', { type: 'instruction' }),
-				/deleted/i
-			);
+			await expect(noteManager.updateNoteMetadata('deleted-1', { type: 'instruction' })).rejects.toThrow(/deleted/i);
 		});
 
-		test('updateNoteMetadata persists fields and returns a defaults-applied note', async () => {
+		it('updateNoteMetadata persists fields and returns a defaults-applied note', async () => {
 			await (storage as any).saveNote({
 				id: 'meta-1',
 				content: 'hi',
@@ -573,65 +555,33 @@ suite('NoteManager Test Suite', () => {
 				type: 'instruction',
 				priority: 'high',
 			});
-			assert.strictEqual(updated.type, 'instruction');
-			assert.strictEqual(updated.priority, 'high');
+			expect(updated.type).toBe('instruction');
+			expect(updated.priority).toBe('high');
 			// Untouched fields come back defaulted, not undefined
-			assert.strictEqual(updated.scope, 'line');
-			assert.deepStrictEqual(updated.tags, []);
+			expect(updated.scope).toBe('line');
+			expect(updated.tags).toEqual([]);
 
 			// Cache must serve the defaults-applied note too
 			const notes = await noteManager.getNotesForFile('/abs/x.ts');
 			const cached = notes.find(n => n.id === 'meta-1');
-			assert.strictEqual(cached!.type, 'instruction');
-			assert.strictEqual(cached!.scope, 'line');
+			expect(cached!.type).toBe('instruction');
+			expect(cached!.scope).toBe('line');
 		});
 	});
 });
 
 /**
- * Helper function to create a mock VSCode document
+ * Helper function to create a mock document satisfying NoteDocument
  */
 let mockDocumentSeq = 0;
 
-async function createMockDocument(content: string): Promise<vscode.TextDocument> {
+function createMockDocument(content: string): NoteDocument {
 	const lines = content.split('\n');
 	const filePath = `/test/file-${Date.now()}-${++mockDocumentSeq}.ts`;
 
 	return {
 		lineCount: lines.length,
-		lineAt: (lineOrPosition: number | vscode.Position) => {
-			const line = typeof lineOrPosition === 'number' ? lineOrPosition : lineOrPosition.line;
-			return {
-				text: lines[line] || '',
-				lineNumber: line,
-				range: new vscode.Range(line, 0, line, (lines[line] || '').length),
-				rangeIncludingLineBreak: new vscode.Range(line, 0, line, (lines[line] || '').length),
-				firstNonWhitespaceCharacterIndex: 0,
-				isEmptyOrWhitespace: (lines[line] || '').trim().length === 0
-			};
-		},
-		getText: (range?: vscode.Range) => {
-			if (!range) {
-				return content;
-			}
-			const start = range.start.line;
-			const end = range.end.line;
-			return lines.slice(start, end + 1).join('\n');
-		},
-		uri: vscode.Uri.file(filePath),
-		fileName: filePath,
-		isUntitled: false,
-		languageId: 'typescript',
-		version: 1,
-		isDirty: false,
-		isClosed: false,
-		save: async () => true,
-		eol: vscode.EndOfLine.LF,
-		encoding: 'utf8',
-		positionAt: (offset: number) => new vscode.Position(0, offset),
-		offsetAt: (position: vscode.Position) => position.character,
-		validateRange: (range: vscode.Range) => range,
-		validatePosition: (position: vscode.Position) => position,
-		getWordRangeAtPosition: () => undefined
-	} as vscode.TextDocument;
+		lineAt: (line: number) => ({ text: lines[line] || '' }),
+		uri: { fsPath: filePath },
+	};
 }
