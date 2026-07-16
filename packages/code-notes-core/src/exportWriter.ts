@@ -16,12 +16,14 @@ export interface ExportWriterOptions {
   getConfig?: () => { enabled: boolean; indexJson: boolean; agentsMarkdown: boolean };
 }
 
+export type NotesAndErrors = { notes: Note[]; errors: { file: string; message: string }[] };
+
 export class ExportWriter {
   private workspaceRoot: string;
   private storageDir: string;
   private debounceMs: number;
   private pendingTimer: NodeJS.Timeout | undefined;
-  private pendingGetNotes: (() => Promise<Note[]>) | undefined;
+  private pendingGetNotes: (() => Promise<Note[] | NotesAndErrors>) | undefined;
   private getConfig: () => { enabled: boolean; indexJson: boolean; agentsMarkdown: boolean };
   private tmpSeq = 0;
   private writeQueue: Promise<unknown> = Promise.resolve();
@@ -38,7 +40,7 @@ export class ExportWriter {
    * Schedule a regeneration. Subsequent calls within the debounce window
    * coalesce — only the latest getNotes is used.
    */
-  scheduleRegenerate(getNotes: () => Promise<Note[]>): void {
+  scheduleRegenerate(getNotes: () => Promise<Note[] | NotesAndErrors>): void {
     this.pendingGetNotes = getNotes;
     if (this.pendingTimer) {
       clearTimeout(this.pendingTimer);
@@ -62,13 +64,14 @@ export class ExportWriter {
    * Calls are serialized on `writeQueue` so the debounced timer and a
    * manual regenerate can't interleave their INDEX.json/AGENTS.md writes.
    */
-  regenerate(notes: Note[]): Promise<'written' | 'disabled' | 'failed'> {
-    const run = this.writeQueue.then(() => this.doRegenerate(notes));
+  regenerate(input: Note[] | NotesAndErrors): Promise<'written' | 'disabled' | 'failed'> {
+    const run = this.writeQueue.then(() => this.doRegenerate(input));
     this.writeQueue = run.catch(() => {});
     return run;
   }
 
-  private async doRegenerate(notes: Note[]): Promise<'written' | 'disabled' | 'failed'> {
+  private async doRegenerate(input: Note[] | NotesAndErrors): Promise<'written' | 'disabled' | 'failed'> {
+    const { notes, errors } = Array.isArray(input) ? { notes: input, errors: [] } : input;
     try {
       const cfg = this.getConfig();
       if (!cfg.enabled) return 'disabled';
@@ -76,7 +79,7 @@ export class ExportWriter {
       const dir = path.join(this.workspaceRoot, this.storageDir);
       await fs.mkdir(dir, { recursive: true });
       if (cfg.indexJson) {
-        const idx = buildIndex(notes, this.workspaceRoot, new Date(), this.storageDir);
+        const idx = buildIndex(notes, this.workspaceRoot, new Date(), this.storageDir, errors);
         await this.atomicWrite(path.join(dir, 'INDEX.json'), JSON.stringify(idx, null, 2));
       }
       if (cfg.agentsMarkdown) {

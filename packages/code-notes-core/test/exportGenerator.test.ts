@@ -87,4 +87,9 @@ describe('exportGenerator', () => {
     expect(md.includes('## Open handoffs')).toBe(true);
     expect(md.includes('pick up here')).toBe(true);
   });
+
+  it('buildIndex surfaces passed-in errors', () => {
+    const idx = buildIndex([], '/ws', undefined, undefined, [{ file: 'bad.md', message: 'broken' }]);
+    expect(idx.errors).toEqual([{ file: 'bad.md', message: 'broken' }]);
+  });
 });

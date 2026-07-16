@@ -373,6 +373,22 @@ describe('NoteManager Test Suite', () => {
 			const notes = await noteManager.getNotesForFile('/test/file.ts');
 			expect(notes.length).toBe(0);
 		});
+
+		it('getAllNotesAndErrors should return good notes and per-file parse errors', async () => {
+			const doc = createMockDocument('function test() {}');
+			await noteManager.createNote({
+				content: 'Note 1',
+				filePath: doc.uri.fsPath,
+				lineRange: { start: 0, end: 0 }
+			}, doc);
+
+			await fs.writeFile(path.join(tempDir, '.test-notes', 'bad.md'), 'this is not a valid note', 'utf-8');
+
+			const { notes, errors } = await noteManager.getAllNotesAndErrors();
+			expect(notes.length).toBe(1);
+			expect(errors.length).toBe(1);
+			expect(errors[0].file).toBe('bad.md');
+		});
 	});
 
 	describe('Caching', () => {

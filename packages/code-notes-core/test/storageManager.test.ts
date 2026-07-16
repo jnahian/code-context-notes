@@ -462,4 +462,16 @@ Hi.
 		expect(!md.includes('**Tags:**')).toBe(true);
 		expect(!md.includes('**AuthorType:**')).toBe(true);
 	});
+
+	it('loadAllNotesAndErrors captures parse failures per file', async () => {
+		await storageManager.saveNote(testNote);
+		await fs.writeFile(path.join(tempDir, '.test-notes', 'bad.md'), 'this is not a valid note', 'utf-8');
+
+		const { notes, errors } = await storageManager.loadAllNotesAndErrors();
+
+		expect(notes.length).toBe(1);
+		expect(notes[0].id).toBe(testNote.id);
+		expect(errors.length).toBe(1);
+		expect(errors[0].file).toBe('bad.md');
+	});
 });

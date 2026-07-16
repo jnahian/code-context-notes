@@ -533,6 +533,20 @@ export class NoteManager extends EventEmitter {
   }
 
   /**
+   * Get all notes across the workspace (excluding deleted notes) along with
+   * per-file parse errors, via StorageManager's workspace-wide loader.
+   * Uncached — intended for export regeneration, not the sidebar's hot path.
+   */
+  async getAllNotesAndErrors(): Promise<{ notes: Note[]; errors: { file: string; message: string }[] }> {
+    const { notes: rawNotes, errors } = await this.storage.loadAllNotesAndErrors();
+    const notes = rawNotes
+      .map(applyDefaults)
+      .filter(note => !note.isDeleted);
+
+    return { notes, errors };
+  }
+
+  /**
    * Get all notes grouped by file path
    * Returns a Map with filePath as key and array of notes as value
    * Uses caching for performance

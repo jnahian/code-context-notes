@@ -54,7 +54,7 @@ function preview(content: string): string {
  * `codeContextNotes.storageDirectory` (default `.code-notes`) so
  * `contentPath` entries point at real note files.
  */
-export function buildIndex(rawNotes: Note[], workspaceRoot: string, now: Date = new Date(), storageDir: string = '.code-notes'): IndexFile {
+export function buildIndex(rawNotes: Note[], workspaceRoot: string, now: Date = new Date(), storageDir: string = '.code-notes', errors: IndexFile['errors'] = []): IndexFile {
   const notes = rawNotes.map(applyDefaults);
 
   // Stable sort by id so output is deterministic for the same input set.
@@ -99,7 +99,7 @@ export function buildIndex(rawNotes: Note[], workspaceRoot: string, now: Date = 
     byFile,
     byType,
     byTag,
-    errors: [],
+    errors,
   };
 }
 

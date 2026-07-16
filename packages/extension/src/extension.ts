@@ -107,14 +107,14 @@ export async function activate(context: vscode.ExtensionContext) {
 	// exports.enabled setting on every run, so toggling it takes effect
 	// in both directions without a reload.
 	// Initial export on activation (covers fresh installs, manual deletes)
-	exportWriter.scheduleRegenerate(() => noteManager.getAllNotes());
+	exportWriter.scheduleRegenerate(() => noteManager.getAllNotesAndErrors());
 	// Notes changed through the extension
 	noteManager.on('noteChanged', () => {
-		exportWriter.scheduleRegenerate(() => noteManager.getAllNotes());
+		exportWriter.scheduleRegenerate(() => noteManager.getAllNotesAndErrors());
 	});
 	// Note files changed externally (git pull, manual edits)
 	noteManager.on('noteFileChanged', () => {
-		exportWriter.scheduleRegenerate(() => noteManager.getAllNotes());
+		exportWriter.scheduleRegenerate(() => noteManager.getAllNotesAndErrors());
 	});
 
 	// Initialize comment controller
@@ -982,8 +982,8 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 			exportWriter.onError = (e) => { failure = e; previousOnError(e); };
 
 			try {
-				const notes = await noteManager.getAllNotes();
-				const outcome = await exportWriter.regenerate(notes);
+				const { notes, errors } = await noteManager.getAllNotesAndErrors();
+				const outcome = await exportWriter.regenerate({ notes, errors });
 				if (outcome === 'written') {
 					vscode.window.showInformationMessage(`Code Notes: regenerated exports for ${notes.length} notes.`);
 				} else if (outcome === 'disabled') {

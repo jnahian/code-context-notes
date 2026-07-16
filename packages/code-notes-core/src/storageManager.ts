@@ -155,6 +155,33 @@ export class StorageManager implements NoteStorage {
   }
 
   /**
+   * Load every note in the workspace, capturing per-file parse failures
+   * instead of silently dropping them. Used by the workspace-wide export
+   * loader (INDEX.json's errors[] field).
+   */
+  async loadAllNotesAndErrors(): Promise<{ notes: Note[]; errors: { file: string; message: string }[] }> {
+    const allNoteFiles = await this.getAllNoteFiles();
+    const notes: Note[] = [];
+    const errors: { file: string; message: string }[] = [];
+
+    for (const noteFile of allNoteFiles) {
+      try {
+        const content = await fs.readFile(noteFile, 'utf-8');
+        const note = this.markdownToNote(content);
+        if (note) {
+          notes.push(note);
+        } else {
+          errors.push({ file: path.basename(noteFile), message: 'markdownToNote returned null (missing required fields)' });
+        }
+      } catch (error: any) {
+        errors.push({ file: path.basename(noteFile), message: error?.message ?? String(error) });
+      }
+    }
+
+    return { notes, errors };
+  }
+
+  /**
    * Delete a note from storage
    * This actually updates the file to mark the note as deleted in history
    */
