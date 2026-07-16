@@ -5,12 +5,12 @@ describe('server read-only gating', () => {
   it('ListTools omits write tools when readOnly', () => {
     const tools = buildToolList(true).map(t => t.name);
     expect(tools).toEqual(expect.arrayContaining(['get_note', 'search_notes']));
-    expect(tools).not.toEqual(expect.arrayContaining(['create_note', 'edit_note', 'delete_note']));
+    expect(tools).not.toEqual(expect.arrayContaining(['create_note', 'edit_note', 'delete_note', 'add_handoff', 'add_decision']));
   });
 
   it('ListTools includes write tools when not readOnly', () => {
     const tools = buildToolList(false).map(t => t.name);
-    expect(tools).toEqual(expect.arrayContaining(['create_note', 'edit_note', 'delete_note']));
+    expect(tools).toEqual(expect.arrayContaining(['create_note', 'edit_note', 'delete_note', 'add_handoff', 'add_decision']));
   });
 
   it('CallTool returns read_only_mode in-band for a write tool when readOnly, instead of dispatching', async () => {

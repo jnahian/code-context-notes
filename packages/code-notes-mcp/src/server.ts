@@ -15,6 +15,8 @@ import { getNotesForChangesToolDef, getNotesForChanges } from './tools/get_notes
 import { createNoteToolDef, createNoteInput, createNote } from './tools/create_note.js';
 import { editNoteToolDef, editNoteInput, editNote } from './tools/edit_note.js';
 import { deleteNoteToolDef, deleteNoteInput, deleteNote } from './tools/delete_note.js';
+import { addHandoffToolDef, addHandoffInput, addHandoff } from './tools/add_handoff.js';
+import { addDecisionToolDef, addDecisionInput, addDecision } from './tools/add_decision.js';
 import { errorResult } from './tools/errors.js';
 
 const READ_TOOLS = [
@@ -30,6 +32,8 @@ const WRITE_TOOLS = [
   createNoteToolDef,
   editNoteToolDef,
   deleteNoteToolDef,
+  addHandoffToolDef,
+  addDecisionToolDef,
 ];
 
 const WRITE_TOOL_NAMES = new Set(WRITE_TOOLS.map(t => t.name));
@@ -61,6 +65,8 @@ export async function handleToolCall(
     case 'create_note': return createNote(createNoteInput.parse(args), { noteManager: deps.noteManager, workspace: deps.workspace });
     case 'edit_note': return editNote(editNoteInput.parse(args), { noteManager: deps.noteManager });
     case 'delete_note': return deleteNote(deleteNoteInput.parse(args), { noteManager: deps.noteManager });
+    case 'add_handoff': return addHandoff(addHandoffInput.parse(args), { noteManager: deps.noteManager, workspace: deps.workspace });
+    case 'add_decision': return addDecision(addDecisionInput.parse(args), { noteManager: deps.noteManager, workspace: deps.workspace });
     default: throw new Error(`unknown tool: ${name}`);
   }
 }
