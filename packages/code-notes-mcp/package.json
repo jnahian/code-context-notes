@@ -16,7 +16,8 @@
   "dependencies": {
     "@jnahian/code-notes-core": "0.1.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "diff": "^5.2.0"
+    "diff": "^5.2.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/diff": "^5.2.0",

@@ -369,6 +369,38 @@ describe('NoteManager Test Suite', () => {
 			expect(retrieved).toBe(undefined);
 		});
 
+		it('getNoteByIdGlobal should find a note by id without a filePath', async () => {
+			const doc = createMockDocument('function test() {}');
+			const note = await noteManager.createNote({
+				content: 'Test note',
+				filePath: doc.uri.fsPath,
+				lineRange: { start: 0, end: 0 }
+			}, doc);
+
+			const retrieved = await noteManager.getNoteByIdGlobal(note.id);
+			expect(retrieved).toBeTruthy();
+			expect(retrieved!.id).toBe(note.id);
+		});
+
+		it('getNoteByIdGlobal should return undefined for a non-existent note ID', async () => {
+			const retrieved = await noteManager.getNoteByIdGlobal('non-existent');
+			expect(retrieved).toBe(undefined);
+		});
+
+		it('getNoteByIdGlobal should return undefined for a soft-deleted note', async () => {
+			const doc = createMockDocument('function test() {}');
+			const note = await noteManager.createNote({
+				content: 'Test note',
+				filePath: doc.uri.fsPath,
+				lineRange: { start: 0, end: 0 }
+			}, doc);
+
+			await noteManager.deleteNote(note.id, doc.uri.fsPath);
+
+			const retrieved = await noteManager.getNoteByIdGlobal(note.id);
+			expect(retrieved).toBe(undefined);
+		});
+
 		it('should return empty array for file with no notes', async () => {
 			const notes = await noteManager.getNotesForFile('/test/file.ts');
 			expect(notes.length).toBe(0);

@@ -328,6 +328,18 @@ export class NoteManager extends EventEmitter {
   }
 
   /**
+   * Get a note by ID alone, without needing its filePath (note files are
+   * keyed by note ID on disk). Same by-id semantics as getNoteById: a
+   * soft-deleted note is treated as gone.
+   */
+  async getNoteByIdGlobal(noteId: string): Promise<Note | undefined> {
+    const note = await this.storage.loadNoteById(noteId);
+    if (!note) return undefined;
+    const normalized = applyDefaults(note);
+    return normalized.isDeleted ? undefined : normalized;
+  }
+
+  /**
    * Update note positions when document changes
    * Returns notes that were updated
    */

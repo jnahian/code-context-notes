@@ -1,10 +1,12 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import {
   StorageManager, NoteManager, LockManager, ContentHashTracker, AuthorProvider,
 } from '@jnahian/code-notes-core';
+import { getNoteToolDef, getNoteInput, getNote } from './tools/get_note.js';
 
 export interface StartArgs {
   workspace: string;
@@ -42,10 +44,21 @@ export async function startServer(args: StartArgs): Promise<void> {
     { capabilities: { tools: {}, resources: {} } },
   );
 
-  // Tools/resources registered in subsequent tasks
-  // registerReadTools(server, { noteManager, workspace, storageDir });
+  // Resources and more tools registered in subsequent tasks
   // if (!readOnly) registerWriteTools(server, { noteManager, agent: args.agent! });
   // registerResources(server, { workspace, storageDir });
+
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: [getNoteToolDef],
+  }));
+
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    switch (request.params.name) {
+      case 'get_note': return getNote(getNoteInput.parse(request.params.arguments), { noteManager });
+      // more added in subsequent tasks
+      default: throw new Error(`unknown tool: ${request.params.name}`);
+    }
+  });
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
