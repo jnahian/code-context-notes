@@ -44,20 +44,6 @@ function matchesFile(note: Note, file: string, workspace?: string): boolean {
   return false;
 }
 
-// ponytail: SearchManager.buildIndex/search call console.log directly (core isn't
-// stdio-transport-aware). On stdio MCP transports stdout IS the JSON-RPC channel,
-// so redirect to stderr for the duration of the call. Real fix belongs in core
-// (inject a logger / use console.error) — flagged, not fixed here to stay in scope.
-async function withStdoutSilenced<T>(fn: () => Promise<T>): Promise<T> {
-  const original = console.log;
-  console.log = (...args: unknown[]) => console.error(...args);
-  try {
-    return await fn();
-  } finally {
-    console.log = original;
-  }
-}
-
 export async function searchNotes(
   args: { query: string; type?: NoteType; tags?: string[]; file?: string; includeExpired?: boolean },
   deps: { noteManager: NoteManager; workspace?: string },
@@ -67,11 +53,10 @@ export async function searchNotes(
   // ponytail: rebuild the index fresh on every call rather than caching a live
   // SearchManager across MCP calls — simplest correct option; revisit if this
   // becomes a hot path.
+  // Core's SearchManager logs to stderr only, so it is stdio-transport safe.
   const searchManager = new SearchManager(createInMemoryHistoryStore());
-  const results = await withStdoutSilenced(async () => {
-    await searchManager.buildIndex(notes);
-    return searchManager.search({ text: args.query }, notes);
-  });
+  await searchManager.buildIndex(notes);
+  const results = await searchManager.search({ text: args.query }, notes);
 
   let matched = results.map(r => r.note);
 
