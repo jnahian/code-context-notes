@@ -592,9 +592,11 @@ suite('NoteManager Test Suite', () => {
 /**
  * Helper function to create a mock VSCode document
  */
+let mockDocumentSeq = 0;
+
 async function createMockDocument(content: string): Promise<vscode.TextDocument> {
 	const lines = content.split('\n');
-	const filePath = `/test/file-${Date.now()}.ts`;
+	const filePath = `/test/file-${Date.now()}-${++mockDocumentSeq}.ts`;
 
 	return {
 		lineCount: lines.length,
