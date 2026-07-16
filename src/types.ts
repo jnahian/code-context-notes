@@ -45,8 +45,9 @@ export type NoteScope =
 export type AuthorType = 'human' | 'agent';
 
 /**
- * Priority used for digest ordering. (`critical` always-include behavior
- * ships with the v0.4 MCP tools.)
+ * Priority used for digest ordering — `critical` sorts first. Expired
+ * notes are still excluded by expiry filtering regardless of priority;
+ * `critical` always-include behavior ships with the v0.4 MCP tools.
  */
 export type NotePriority = 'low' | 'normal' | 'high' | 'critical';
 

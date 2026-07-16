@@ -118,17 +118,16 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 	async getChildren(element?: BaseTreeItem): Promise<BaseTreeItem[]> {
 		// Root level: return RootTreeItem or empty state
 		if (!element) {
-			// Count filtered notes so the root total matches what the tree shows
 			const fileNodes = await this.getFileNodes();
-			const noteCount = fileNodes.reduce((sum, f) => sum + f.notes.length, 0);
 
-			// Empty state - no notes (or all filtered out)
-			if (noteCount === 0) {
+			// Empty state - no visible notes (all filtered out counts too)
+			if (fileNodes.length === 0) {
 				return [];
 			}
 
-			// Return root node with count
-			return [new RootTreeItem(noteCount)];
+			// Return root node with count of notes visible under active filters
+			const visibleNoteCount = fileNodes.reduce((sum, node) => sum + node.notes.length, 0);
+			return [new RootTreeItem(visibleNoteCount)];
 		}
 
 		// Root node: return file nodes
@@ -196,19 +195,12 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 	}
 
 	/**
-	 * Get note nodes for a file, applying type and expiry filters.
+	 * Get note nodes for a file. Type/expiry filters are already applied in
+	 * getFileNodes(), so fileNode.notes here only contains visible notes.
 	 */
 	private getNoteNodes(fileNode: FileTreeItem): NoteTreeItem[] {
 		const previewLength = this.getPreviewLength();
-		const noteNodes: NoteTreeItem[] = [];
-
-		// Notes are already sorted by line range in getNotesByFile() and
-		// filtered in getFileNodes()
-		for (const note of fileNode.notes) {
-			noteNodes.push(new NoteTreeItem(note, previewLength));
-		}
-
-		return noteNodes;
+		return fileNode.notes.map(note => new NoteTreeItem(note, previewLength));
 	}
 
 	/**

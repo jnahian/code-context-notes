@@ -972,6 +972,18 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 				return;
 			}
 
+			const exportsCfg = vscode.workspace.getConfiguration('codeContextNotes.exports');
+			if (!exportsCfg.get<boolean>('enabled', true)) {
+				vscode.window.showWarningMessage('Code Notes: exports are disabled (codeContextNotes.exports.enabled is false). Nothing was written.');
+				return;
+			}
+
+			// regenerate() never throws — failures go through onError — so wrap
+			// it here to give this manual command an accurate success/failure message.
+			const previousOnError = exportWriter.onError;
+			let failure: Error | undefined;
+			exportWriter.onError = (e) => { failure = e; previousOnError(e); };
+
 			try {
 				const notes = await noteManager.getAllNotes();
 				const outcome = await exportWriter.regenerate(notes);
@@ -980,10 +992,12 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 				} else if (outcome === 'disabled') {
 					vscode.window.showWarningMessage('Code Notes: exports are disabled (codeContextNotes.exports.enabled). Nothing was written.');
 				} else {
-					vscode.window.showErrorMessage('Code Notes: export regeneration failed. See the developer console for details.');
+					vscode.window.showErrorMessage(`Failed to regenerate exports: ${failure ? failure.message : 'see the developer console for details'}`);
 				}
 			} catch (error) {
 				vscode.window.showErrorMessage(`Failed to regenerate exports: ${error}`);
+			} finally {
+				exportWriter.onError = previousOnError;
 			}
 		}
 	);

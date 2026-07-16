@@ -24,6 +24,7 @@ export class ExportWriter {
   private pendingGetNotes: (() => Promise<Note[]>) | undefined;
   private getConfig: () => { enabled: boolean; indexJson: boolean; agentsMarkdown: boolean };
   private tmpSeq = 0;
+  private writeQueue: Promise<unknown> = Promise.resolve();
   onError: (e: Error) => void = (e) => console.error('[code-notes] export failed:', e);
 
   constructor(workspaceRoot: string, storageDir: string, opts: ExportWriterOptions = {}) {
@@ -57,8 +58,17 @@ export class ExportWriter {
    * by the manual command, and by tests. Returns what happened so callers
    * (e.g. the manual command) can report honestly; errors still route
    * through onError rather than throwing.
+   *
+   * Calls are serialized on `writeQueue` so the debounced timer and a
+   * manual regenerate can't interleave their INDEX.json/AGENTS.md writes.
    */
-  async regenerate(notes: Note[]): Promise<'written' | 'disabled' | 'failed'> {
+  regenerate(notes: Note[]): Promise<'written' | 'disabled' | 'failed'> {
+    const run = this.writeQueue.then(() => this.doRegenerate(notes));
+    this.writeQueue = run.catch(() => {});
+    return run;
+  }
+
+  private async doRegenerate(notes: Note[]): Promise<'written' | 'disabled' | 'failed'> {
     try {
       const cfg = this.getConfig();
       if (!cfg.enabled) return 'disabled';
@@ -70,7 +80,7 @@ export class ExportWriter {
         await this.atomicWrite(path.join(dir, 'INDEX.json'), JSON.stringify(idx, null, 2));
       }
       if (cfg.agentsMarkdown) {
-        const digest = buildDigest(notes, this.workspaceRoot);
+        const digest = buildDigest(notes, this.workspaceRoot, new Date(), this.storageDir);
         await this.atomicWrite(path.join(dir, 'AGENTS.md'), digest);
       }
       return 'written';
