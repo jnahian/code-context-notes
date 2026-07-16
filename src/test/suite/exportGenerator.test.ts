@@ -22,6 +22,14 @@ const n = (overrides: Partial<Note>): Note => ({
 });
 
 suite('exportGenerator', () => {
+  test('buildIndex contentPath honors a custom storage directory', () => {
+    const idx = buildIndex([n({ id: 'a' })], '/ws', new Date('2026-05-01T00:00:00Z'), '.my-notes');
+    assert.strictEqual(idx.notes[0].contentPath, '.my-notes/a.md');
+    // default stays .code-notes
+    const idxDefault = buildIndex([n({ id: 'a' })], '/ws', new Date('2026-05-01T00:00:00Z'));
+    assert.strictEqual(idxDefault.notes[0].contentPath, '.code-notes/a.md');
+  });
+
   test('buildIndex includes notes, byFile, byType, byTag', () => {
     const notes = [
       n({ id: 'a', filePath: '/ws/src/foo.ts', type: 'instruction', tags: ['security'] }),

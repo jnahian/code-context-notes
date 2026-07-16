@@ -45,7 +45,8 @@ export type NoteScope =
 export type AuthorType = 'human' | 'agent';
 
 /**
- * Priority used for digest ordering and `critical` always-include behavior
+ * Priority used for digest ordering. (`critical` always-include behavior
+ * ships with the v0.4 MCP tools.)
  */
 export type NotePriority = 'low' | 'normal' | 'high' | 'critical';
 

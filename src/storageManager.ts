@@ -6,7 +6,15 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { Note, NoteStorage, NoteMetadata } from './types.js';
+import { Note, NoteStorage, NoteMetadata, NoteReference } from './types.js';
+
+// Allowed values for structured fields parsed from note markdown.
+// Must stay in sync with the union types in types.ts.
+const VALID_NOTE_TYPES = new Set(['context', 'instruction', 'warning', 'decision', 'todo', 'handoff', 'rationale']);
+const VALID_NOTE_SCOPES = new Set(['line', 'function', 'class', 'file', 'directory']);
+const VALID_NOTE_PRIORITIES = new Set(['low', 'normal', 'high', 'critical']);
+const VALID_AUTHOR_TYPES = new Set(['human', 'agent']);
+const VALID_REFERENCE_KINDS = new Set(['note', 'pr', 'issue', 'commit', 'test', 'url']);
 
 /**
  * StorageManager implements the NoteStorage interface
@@ -317,22 +325,43 @@ export class StorageManager implements NoteStorage {
       else if (line.startsWith('**Status:** DELETED')) {
         note.isDeleted = true;
       }
-      // Parse new structured fields
+      // Parse new structured fields — invalid values are dropped (the note
+      // then gets the schema default at the NoteManager boundary)
       else if (line.startsWith('**Type:**')) {
-        note.type = line.substring(9).trim() as any;
+        const v = line.substring(9).trim();
+        if (VALID_NOTE_TYPES.has(v)) {
+          note.type = v as Note['type'];
+        } else {
+          console.warn(`[code-notes] Ignoring invalid note type: ${v}`);
+        }
       }
       else if (line.startsWith('**Scope:**')) {
-        note.scope = line.substring(10).trim() as any;
+        const v = line.substring(10).trim();
+        if (VALID_NOTE_SCOPES.has(v)) {
+          note.scope = v as Note['scope'];
+        } else {
+          console.warn(`[code-notes] Ignoring invalid note scope: ${v}`);
+        }
       }
       else if (line.startsWith('**Priority:**')) {
-        note.priority = line.substring(13).trim() as any;
+        const v = line.substring(13).trim();
+        if (VALID_NOTE_PRIORITIES.has(v)) {
+          note.priority = v as Note['priority'];
+        } else {
+          console.warn(`[code-notes] Ignoring invalid note priority: ${v}`);
+        }
       }
       else if (line.startsWith('**Tags:**')) {
         const raw = line.substring(9).trim();
         note.tags = raw ? raw.split(',').map(t => t.trim()).filter(t => t.length > 0) : [];
       }
       else if (line.startsWith('**AuthorType:**')) {
-        note.authorType = line.substring(15).trim() as any;
+        const v = line.substring(15).trim();
+        if (VALID_AUTHOR_TYPES.has(v)) {
+          note.authorType = v as Note['authorType'];
+        } else {
+          console.warn(`[code-notes] Ignoring invalid author type: ${v}`);
+        }
       }
       else if (line.startsWith('**ExpiresAt:**')) {
         note.expiresAt = line.substring(14).trim();
@@ -341,7 +370,15 @@ export class StorageManager implements NoteStorage {
         const raw = line.substring(15).trim();
         if (raw) {
           try {
-            note.references = JSON.parse(raw);
+            const parsed = JSON.parse(raw);
+            note.references = Array.isArray(parsed)
+              ? parsed.filter(
+                  (r: unknown): r is NoteReference =>
+                    !!r && typeof r === 'object' &&
+                    typeof (r as NoteReference).value === 'string' &&
+                    VALID_REFERENCE_KINDS.has((r as NoteReference).kind)
+                )
+              : [];
           } catch {
             console.warn(`[code-notes] Failed to parse References for note: ${raw}`);
             note.references = [];

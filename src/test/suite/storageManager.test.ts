@@ -320,6 +320,37 @@ suite('StorageManager Test Suite', () => {
 		assert.ok(content.includes('**Status:** DELETED'));
 	});
 
+	test('markdownToNote drops invalid structured field values', async () => {
+		const markdown = `# Code Context Note
+
+**File:** /abs/foo.ts
+**Lines:** 1-1
+**Content Hash:** sha256:abc
+
+## Note: n1
+**Author:** alice
+**Created:** 2026-05-01T00:00:00Z
+**Updated:** 2026-05-01T00:00:00Z
+**Type:** banana
+**Scope:** galaxy
+**Priority:** urgent
+**AuthorType:** robot
+**References:** [{"kind":"pr","value":"#42"},{"kind":"nope","value":"x"},"junk",{"kind":"url"}]
+
+## Current Content
+
+Hi.
+`;
+		const sm: any = new StorageManager('/tmp');
+		const note = sm.markdownToNote(markdown);
+		assert.ok(note);
+		assert.strictEqual(note!.type, undefined, 'invalid type must be dropped');
+		assert.strictEqual(note!.scope, undefined, 'invalid scope must be dropped');
+		assert.strictEqual(note!.priority, undefined, 'invalid priority must be dropped');
+		assert.strictEqual(note!.authorType, undefined, 'invalid authorType must be dropped');
+		assert.deepStrictEqual(note!.references, [{ kind: 'pr', value: '#42' }], 'only valid references survive');
+	});
+
 	test('markdownToNote parses new structured fields when present', async () => {
 		const markdown = `# Code Context Note
 
