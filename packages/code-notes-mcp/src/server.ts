@@ -11,6 +11,7 @@ import { getNotesForFileToolDef, getNotesForFileInput, getNotesForFile } from '.
 import { listInstructionsToolDef, listInstructionsInput, listInstructions } from './tools/list_instructions.js';
 import { getHandoffsToolDef, getHandoffsInput, getHandoffs } from './tools/get_handoffs.js';
 import { searchNotesToolDef, searchNotesInput, searchNotes } from './tools/search_notes.js';
+import { getNotesForChangesToolDef, getNotesForChanges } from './tools/get_notes_for_changes.js';
 
 export interface StartArgs {
   workspace: string;
@@ -59,6 +60,7 @@ export async function startServer(args: StartArgs): Promise<void> {
       listInstructionsToolDef,
       getHandoffsToolDef,
       searchNotesToolDef,
+      getNotesForChangesToolDef,
     ],
   }));
 
@@ -69,6 +71,9 @@ export async function startServer(args: StartArgs): Promise<void> {
       case 'list_instructions': return listInstructions(listInstructionsInput.parse(request.params.arguments), { noteManager });
       case 'get_handoffs': return getHandoffs(getHandoffsInput.parse(request.params.arguments), { noteManager });
       case 'search_notes': return searchNotes(searchNotesInput.parse(request.params.arguments), { noteManager, workspace });
+      // get_notes_for_changes validates its own raw args internally (safeParse)
+      // so that a missing files/diff produces an in-band error, not a thrown one.
+      case 'get_notes_for_changes': return getNotesForChanges(request.params.arguments, { noteManager, workspace });
       // more added in subsequent tasks
       default: throw new Error(`unknown tool: ${request.params.name}`);
     }
