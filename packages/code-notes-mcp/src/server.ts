@@ -7,6 +7,10 @@ import {
   StorageManager, NoteManager, LockManager, ContentHashTracker, AuthorProvider,
 } from '@jnahian/code-notes-core';
 import { getNoteToolDef, getNoteInput, getNote } from './tools/get_note.js';
+import { getNotesForFileToolDef, getNotesForFileInput, getNotesForFile } from './tools/get_notes_for_file.js';
+import { listInstructionsToolDef, listInstructionsInput, listInstructions } from './tools/list_instructions.js';
+import { getHandoffsToolDef, getHandoffsInput, getHandoffs } from './tools/get_handoffs.js';
+import { searchNotesToolDef, searchNotesInput, searchNotes } from './tools/search_notes.js';
 
 export interface StartArgs {
   workspace: string;
@@ -49,12 +53,22 @@ export async function startServer(args: StartArgs): Promise<void> {
   // registerResources(server, { workspace, storageDir });
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: [getNoteToolDef],
+    tools: [
+      getNoteToolDef,
+      getNotesForFileToolDef,
+      listInstructionsToolDef,
+      getHandoffsToolDef,
+      searchNotesToolDef,
+    ],
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (request.params.name) {
       case 'get_note': return getNote(getNoteInput.parse(request.params.arguments), { noteManager });
+      case 'get_notes_for_file': return getNotesForFile(getNotesForFileInput.parse(request.params.arguments), { noteManager, workspace });
+      case 'list_instructions': return listInstructions(listInstructionsInput.parse(request.params.arguments), { noteManager });
+      case 'get_handoffs': return getHandoffs(getHandoffsInput.parse(request.params.arguments), { noteManager });
+      case 'search_notes': return searchNotes(searchNotesInput.parse(request.params.arguments), { noteManager, workspace });
       // more added in subsequent tasks
       default: throw new Error(`unknown tool: ${request.params.name}`);
     }

@@ -84,7 +84,7 @@ export class SearchManager {
    * Build complete search index from all notes
    */
   async buildIndex(notes: Note[]): Promise<void> {
-    console.log(`Building search index for ${notes.length} notes...`);
+    console.error(`Building search index for ${notes.length} notes...`);
     const startTime = Date.now();
 
     // Clear existing indexes
@@ -105,7 +105,7 @@ export class SearchManager {
     this.stats.indexSize = this.estimateIndexSize();
 
     const duration = Date.now() - startTime;
-    console.log(`Search index built in ${duration}ms (${notes.length} notes, ${this.contentIndex.size} terms)`);
+    console.error(`Search index built in ${duration}ms (${notes.length} notes, ${this.contentIndex.size} terms)`);
   }
 
   /**
@@ -158,7 +158,7 @@ export class SearchManager {
     const cacheKey = this.getCacheKey(query);
     const cached = this.getFromCache(cacheKey);
     if (cached) {
-      console.log(`Search cache hit for: ${cacheKey}`);
+      console.error(`Search cache hit for: ${cacheKey}`);
       return cached.results;
     }
 
@@ -222,7 +222,7 @@ export class SearchManager {
     const duration = Date.now() - startTime;
     this.recordSearchTime(duration);
 
-    console.log(`Search completed in ${duration}ms (${limitedResults.length} results)`);
+    console.error(`Search completed in ${duration}ms (${limitedResults.length} results)`);
 
     return limitedResults;
   }
