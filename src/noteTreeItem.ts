@@ -138,10 +138,11 @@ export class NoteTreeItem extends BaseTreeItem {
 			.replace(/_([^_]+)_/g, '$1')
 			// Remove strikethrough
 			.replace(/~~([^~]+)~~/g, '$1')
+			// Remove images (before links — the link pattern would otherwise
+			// match the [alt](url) part and leave a stray '!')
+			.replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
 			// Remove links but keep text
 			.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-			// Remove images
-			.replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
 			// Remove headings
 			.replace(/^#+\s+/gm, '')
 			// Remove list markers
@@ -163,14 +164,15 @@ export class NoteTreeItem extends BaseTreeItem {
 			maxLength = 0;
 		}
 
-		// For very small maxLength (<=3), just return substring without ellipsis
-		if (maxLength <= 3) {
-			return text.substring(0, maxLength);
-		}
-
 		// If text fits, return unchanged
 		if (text.length <= maxLength) {
 			return text;
+		}
+
+		// For very small maxLength (<=3) there is no room for content plus
+		// ellipsis — the ellipsis itself is the truncation marker
+		if (maxLength <= 3) {
+			return '.'.repeat(maxLength);
 		}
 
 		// Otherwise, truncate and add ellipsis

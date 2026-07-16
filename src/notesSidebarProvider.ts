@@ -200,7 +200,11 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 	 */
 	private getNoteNodes(fileNode: FileTreeItem): NoteTreeItem[] {
 		const previewLength = this.getPreviewLength();
-		return fileNode.notes.map(note => new NoteTreeItem(note, previewLength));
+		// Sort by line number — callers may construct FileTreeItem with
+		// notes in any order
+		return [...fileNode.notes]
+			.sort((a, b) => a.lineRange.start - b.lineRange.start)
+			.map(note => new NoteTreeItem(note, previewLength));
 	}
 
 	/**
