@@ -475,6 +475,16 @@ Hi.
 		expect(errors[0].file).toBe('bad.md');
 	});
 
+	it('round-trips approvedBy through markdown', async () => {
+		// The serializer writes an explicit field list, so an unlisted field is
+		// silently dropped on save — this is the only thing proving it isn't.
+		await storageManager.saveNote({ ...testNote, authorType: 'agent', approvedBy: 'Jane Dev' });
+		const loaded = await storageManager.loadNoteById(testNote.id);
+
+		expect(loaded!.approvedBy).toBe('Jane Dev');
+		expect(loaded!.authorType).toBe('agent');
+	});
+
 	// Note content is agent-controlled input crossing a human review boundary.
 	// The metadata branches match on prefix, so content had to stop being
 	// re-parsed as metadata on reload.

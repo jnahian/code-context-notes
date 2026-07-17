@@ -4,9 +4,10 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { StorageManager, ExportWriter, ContentHashTracker, NoteManager, SearchManager, LockManager, writeWorkspaceConfig, AuditLog } from '@jnahian/code-notes-core';
-import type { AuditEntry } from '@jnahian/code-notes-core';
+import { StorageManager, ExportWriter, ContentHashTracker, NoteManager, SearchManager, LockManager, writeWorkspaceConfig, AuditLog, ProposalStore, hashNoteContent } from '@jnahian/code-notes-core';
+import type { AuditEntry, Proposal } from '@jnahian/code-notes-core';
 import { AgentActivityProvider, AgentActivityItem } from './agentActivityProvider.js';
+import { PendingProposalsProvider, ProposalItem } from './pendingProposalsProvider.js';
 import { GitIntegration } from './gitIntegration.js';
 import { CommentController } from './commentController.js';
 import { CodeNotesLensProvider } from './codeLensProvider.js';
@@ -18,6 +19,8 @@ let noteManager: NoteManager;
 // rather than capturing it.
 let auditLog: AuditLog | undefined;
 let agentActivityProvider: AgentActivityProvider | undefined;
+let proposalStore: ProposalStore | undefined;
+let pendingProposalsProvider: PendingProposalsProvider | undefined;
 let exportWriter: ExportWriter;
 let searchManager: SearchManager;
 let commentController: CommentController;
@@ -96,6 +99,29 @@ export async function activate(context: vscode.ExtensionContext) {
 				// what they asked for.
 				await syncWorkspaceConfig();
 			}
+
+			// Leaving queue mode strands anything still pending — those writes
+			// were never applied, and silently abandoning them would lose an
+			// agent's work without anyone deciding to.
+			if (e.affectsConfiguration('codeContextNotes.agentWriteMode') && proposalStore) {
+				const mode = vscode.workspace.getConfiguration('codeContextNotes').get<string>('agentWriteMode');
+				const stranded = await proposalStore.list();
+				if (mode !== 'queue' && stranded.length > 0) {
+					const pick = await vscode.window.showWarningMessage(
+						`${stranded.length} agent proposal(s) are still pending, but queue mode is off.`,
+						'Review them',
+						'Reject all',
+					);
+					if (pick === 'Review them') {
+						await vscode.commands.executeCommand('codeContextNotes.pendingProposalsView.focus');
+					} else if (pick === 'Reject all') {
+						for (const p of stranded) {
+							await proposalStore.reject(p.proposalId);
+						}
+						pendingProposalsProvider?.refresh();
+					}
+				}
+			}
 		}),
 	);
 
@@ -132,6 +158,18 @@ export async function activate(context: vscode.ExtensionContext) {
 	);
 	// The watcher emits this when the MCP server appends from another process.
 	noteManager.on('auditLogChanged', () => agentActivityProvider?.refresh());
+
+	// Pending proposals (queue mode): the review queue for agent writes.
+	proposalStore = new ProposalStore(path.join(storagePath, '_pending'));
+	// A proposal is orphaned when the note it targets is gone — approving it
+	// would have nothing to apply to.
+	const isOrphaned = async (p: Proposal): Promise<boolean> =>
+		p.op !== 'create' && !(await noteManager.getNoteByIdGlobal(p.targetNoteId!));
+	pendingProposalsProvider = new PendingProposalsProvider(proposalStore, isOrphaned);
+	context.subscriptions.push(
+		vscode.window.registerTreeDataProvider('codeContextNotes.pendingProposalsView', pendingProposalsProvider),
+	);
+	noteManager.on('proposalsChanged', () => pendingProposalsProvider?.refresh());
 
 	// Initialize search manager
 	searchManager = new SearchManager(context.globalState);
@@ -291,6 +329,68 @@ const x = 1;
  * Note: Commands are registered even without a workspace, but many will show
  * error messages if workspace-dependent features (noteManager, commentController) are not initialized
  */
+/**
+ * Apply an approved proposal as if the approver wrote it. The approver's name
+ * goes on the note and in approvedBy; authorType stays 'agent' because an
+ * agent did compose it — approval is accountability, not authorship laundering.
+ *
+ * noteManager here is the extension's (agentWriter false), so applying is a
+ * human write: it is not re-diverted into another proposal.
+ */
+async function applyProposal(p: Proposal, content: string): Promise<void> {
+	if (!noteManager || !proposalStore) {
+		throw new Error('Code Context Notes requires a workspace folder to be opened.');
+	}
+	const approver = await noteManager.getDefaultAuthor();
+	const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(p.file));
+
+	if (p.op === 'create') {
+		await noteManager.createNote({
+			filePath: p.file,
+			lineRange: p.lineRange!,
+			content,
+			author: approver,
+			authorType: 'agent',
+			approvedBy: approver,
+		}, doc);
+	} else if (p.op === 'edit') {
+		await noteManager.updateNote({ id: p.targetNoteId!, content, author: approver }, doc);
+	} else {
+		await noteManager.deleteNote(p.targetNoteId!, p.file);
+	}
+
+	await proposalStore.remove(p.proposalId);
+	pendingProposalsProvider?.refresh();
+}
+
+/**
+ * Simple-pick, not a 3-way merge (spec §7.6): if the note changed after the
+ * agent proposed its edit, the human picks a side. Returns the content to
+ * apply, or undefined to abandon. Add a real merge only if conflicts turn out
+ * to be common.
+ */
+async function resolveStaleTarget(p: Proposal): Promise<string | undefined> {
+	if (p.op === 'create' || !p.targetContentHash || !noteManager) {
+		return p.content;
+	}
+	const current = await noteManager.getNoteByIdGlobal(p.targetNoteId!);
+	if (!current) {
+		vscode.window.showWarningMessage('The note this proposal targets no longer exists. Reject it instead.');
+		return undefined;
+	}
+	if (hashNoteContent(current.content) === p.targetContentHash) {
+		return p.content;
+	}
+
+	const pick = await vscode.window.showWarningMessage(
+		'This note changed after the agent proposed its edit.',
+		{ modal: true, detail: `Yours:\n${current.content}\n\nAgent's:\n${p.content}` },
+		"Use agent's version",
+		'Keep mine',
+	);
+	return pick === "Use agent's version" ? p.content : undefined;
+}
+
 function registerAllCommands(context: vscode.ExtensionContext) {
 	// --- Agent activity (audit mode) ---
 
@@ -374,6 +474,53 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 				vscode.window.showInformationMessage(`Reverted ${entry.op} on ${path.basename(note.filePath)}.`);
 			} catch (e) {
 				vscode.window.showErrorMessage(`Revert failed: ${(e as Error).message}`);
+			}
+		}),
+	);
+
+	// --- Pending agent proposals (queue mode) ---
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('codeContextNotes.rejectProposal', async (item: ProposalItem) => {
+			if (!proposalStore) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+			await proposalStore.reject(item.proposal.proposalId);
+			pendingProposalsProvider?.refresh();
+			vscode.window.showInformationMessage('Proposal rejected. Kept in _pending/.rejected/ for audit.');
+		}),
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('codeContextNotes.approveProposal', async (item: ProposalItem) => {
+			try {
+				const content = await resolveStaleTarget(item.proposal);
+				if (content === undefined) {
+					return;
+				}
+				await applyProposal(item.proposal, content);
+				vscode.window.showInformationMessage('Proposal approved.');
+			} catch (e) {
+				vscode.window.showErrorMessage(`Approve failed: ${(e as Error).message}`);
+			}
+		}),
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('codeContextNotes.editAndApproveProposal', async (item: ProposalItem) => {
+			const edited = await vscode.window.showInputBox({
+				prompt: 'Edit the proposed note before approving',
+				value: item.proposal.content,
+			});
+			if (edited === undefined) {
+				return;
+			}
+			try {
+				await applyProposal(item.proposal, edited);
+				vscode.window.showInformationMessage('Proposal approved with your edits.');
+			} catch (e) {
+				vscode.window.showErrorMessage(`Approve failed: ${(e as Error).message}`);
 			}
 		}),
 	);

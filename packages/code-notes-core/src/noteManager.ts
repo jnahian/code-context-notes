@@ -189,6 +189,7 @@ export class NoteManager extends EventEmitter {
         ...(params.priority !== undefined && { priority: params.priority }),
         ...(params.expiresAt !== undefined && { expiresAt: params.expiresAt }),
         ...(params.authorType !== undefined && { authorType: params.authorType }),
+        ...(params.approvedBy !== undefined && { approvedBy: params.approvedBy }),
         isDeleted: false
       };
 
@@ -572,6 +573,11 @@ export class NoteManager extends EventEmitter {
         notes[index] = applyDefaults(updatedNote);
       }
     }
+  }
+
+  /** The human's display name — used to attribute an approved proposal. */
+  async getDefaultAuthor(): Promise<string> {
+    return this.gitIntegration.getAuthorName();
   }
 
   /**

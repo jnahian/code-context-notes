@@ -262,6 +262,9 @@ export class StorageManager implements NoteStorage {
     if (note.authorType && note.authorType !== NOTE_DEFAULTS.authorType) {
       lines.push(`**AuthorType:** ${note.authorType}`);
     }
+    if (note.approvedBy) {
+      lines.push(`**ApprovedBy:** ${note.approvedBy}`);
+    }
     if (note.expiresAt) {
       lines.push(`**ExpiresAt:** ${note.expiresAt}`);
     }
@@ -427,6 +430,9 @@ export class StorageManager implements NoteStorage {
       else if (line.startsWith('**Tags:**')) {
         const raw = line.substring(9).trim();
         note.tags = raw ? raw.split(',').map(t => t.trim()).filter(t => t.length > 0) : [];
+      }
+      else if (line.startsWith('**ApprovedBy:**')) {
+        note.approvedBy = line.substring(15).trim();
       }
       else if (line.startsWith('**AuthorType:**')) {
         const v = line.substring(15).trim();

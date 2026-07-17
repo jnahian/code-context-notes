@@ -234,6 +234,24 @@
         "command": "codeContextNotes.openAuditedNote",
         "title": "Open the note this entry refers to",
         "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.approveProposal",
+        "title": "Approve",
+        "icon": "$(check)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.rejectProposal",
+        "title": "Reject",
+        "icon": "$(x)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.editAndApproveProposal",
+        "title": "Edit and approve",
+        "icon": "$(edit)",
+        "category": "Code Notes"
       }
     ],
     "keybindings": [
@@ -327,6 +345,21 @@
           "command": "codeContextNotes.revertAgentOp",
           "when": "view == codeContextNotes.agentActivityView && viewItem == agentActivityItem",
           "group": "inline"
+        },
+        {
+          "command": "codeContextNotes.approveProposal",
+          "when": "view == codeContextNotes.pendingProposalsView && viewItem == proposalItem",
+          "group": "inline@1"
+        },
+        {
+          "command": "codeContextNotes.editAndApproveProposal",
+          "when": "view == codeContextNotes.pendingProposalsView && viewItem == proposalItem",
+          "group": "inline@2"
+        },
+        {
+          "command": "codeContextNotes.rejectProposal",
+          "when": "view == codeContextNotes.pendingProposalsView",
+          "group": "inline@3"
         },
         {
           "command": "codeContextNotes.openNoteFromSidebar",
@@ -430,6 +463,11 @@
         {
           "id": "codeContextNotes.agentActivityView",
           "name": "Agent activity",
+          "contextualTitle": "Code Context Notes"
+        },
+        {
+          "id": "codeContextNotes.pendingProposalsView",
+          "name": "Pending agent proposals",
           "contextualTitle": "Code Context Notes"
         }
       ]

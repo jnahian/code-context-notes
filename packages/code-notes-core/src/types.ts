@@ -106,6 +106,8 @@ export interface Note {
   expiresAt?: string;          // ISO 8601
   authorType?: AuthorType;
   priority?: NotePriority;
+  /** Set when a human approved an agent's queued proposal. */
+  approvedBy?: string;
 }
 
 /**
@@ -173,6 +175,8 @@ export interface CreateNoteParams {
   expiresAt?: string;
   /** 'agent' marks this as an agent write — the trust router keys off it. */
   authorType?: AuthorType;
+  /** Set when a human approved an agent's queued proposal. */
+  approvedBy?: string;
 }
 
 /**
