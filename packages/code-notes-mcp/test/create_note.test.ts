@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as os from 'os';
-import { StorageManager, NoteManager, ContentHashTracker, AuthorProvider } from '@jnahian/code-notes-core';
+import { StorageManager, NoteManager, ContentHashTracker, AuthorProvider, LockManager } from '@jnahian/code-notes-core';
 import { createNote } from '../src/tools/create_note.js';
 
 describe('create_note', () => {
@@ -72,6 +72,53 @@ describe('create_note', () => {
     );
     const parsed = JSON.parse(r.content[0].text);
     expect(parsed.error).toBe('invalid_line_range');
+  });
+
+  it('returns path_escapes_workspace for a file outside the workspace root', async () => {
+    const r = await createNote(
+      { file: '../outside.ts', lineRange: { start: 0, end: 0 }, content: 'hi' },
+      { noteManager, workspace: tempDir },
+    );
+    const parsed = JSON.parse(r.content[0].text);
+    expect(parsed.error).toBe('path_escapes_workspace');
+  });
+
+  it('returns internal_error, not invalid_line_range, for a non-range createNote failure', async () => {
+    const filePath = path.join(tempDir, 'ok.ts');
+    await fs.writeFile(filePath, 'line0\n');
+    vi.spyOn(noteManager, 'createNote').mockRejectedValue(new Error('disk on fire'));
+
+    const r = await createNote(
+      { file: filePath, lineRange: { start: 0, end: 0 }, content: 'hi' },
+      { noteManager, workspace: tempDir },
+    );
+    const parsed = JSON.parse(r.content[0].text);
+    expect(parsed.error).toBe('internal_error');
+    expect(parsed.detail).toBe('disk on fire');
+  });
+
+  it('translates a lock_timeout from the LockManager into { error: lock_timeout, retryable: true }', async () => {
+    const filePath = path.join(tempDir, 'locked.ts');
+    await fs.writeFile(filePath, 'line0\n');
+
+    // create_note generates a fresh note id internally, so we can't pre-seed a
+    // lock file for it; force the same failure LockManager.acquire() raises
+    // when it can't get the lock in time (see lockManager.test.ts).
+    const lockManager = new LockManager(path.join(tempDir, '.locks'), 'test', { retryMs: 50 });
+    vi.spyOn(lockManager, 'acquire').mockRejectedValue(new Error('lock_timeout: forced'));
+    const lockedNoteManager = new NoteManager(
+      new StorageManager(tempDir, '.test-notes'),
+      new ContentHashTracker(),
+      { getAuthorName: async () => 'Test Author', updateConfigOverride: () => {} },
+      { lockManager },
+    );
+
+    const r = await createNote(
+      { file: filePath, lineRange: { start: 0, end: 0 }, content: 'hi' },
+      { noteManager: lockedNoteManager, workspace: tempDir },
+    );
+    const parsed = JSON.parse(r.content[0].text);
+    expect(parsed).toEqual({ error: 'lock_timeout', retryable: true });
   });
 
   it('accepts a workspace-relative file path', async () => {

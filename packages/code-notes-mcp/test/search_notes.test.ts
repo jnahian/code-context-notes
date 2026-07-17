@@ -109,4 +109,14 @@ describe('search_notes', () => {
     expect(notes.some(n => n.content === 'This handles authentication tokens')).toBe(false);
     expect(notes.length).toBeGreaterThan(0);
   });
+
+  it('does not match a file filter mid-filename (path-boundary aware)', async () => {
+    // 'th.ts' is a suffix of 'auth.ts' but not a path-boundary match, so it must not match.
+    const r = await searchNotes(
+      { query: 'authentication', file: 'th.ts' },
+      { noteManager, workspace: tempDir },
+    );
+    const notes: Note[] = JSON.parse(r.content[0].text);
+    expect(notes.some(n => n.filePath.endsWith('auth.ts'))).toBe(false);
+  });
 });

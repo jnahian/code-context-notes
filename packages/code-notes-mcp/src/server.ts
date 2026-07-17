@@ -1,6 +1,7 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { ListToolsRequestSchema, CallToolRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import type { z } from 'zod';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import {
@@ -46,6 +47,22 @@ export function buildToolList(readOnly: boolean) {
   return readOnly ? READ_TOOLS : [...READ_TOOLS, ...WRITE_TOOLS];
 }
 
+/**
+ * Validate args against a tool's zod schema without throwing: bad arguments
+ * are a normal tool failure (invalid_arguments), not a protocol-level error.
+ */
+function parseOrError<T>(
+  schema: z.ZodType<T>,
+  args: unknown,
+): { ok: true; data: T } | { ok: false; response: ReturnType<typeof errorResult> } {
+  const result = schema.safeParse(args);
+  if (!result.success) {
+    const detail = result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ');
+    return { ok: false, response: errorResult('invalid_arguments', { detail }) };
+  }
+  return { ok: true, data: result.data };
+}
+
 /** Exported for testing: dispatch a tool call without a live transport. */
 export async function handleToolCall(
   name: string,
@@ -56,21 +73,66 @@ export async function handleToolCall(
     return errorResult('read_only_mode', { detail: 'start the server with --agent <name> to enable writes' });
   }
 
+  try {
+    return await dispatchToolCall(name, args, deps);
+  } catch (e) {
+    // Last-resort guard: anything a tool still throws (e.g. an unexpected
+    // failure after a note was already created) becomes an in-band error, so
+    // tool failures are never surfaced as JSON-RPC protocol errors.
+    return errorResult('internal_error', { detail: e instanceof Error ? e.message : String(e) });
+  }
+}
+
+async function dispatchToolCall(
+  name: string,
+  args: unknown,
+  deps: { noteManager: NoteManager; workspace: string; readOnly: boolean },
+) {
   switch (name) {
-    case 'get_note': return getNote(getNoteInput.parse(args), { noteManager: deps.noteManager });
-    case 'get_notes_for_file': return getNotesForFile(getNotesForFileInput.parse(args), { noteManager: deps.noteManager, workspace: deps.workspace });
-    case 'list_instructions': return listInstructions(listInstructionsInput.parse(args), { noteManager: deps.noteManager });
-    case 'get_handoffs': return getHandoffs(getHandoffsInput.parse(args), { noteManager: deps.noteManager });
-    case 'search_notes': return searchNotes(searchNotesInput.parse(args), { noteManager: deps.noteManager, workspace: deps.workspace });
+    case 'get_note': {
+      const p = parseOrError(getNoteInput, args);
+      return p.ok ? getNote(p.data, { noteManager: deps.noteManager }) : p.response;
+    }
+    case 'get_notes_for_file': {
+      const p = parseOrError(getNotesForFileInput, args);
+      return p.ok ? getNotesForFile(p.data, { noteManager: deps.noteManager, workspace: deps.workspace }) : p.response;
+    }
+    case 'list_instructions': {
+      const p = parseOrError(listInstructionsInput, args);
+      return p.ok ? listInstructions(p.data, { noteManager: deps.noteManager }) : p.response;
+    }
+    case 'get_handoffs': {
+      const p = parseOrError(getHandoffsInput, args);
+      return p.ok ? getHandoffs(p.data, { noteManager: deps.noteManager }) : p.response;
+    }
+    case 'search_notes': {
+      const p = parseOrError(searchNotesInput, args);
+      return p.ok ? searchNotes(p.data, { noteManager: deps.noteManager, workspace: deps.workspace }) : p.response;
+    }
     // get_notes_for_changes validates its own raw args internally (safeParse)
     // so that a missing files/diff produces an in-band error, not a thrown one.
     case 'get_notes_for_changes': return getNotesForChanges(args, { noteManager: deps.noteManager, workspace: deps.workspace });
-    case 'create_note': return createNote(createNoteInput.parse(args), { noteManager: deps.noteManager, workspace: deps.workspace });
-    case 'edit_note': return editNote(editNoteInput.parse(args), { noteManager: deps.noteManager });
-    case 'delete_note': return deleteNote(deleteNoteInput.parse(args), { noteManager: deps.noteManager });
-    case 'add_handoff': return addHandoff(addHandoffInput.parse(args), { noteManager: deps.noteManager, workspace: deps.workspace });
-    case 'add_decision': return addDecision(addDecisionInput.parse(args), { noteManager: deps.noteManager, workspace: deps.workspace });
-    default: throw new Error(`unknown tool: ${name}`);
+    case 'create_note': {
+      const p = parseOrError(createNoteInput, args);
+      return p.ok ? createNote(p.data, { noteManager: deps.noteManager, workspace: deps.workspace }) : p.response;
+    }
+    case 'edit_note': {
+      const p = parseOrError(editNoteInput, args);
+      return p.ok ? editNote(p.data, { noteManager: deps.noteManager }) : p.response;
+    }
+    case 'delete_note': {
+      const p = parseOrError(deleteNoteInput, args);
+      return p.ok ? deleteNote(p.data, { noteManager: deps.noteManager }) : p.response;
+    }
+    case 'add_handoff': {
+      const p = parseOrError(addHandoffInput, args);
+      return p.ok ? addHandoff(p.data, { noteManager: deps.noteManager, workspace: deps.workspace }) : p.response;
+    }
+    case 'add_decision': {
+      const p = parseOrError(addDecisionInput, args);
+      return p.ok ? addDecision(p.data, { noteManager: deps.noteManager, workspace: deps.workspace }) : p.response;
+    }
+    default: return errorResult('invalid_arguments', { detail: `unknown tool: ${name}` });
   }
 }
 

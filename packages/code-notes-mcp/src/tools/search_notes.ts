@@ -3,6 +3,8 @@ import * as path from 'path';
 import { SearchManager, isExpired } from '@jnahian/code-notes-core';
 import type { NoteManager, Note, NoteType, HistoryStore } from '@jnahian/code-notes-core';
 
+const NOTE_TYPES = ['context', 'instruction', 'warning', 'decision', 'todo', 'handoff', 'rationale'] as const;
+
 export const searchNotesToolDef = {
   name: 'search_notes',
   description: 'Full-text search across workspace notes, with optional type/tags/file filters and expired-note exclusion.',
@@ -10,7 +12,7 @@ export const searchNotesToolDef = {
     type: 'object',
     properties: {
       query: { type: 'string', description: 'Full-text search query' },
-      type: { type: 'string', description: 'Filter by note type (e.g. "warning", "todo")' },
+      type: { type: 'string', enum: NOTE_TYPES, description: 'Filter by note type' },
       tags: { type: 'array', items: { type: 'string' }, description: 'Filter: note must have at least one of these tags' },
       file: { type: 'string', description: 'Filter by file path (absolute or workspace-relative)' },
       includeExpired: { type: 'boolean', description: 'Include expired notes (default false)' },
@@ -21,7 +23,7 @@ export const searchNotesToolDef = {
 
 export const searchNotesInput = z.object({
   query: z.string(),
-  type: z.string().optional() as z.ZodOptional<z.ZodType<NoteType>>,
+  type: z.enum(NOTE_TYPES).optional() as z.ZodOptional<z.ZodType<NoteType>>,
   tags: z.array(z.string()).optional(),
   file: z.string().optional(),
   includeExpired: z.boolean().optional(),
@@ -39,8 +41,13 @@ function createInMemoryHistoryStore(): HistoryStore {
 
 function matchesFile(note: Note, file: string, workspace?: string): boolean {
   if (note.filePath === file) return true;
-  if (note.filePath.endsWith(file)) return true;
   if (workspace && note.filePath === path.resolve(workspace, file)) return true;
+  // endsWith alone would let 'th.ts' match 'auth.ts'; require the match to
+  // start right after a path separator, not mid-filename.
+  if (note.filePath.endsWith(file)) {
+    const boundaryChar = note.filePath[note.filePath.length - file.length - 1];
+    if (boundaryChar === '/' || boundaryChar === path.sep) return true;
+  }
   return false;
 }
 

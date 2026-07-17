@@ -4,6 +4,10 @@ import type { NoteManager, NoteType, NoteScope, NotePriority, NoteReference } fr
 import { buildDocumentFromFile } from '../fileDocument.js';
 import { errorResult, isLockTimeout } from './errors.js';
 
+const NOTE_TYPES = ['context', 'instruction', 'warning', 'decision', 'todo', 'handoff', 'rationale'] as const;
+const NOTE_SCOPES = ['line', 'function', 'class', 'file', 'directory'] as const;
+const NOTE_PRIORITIES = ['low', 'normal', 'high', 'critical'] as const;
+
 export const createNoteToolDef = {
   name: 'create_note',
   description: 'Create a new note attached to a line range in a file.',
@@ -18,11 +22,11 @@ export const createNoteToolDef = {
         required: ['start', 'end'],
       },
       content: { type: 'string', description: 'Note content (markdown)' },
-      type: { type: 'string', description: 'Note type, e.g. "context", "instruction", "warning", "decision", "todo", "handoff", "rationale" (default "context")' },
+      type: { type: 'string', enum: NOTE_TYPES, description: 'Note type (default "context")' },
       tags: { type: 'array', items: { type: 'string' } },
-      scope: { type: 'string', description: 'Note scope: "line", "function", "class", "file", "directory" (default "line")' },
+      scope: { type: 'string', enum: NOTE_SCOPES, description: 'Note scope (default "line")' },
       references: { type: 'array', items: { type: 'object' }, description: 'References to PRs/issues/commits/tests/urls' },
-      priority: { type: 'string', description: 'Note priority: "low", "normal", "high", "critical" (default "normal")' },
+      priority: { type: 'string', enum: NOTE_PRIORITIES, description: 'Note priority (default "normal")' },
       expiresAt: { type: 'string', description: 'ISO 8601 expiry timestamp' },
     },
     required: ['file', 'lineRange', 'content'],
@@ -44,11 +48,11 @@ export const createNoteInput = z.object({
   file: z.string(),
   lineRange: lineRangeSchema,
   content: z.string(),
-  type: z.string().optional() as z.ZodOptional<z.ZodType<NoteType>>,
+  type: z.enum(NOTE_TYPES).optional() as z.ZodOptional<z.ZodType<NoteType>>,
   tags: z.array(z.string()).optional(),
-  scope: z.string().optional() as z.ZodOptional<z.ZodType<NoteScope>>,
+  scope: z.enum(NOTE_SCOPES).optional() as z.ZodOptional<z.ZodType<NoteScope>>,
   references: z.array(noteReferenceSchema).optional() as z.ZodOptional<z.ZodType<NoteReference[]>>,
-  priority: z.string().optional() as z.ZodOptional<z.ZodType<NotePriority>>,
+  priority: z.enum(NOTE_PRIORITIES).optional() as z.ZodOptional<z.ZodType<NotePriority>>,
   expiresAt: z.string().optional(),
 });
 
@@ -57,6 +61,10 @@ export async function createNote(
   deps: { noteManager: NoteManager; workspace: string },
 ) {
   const absFile = path.isAbsolute(args.file) ? args.file : path.join(deps.workspace, args.file);
+  const rel = path.relative(deps.workspace, absFile);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+    return errorResult('path_escapes_workspace', { file: args.file });
+  }
 
   let doc;
   try {
@@ -73,7 +81,11 @@ export async function createNote(
     );
   } catch (e) {
     if (isLockTimeout(e)) return errorResult('lock_timeout', { retryable: true });
-    return errorResult('invalid_line_range', { detail: (e as Error).message });
+    // Core's range validation errors all start with "Line range"; anything
+    // else is an unexpected failure and must not masquerade as a range error.
+    const msg = (e as Error).message ?? String(e);
+    if (msg.includes('Line range')) return errorResult('invalid_line_range', { detail: msg });
+    return errorResult('internal_error', { detail: msg });
   }
 
   const fields: {

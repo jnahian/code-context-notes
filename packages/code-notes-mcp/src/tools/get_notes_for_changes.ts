@@ -3,6 +3,7 @@ import * as path from 'path';
 import type { NoteManager, Note } from '@jnahian/code-notes-core';
 import { resolveDirectoryScopedNotes, isExpired } from '@jnahian/code-notes-core';
 import { parseUnifiedDiff } from '../diffParser.js';
+import { errorResult } from './errors.js';
 
 export const getNotesForChangesToolDef = {
   name: 'get_notes_for_changes',
@@ -24,17 +25,13 @@ export const getNotesForChangesInput = z.object({
   diff: z.string().optional(),
 }).refine(data => !!data.files || !!data.diff, { message: 'at least one of files or diff is required' });
 
-function errorResponse(error: string, detail: string) {
-  return { content: [{ type: 'text' as const, text: JSON.stringify({ error, detail }) }] };
-}
-
 export async function getNotesForChanges(
   rawArgs: unknown,
   deps: { noteManager: NoteManager; workspace: string },
 ) {
   const parsed = getNotesForChangesInput.safeParse(rawArgs);
   if (!parsed.success) {
-    return errorResponse('invalid_arguments', parsed.error.issues.map(i => i.message).join('; '));
+    return errorResult('invalid_arguments', { detail: parsed.error.issues.map(i => i.message).join('; ') });
   }
   const args = parsed.data;
 
@@ -42,7 +39,7 @@ export async function getNotesForChanges(
   let diffFiles: string[] = [];
   if (args.diff) {
     const parsedDiff = parseUnifiedDiff(args.diff);
-    if ('error' in parsedDiff) return errorResponse(parsedDiff.error, parsedDiff.detail);
+    if ('error' in parsedDiff) return errorResult(parsedDiff.error, { detail: parsedDiff.detail });
     for (const f of parsedDiff.files) lineMap[f.file] = new Set(f.changedLines);
     diffFiles = parsedDiff.files.map(f => f.file);
   }

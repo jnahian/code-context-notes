@@ -32,3 +32,48 @@ describe('server read-only gating', () => {
     expect(parsed.id).toBe('a');
   });
 });
+
+describe('server invalid_arguments handling', () => {
+  const fakeNoteManager: any = {};
+
+  it('returns invalid_arguments in-band instead of throwing when a required field is missing', async () => {
+    const r = await handleToolCall('get_note', {}, { noteManager: fakeNoteManager, workspace: '/tmp', readOnly: false });
+    const parsed = JSON.parse(r.content[0].text);
+    expect(parsed.error).toBe('invalid_arguments');
+  });
+
+  it('returns invalid_arguments in-band for a write tool missing required fields', async () => {
+    const r = await handleToolCall('create_note', { file: 'x.ts' }, { noteManager: fakeNoteManager, workspace: '/tmp', readOnly: false });
+    const parsed = JSON.parse(r.content[0].text);
+    expect(parsed.error).toBe('invalid_arguments');
+  });
+
+  it('returns invalid_arguments for an unrecognized create_note type instead of persisting it', async () => {
+    const r = await handleToolCall(
+      'create_note',
+      { file: 'x.ts', lineRange: { start: 0, end: 0 }, content: 'hi', type: 'bogus' },
+      { noteManager: fakeNoteManager, workspace: '/tmp', readOnly: false },
+    );
+    const parsed = JSON.parse(r.content[0].text);
+    expect(parsed.error).toBe('invalid_arguments');
+  });
+
+  it('returns invalid_arguments in-band for an unknown tool name instead of throwing', async () => {
+    const r = await handleToolCall('nope', {}, { noteManager: fakeNoteManager, workspace: '/tmp', readOnly: false });
+    const parsed = JSON.parse(r.content[0].text);
+    expect(parsed.error).toBe('invalid_arguments');
+  });
+
+  it('converts an unexpected tool throw into an in-band internal_error', async () => {
+    const throwingNoteManager: any = { getNoteByIdGlobal: async () => { throw new Error('disk on fire'); } };
+    const r = await handleToolCall('get_note', { id: 'x' }, { noteManager: throwingNoteManager, workspace: '/tmp', readOnly: false });
+    const parsed = JSON.parse(r.content[0].text);
+    expect(parsed).toEqual({ error: 'internal_error', detail: 'disk on fire' });
+  });
+
+  it('returns invalid_arguments for an unrecognized search_notes type instead of silently matching nothing', async () => {
+    const r = await handleToolCall('search_notes', { query: 'x', type: 'bogus' }, { noteManager: fakeNoteManager, workspace: '/tmp', readOnly: false });
+    const parsed = JSON.parse(r.content[0].text);
+    expect(parsed.error).toBe('invalid_arguments');
+  });
+});
