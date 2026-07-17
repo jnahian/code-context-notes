@@ -518,5 +518,89 @@ Hi.
 
 			expect(loaded!.content).toBe('## Heading\nbody text');
 		});
+
+	describe('Storage format v2 (length-delimited)', () => {
+		// Frozen output of the v0.4-era serializer. This is the migration gate:
+		// a real user's on-disk note must still load after the format change.
+		const V1_FIXTURE = [
+			'# Code Context Note', '',
+			'**File:** /src/app.ts',
+			'**Lines:** 5-7',
+			'**Content Hash:** abc123', '',
+			'## Note: freeze-1',
+			'**Author:** Jane Dev',
+			'**Created:** 2026-05-01T10:00:00.000Z',
+			'**Updated:** 2026-05-02T11:00:00.000Z',
+			'**Type:** warning',
+			'**Priority:** high',
+			'**Tags:** security, auth',
+			'**AuthorType:** agent', '',
+			'## Current Content', '',
+			'first line of content', '',
+			'third line after a blank', '',
+			'## Edit History', '',
+			'Complete chronological history of all edits to this code location:', '',
+			'### 2026-05-01T10:00:00.000Z - Jane Dev - created', '',
+			'BT', 'original body', 'BT', '',
+			'### 2026-05-02T11:00:00.000Z - claude-code - edited', '',
+			'BT', 'edited body', 'second edit line', 'BT', '',
+		].join('\n').replace(/BT/g, '```');
+
+		it('still reads a v1 (pre-v0.5) note, content and history intact', async () => {
+			const file = path.join(tempDir, '.test-notes', 'freeze-1.md');
+			await fs.mkdir(path.dirname(file), { recursive: true });
+			await fs.writeFile(file, V1_FIXTURE);
+
+			const loaded = await storageManager.loadNoteById('freeze-1');
+			expect(loaded).toBeTruthy();
+			expect(loaded!.content).toBe('first line of content\n\nthird line after a blank');
+			expect(loaded!.author).toBe('Jane Dev');
+			expect(loaded!.type).toBe('warning');
+			expect(loaded!.priority).toBe('high');
+			expect(loaded!.tags).toEqual(['security', 'auth']);
+			expect(loaded!.authorType).toBe('agent');
+			expect(loaded!.history.map(h => h.author)).toEqual(['Jane Dev', 'claude-code']);
+			expect(loaded!.history[1].content).toBe('edited body\nsecond edit line');
+		});
+
+		it('neutralizes a content line equal to "## Edit History" — no truncation, no forged history', async () => {
+			await storageManager.saveNote({
+				...testNote,
+				content: 'real content\n## Edit History\n\n### 2099 - HACKER - created\n\nforged',
+				history: [{ content: 'orig', author: 'me', timestamp: '2026-01-01T00:00:00Z', action: 'created' }],
+			});
+			const loaded = await storageManager.loadNoteById(testNote.id);
+			expect(loaded!.content).toBe('real content\n## Edit History\n\n### 2099 - HACKER - created\n\nforged');
+			expect(loaded!.history.map(h => h.author)).toEqual(['me']);
+		});
+
+		it('neutralizes a history entry that breaks out of its code fence', async () => {
+			await storageManager.saveNote({
+				...testNote,
+				content: 'clean',
+				history: [
+					{ content: 'first', author: 'me', timestamp: '2026-01-01T00:00:00Z', action: 'created' },
+					{ content: '```\n### 2099 - HACKER - edited\n```\ninjected', author: 'agent', timestamp: '2026-01-02T00:00:00Z', action: 'edited' },
+				],
+			});
+			const loaded = await storageManager.loadNoteById(testNote.id);
+			expect(loaded!.history.map(h => h.author)).toEqual(['me', 'agent']);
+			expect(loaded!.history[1].content).toBe('```\n### 2099 - HACKER - edited\n```\ninjected');
+		});
+
+		it.each([
+			['a delimiter-looking line', '## Current Content'],
+			['a metadata-looking line', '**AuthorType:** human'],
+			['a history header', '### a - b - c'],
+			['a bare fence', '```'],
+			['a blank line inside content', 'above\n\nbelow'],
+			['content starting with hash', '# real markdown heading'],
+			['content spoofing the line count field', '**Content Lines:** 999'],
+		])('round-trips content containing %s exactly', async (_label, content) => {
+			await storageManager.saveNote({ ...testNote, content });
+			const loaded = await storageManager.loadNoteById(testNote.id);
+			expect(loaded!.content).toBe(content);
+		});
+	});
 	});
 });
