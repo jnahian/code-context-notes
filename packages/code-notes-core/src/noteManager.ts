@@ -32,6 +32,7 @@ export class NoteManager extends EventEmitter {
   private proposalStore?: ProposalStore;
   private agentWriteMode?: () => Promise<AgentWriteMode>;
   private agentName: string;
+  private agentWriter: boolean;
 
   constructor(
     storage: StorageManager,
@@ -45,6 +46,17 @@ export class NoteManager extends EventEmitter {
        *  long-lived process can't serve a stale policy. */
       agentWriteMode?: () => Promise<AgentWriteMode>;
       agentName?: string;
+      /**
+       * True when this NoteManager belongs to an agent (the MCP server), so
+       * every write it makes is an agent write. One instance serves one
+       * identity — the extension's manager leaves this false.
+       *
+       * Identity has to come from the writer, not the note: keying off a
+       * note's authorType let an agent edit human-authored notes with no
+       * approval, and would have diverted a human's own revert of an agent
+       * note into a proposal.
+       */
+      agentWriter?: boolean;
     }
   ) {
     super();
@@ -57,6 +69,9 @@ export class NoteManager extends EventEmitter {
     this.proposalStore = opts?.proposalStore;
     this.agentWriteMode = opts?.agentWriteMode;
     this.agentName = opts?.agentName ?? 'unknown-agent';
+    // An instance wired for agent routing but not explicitly flagged is still
+    // an agent's — only the extension constructs a manager with neither.
+    this.agentWriter = opts?.agentWriter ?? !!(opts?.proposalStore || opts?.auditLog);
 
     // Initialize default author
     this.initializeDefaultAuthor();
@@ -135,7 +150,7 @@ export class NoteManager extends EventEmitter {
     return this.withNoteLock(noteId, async () => {
       // Before any storage write: in queue mode this becomes a proposal and
       // no note is created.
-      await this.divertToProposalIfQueued(params.authorType === 'agent', {
+      await this.divertToProposalIfQueued(this.agentWriter || params.authorType === 'agent', {
         op: 'create',
         file: params.filePath,
         lineRange: params.lineRange,
@@ -198,7 +213,7 @@ export class NoteManager extends EventEmitter {
       this.emit('noteCreated', normalized);
       this.emit('noteChanged', { type: 'created', note: normalized });
 
-      await this.recordAgentOp(params.authorType === 'agent', {
+      await this.recordAgentOp(this.agentWriter || params.authorType === 'agent', {
         op: 'create',
         noteId: normalized.id,
         file: normalized.filePath,
@@ -232,7 +247,7 @@ export class NoteManager extends EventEmitter {
 
       const prevContent = note.content;
 
-      await this.divertToProposalIfQueued(note.authorType === 'agent', {
+      await this.divertToProposalIfQueued(this.agentWriter, {
         op: 'edit',
         targetNoteId: note.id,
         file: note.filePath,
@@ -277,7 +292,7 @@ export class NoteManager extends EventEmitter {
       this.emit('noteUpdated', note);
       this.emit('noteChanged', { type: 'updated', note });
 
-      await this.recordAgentOp(note.authorType === 'agent', {
+      await this.recordAgentOp(this.agentWriter, {
         op: 'edit',
         noteId: note.id,
         file: note.filePath,
@@ -343,7 +358,7 @@ export class NoteManager extends EventEmitter {
         throw new Error(`Note ${noteId} is already deleted`);
       }
 
-      await this.divertToProposalIfQueued(note.authorType === 'agent', {
+      await this.divertToProposalIfQueued(this.agentWriter, {
         op: 'delete',
         targetNoteId: note.id,
         file: note.filePath,
@@ -381,7 +396,7 @@ export class NoteManager extends EventEmitter {
       this.emit('noteDeleted', { noteId, filePath });
       this.emit('noteChanged', { type: 'deleted', noteId, filePath });
 
-      await this.recordAgentOp(note.authorType === 'agent', {
+      await this.recordAgentOp(this.agentWriter, {
         op: 'delete',
         noteId: note.id,
         file: note.filePath,

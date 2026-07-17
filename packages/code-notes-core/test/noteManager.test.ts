@@ -660,14 +660,23 @@ describe('NoteManager Test Suite', () => {
 			expect(entries[0]).toMatchObject({ op: 'delete', noteId: note.id });
 		});
 
-		it('does not log a human write, even in audit mode', async () => {
-			const agentManager = buildManager('audit');
+		// One instance, one identity: the extension's manager is a human's, so
+		// even sharing the audit log it must never record its own writes.
+		it('does not log a write from a non-agent manager, even in audit mode', async () => {
+			const humanManager = new NoteManager(
+				new StorageManager(tempDir, '.test-notes'),
+				new ContentHashTracker(),
+				new FakeAuthorProvider('a-human'),
+				{ auditLog, agentWriteMode: async () => 'audit', agentWriter: false },
+			);
 			const doc = createMockDocument('line0\n');
-			await agentManager.createNote({
+			const note = await humanManager.createNote({
 				content: 'human note',
 				filePath: doc.uri.fsPath,
 				lineRange: { start: 0, end: 0 },
 			}, doc);
+			await humanManager.updateNote({ id: note.id, content: 'human edit' }, doc);
+			await humanManager.deleteNote(note.id, doc.uri.fsPath);
 
 			expect(await auditLog.read()).toEqual([]);
 		});
@@ -760,17 +769,79 @@ describe('NoteManager Test Suite', () => {
 				expect((await store.list())[0]).toMatchObject({ op: 'delete', targetNoteId: seeded.id });
 			});
 
-			it('lets a human write through untouched', async () => {
-				const queued = buildQueued();
+			it('lets a non-agent manager write through untouched', async () => {
+				const humanManager = new NoteManager(
+					new StorageManager(tempDir, '.test-notes'),
+					new ContentHashTracker(),
+					new FakeAuthorProvider('a-human'),
+					{ proposalStore: store, agentWriteMode: async () => 'queue', agentWriter: false },
+				);
 				const doc = createMockDocument('line0\n');
 
-				const note = await queued.createNote({
+				const note = await humanManager.createNote({
 					content: 'human note',
 					filePath: doc.uri.fsPath,
 					lineRange: { start: 0, end: 0 },
 				}, doc);
 
 				expect(note.content).toBe('human note');
+				expect(await store.list()).toEqual([]);
+			});
+
+			// Identity comes from the writer, not the note. Keying off the note's
+			// authorType let an agent edit any human-authored note with no
+			// approval at all — the rails only covered notes agents had made
+			// themselves, which is exactly backwards for a shared codebase.
+			it('diverts an agent edit of a HUMAN-authored note', async () => {
+				const doc = createMockDocument('line0\n');
+				const humanNote = await noteManager.createNote({
+					content: 'human wrote this',
+					filePath: doc.uri.fsPath,
+					lineRange: { start: 0, end: 0 },
+				}, doc);
+
+				const agent = buildQueued();
+				await expect(agent.updateNote({ id: humanNote.id, content: 'agent rewrite' }, doc))
+					.rejects.toBeInstanceOf(PendingWriteError);
+
+				expect((await agent.getNoteByIdGlobal(humanNote.id))!.content).toBe('human wrote this');
+				expect((await store.list())[0]).toMatchObject({ op: 'edit', targetNoteId: humanNote.id });
+			});
+
+			it('diverts an agent delete of a HUMAN-authored note', async () => {
+				const doc = createMockDocument('line0\n');
+				const humanNote = await noteManager.createNote({
+					content: 'human wrote this',
+					filePath: doc.uri.fsPath,
+					lineRange: { start: 0, end: 0 },
+				}, doc);
+
+				const agent = buildQueued();
+				await expect(agent.deleteNote(humanNote.id, doc.uri.fsPath))
+					.rejects.toBeInstanceOf(PendingWriteError);
+
+				expect((await agent.getNoteByIdGlobal(humanNote.id))!.isDeleted).toBe(false);
+			});
+
+			// The mirror case: the extension has no agent wiring, so a human
+			// editing an agent's note (e.g. clicking Revert) must never be
+			// diverted into a proposal awaiting their own approval.
+			it('does not divert a human editing an AGENT-authored note', async () => {
+				const doc = createMockDocument('line0\n');
+				const agentNote = await buildManager('direct').createNote({
+					content: 'agent wrote this',
+					filePath: doc.uri.fsPath,
+					lineRange: { start: 0, end: 0 },
+					authorType: 'agent',
+				}, doc);
+
+				// noteManager is the extension's: no proposalStore, no agent wiring.
+				const reverted = await noteManager.updateNote(
+					{ id: agentNote.id, content: 'human reverted it' },
+					doc,
+				);
+
+				expect(reverted.content).toBe('human reverted it');
 				expect(await store.list()).toEqual([]);
 			});
 		});

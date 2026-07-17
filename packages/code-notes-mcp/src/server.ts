@@ -191,6 +191,9 @@ export async function startServer(args: StartArgs): Promise<void> {
     // long-lived server runs, and a cached policy is a policy that lies.
     agentWriteMode: async () => (await readWorkspaceConfig(storagePath)).agentWriteMode,
     agentName: args.agent ?? 'unknown-agent',
+    // This server is the agent: every write it makes is an agent write,
+    // whatever note it targets.
+    agentWriter: true,
   });
 
   const readOnly = !args.agent;
