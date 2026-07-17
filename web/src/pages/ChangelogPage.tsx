@@ -37,8 +37,8 @@ export function ChangelogPage() {
           {/* Timeline Items */}
           <div className="space-y-16">
 
-          {/* Version 0.4.0 */}
-          <div id="v0.4.0" className="relative grid grid-cols-1 md:grid-cols-[30%_70%] gap-8 items-start">
+          {/* Version 0.5.0 */}
+          <div id="v0.5.0" className="relative grid grid-cols-1 md:grid-cols-[30%_70%] gap-8 items-start">
             {/* Timeline Node */}
             <div className="absolute left-0 md:left-[30%] transform -translate-x-1/2 top-2">
               <div className="w-4 h-4 rounded-full bg-brand-orange border-4 border-white dark:border-slate-900 shadow-lg"></div>
@@ -48,9 +48,123 @@ export function ChangelogPage() {
             <div className="pl-8 md:pl-0 md:pr-12 text-left md:text-right space-y-2">
               <div className="flex md:flex-col md:items-end items-start gap-2">
                 <h3 className="text-2xl font-bold flex items-center gap-2 md:flex-row-reverse">
-                  <span>Version 0.4.0</span>
+                  <span>Version 0.5.0</span>
                   <Badge className="bg-brand-orange">Latest</Badge>
                 </h3>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground text-sm md:justify-end">
+                <Calendar className="h-4 w-4" />
+                <span>July 17, 2026</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Take control of agent-authored notes: a workspace setting picks whether agent writes land immediately, get logged, or wait for your approval, with sidebar views to review and undo them.
+              </p>
+            </div>
+
+            {/* Right Column - Changes */}
+            <div className="pl-8 md:pl-12">
+              <Card className="shadow-brand-drop bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-900 border-2 border-brand-orange">
+                <CardContent className="space-y-6">
+                  {/* Added */}
+                  <div>
+                    <h4 className="font-semibold mb-3 text-green-600 dark:text-green-400 flex items-center space-x-2">
+                      <Plus className="h-4 w-4" />
+                      <span>Added</span>
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="flex items-start space-x-3 bg-white dark:bg-slate-800 p-3 rounded-xl">
+                        <Settings className="h-5 w-5 text-brand-orange mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h5 className="font-semibold text-sm">Agent Write Modes</h5>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            One setting picks how MCP-agent writes are handled, stored in <code className="bg-brand-navy text-brand-warm px-1 rounded">.code-notes/config.json</code> so the standalone server reads the same policy.
+                          </p>
+                          <ul className="text-xs text-muted-foreground mt-2 space-y-1 ml-3">
+                            <li>• <strong>direct</strong> — writes land immediately</li>
+                            <li>• <strong>audit</strong> (default) — writes land and are logged</li>
+                            <li>• <strong>queue</strong> — writes wait for your approval</li>
+                            <li>• No server flag for the mode: an agent can't pick its own rails, and a change takes effect with no restart</li>
+                          </ul>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3 bg-white dark:bg-slate-800 p-3 rounded-xl">
+                        <FileText className="h-5 w-5 text-brand-orange mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h5 className="font-semibold text-sm">Agent Activity View + Revert</h5>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            In audit mode, every agent op is logged to <code className="bg-brand-navy text-brand-warm px-1 rounded">.code-notes/_audit.log</code> and shown in a sidebar view.
+                          </p>
+                          <ul className="text-xs text-muted-foreground mt-2 space-y-1 ml-3">
+                            <li>• Inline <strong>Revert</strong>: a create reverses to a delete, an edit/delete restores from history</li>
+                            <li>• Refreshes when an agent in another process writes; the log rotates atomically with no entry lost</li>
+                          </ul>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3 bg-white dark:bg-slate-800 p-3 rounded-xl">
+                        <MousePointerClick className="h-5 w-5 text-brand-orange mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h5 className="font-semibold text-sm">Pending Agent Proposals View</h5>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            In queue mode, agent writes become proposals in <code className="bg-brand-navy text-brand-warm px-1 rounded">.code-notes/_pending/</code> instead of touching live notes.
+                          </p>
+                          <ul className="text-xs text-muted-foreground mt-2 space-y-1 ml-3">
+                            <li>• <strong>Approve / Reject / Edit-and-approve</strong>; approve records who approved it, reject keeps the file for audit</li>
+                            <li>• Simple-pick when a note changed since the proposal; orphaned proposals (target gone) can only be rejected</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fixed */}
+                  <div>
+                    <h4 className="font-semibold mb-3 text-green-600 dark:text-green-400 flex items-center space-x-2">
+                      <Wrench className="h-4 w-4" />
+                      <span>Fixed</span>
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-start space-x-2">
+                        <span className="text-green-500 font-bold">✓</span>
+                        <span>Note repositioning now locks and re-reads, so following an editor's changes can't overwrite a note edited concurrently by another process</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Security */}
+                  <div>
+                    <h4 className="font-semibold mb-3 text-red-600 dark:text-red-400 flex items-center space-x-2">
+                      <Shield className="h-4 w-4" />
+                      <span>Security</span>
+                    </h4>
+                    <div className="space-y-1 text-sm text-muted-foreground bg-white dark:bg-slate-800 p-3 rounded-xl">
+                      <p>• Agent-write identity comes from the writer, not the note — an agent can no longer edit or delete a human's note without approval in queue mode</p>
+                      <p>• Note content can't forge note structure: storage is now a length-delimited format, so a note body can't delete itself or fake its history on reload</p>
+                      <p>• The audit log never drops an entry under load — rotation is atomic and appends are lock-free</p>
+                    </div>
+                  </div>
+
+                  {/* Compatibility */}
+                  <div className="bg-blue-50 dark:bg-slate-800 border-l-4 border-brand-orange p-3 rounded-r-xl">
+                    <p className="text-sm text-muted-foreground">
+                      <strong>Heads up:</strong> <code className="bg-brand-navy text-brand-warm px-1 rounded">audit</code> is the new default — a workspace with notes gains a <code className="bg-brand-navy text-brand-warm px-1 rounded">config.json</code> and starts logging agent writes unless you set the mode to <code className="bg-brand-navy text-brand-warm px-1 rounded">direct</code>. Notes migrate to a new on-disk format on next save; upgrade the MCP server alongside the extension.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Version 0.4.0 */}
+          <div id="v0.4.0" className="relative grid grid-cols-1 md:grid-cols-[30%_70%] gap-8 items-start">
+            {/* Timeline Node */}
+            <div className="absolute left-0 md:left-[30%] transform -translate-x-1/2 top-2">
+              <div className="w-4 h-4 rounded-full bg-blue-500 border-4 border-white dark:border-slate-900 shadow-lg"></div>
+            </div>
+
+            {/* Left Column - Version Info */}
+            <div className="pl-8 md:pl-0 md:pr-12 text-left md:text-right space-y-2">
+              <div className="flex md:flex-col md:items-end items-start gap-2">
+                <h3 className="text-2xl font-bold">Version 0.4.0</h3>
               </div>
               <div className="flex items-center gap-2 text-muted-foreground text-sm md:justify-end">
                 <Calendar className="h-4 w-4" />
@@ -63,7 +177,7 @@ export function ChangelogPage() {
 
             {/* Right Column - Changes */}
             <div className="pl-8 md:pl-12">
-              <Card className="shadow-brand-drop bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-900 border-2 border-brand-orange">
+              <Card className="bg-white shadow-brand-drop">
                 <CardContent className="space-y-6">
                   {/* Added */}
                   <div>
