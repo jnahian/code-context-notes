@@ -485,6 +485,29 @@ Hi.
 		expect(loaded!.authorType).toBe('agent');
 	});
 
+	describe('Empty-content notes', () => {
+		it('an empty-content note survives a save/reload instead of vanishing', async () => {
+			await storageManager.saveNote({ ...testNote, content: '' });
+			const loaded = await storageManager.loadNoteById(testNote.id);
+			expect(loaded).toBeTruthy();
+			expect(loaded!.content).toBe('');
+		});
+
+		it('a file with no content section is still rejected as corrupt (not masked as empty)', async () => {
+			// v2 header only, no '## Current Content' section.
+			const corrupt = [
+				'# Code Context Note', '',
+				'**File:** /f.ts', '**Lines:** 1-1', '**Content Hash:** h', '',
+				'## Note: corrupt-1', '**Format:** 2', '**Author:** me',
+				'**Created:** t', '**Updated:** t',
+			].join('\n');
+			const file = path.join(tempDir, '.test-notes', 'corrupt-1.md');
+			await fs.mkdir(path.dirname(file), { recursive: true });
+			await fs.writeFile(file, corrupt);
+			expect(await storageManager.loadNoteById('corrupt-1')).toBeNull();
+		});
+	});
+
 	// Note content is agent-controlled input crossing a human review boundary.
 	// The metadata branches match on prefix, so content had to stop being
 	// re-parsed as metadata on reload.

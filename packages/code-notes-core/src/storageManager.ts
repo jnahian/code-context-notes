@@ -457,9 +457,10 @@ export class StorageManager implements NoteStorage {
     let contentLineCount = 0;
     let i = 0;
 
+    let sawContentSection = false;
     for (; i < lines.length; i++) {
       const line = lines[i];
-      if (line === '## Current Content') break;
+      if (line === '## Current Content') { sawContentSection = true; break; }
       if (line === '**Format:** 2') continue;
       if (line.startsWith('**Content Lines:**')) {
         contentLineCount = parseInt(line.substring(18).trim(), 10) || 0;
@@ -468,10 +469,16 @@ export class StorageManager implements NoteStorage {
       this.applyMetadataLine(note, line);
     }
 
-    // '## Current Content', then one blank separator, then exactly N lines.
-    i += 2;
-    note.content = lines.slice(i, i + contentLineCount).join('\n');
-    i += contentLineCount;
+    // Only set content if the section was actually present. An empty content
+    // section is a valid empty note; a *missing* one is a corrupt file, and
+    // leaving content undefined lets isValidNote reject it rather than
+    // silently accept a blank note (or, worse, drop a real one on reload).
+    if (sawContentSection) {
+      // '## Current Content', then one blank separator, then exactly N lines.
+      i += 2;
+      note.content = lines.slice(i, i + contentLineCount).join('\n');
+      i += contentLineCount;
+    }
 
     while (i < lines.length && lines[i] !== '## Edit History') i++;
     i++;
@@ -501,7 +508,10 @@ export class StorageManager implements NoteStorage {
   private isValidNote(note: Partial<Note>): note is Note {
     return !!(
       note.id &&
-      note.content &&
+      // Empty-string content is a valid (contentless) note; only a missing
+      // content section — undefined — is invalid. The extension supports
+      // notes whose content is filled in later, and they must survive reload.
+      note.content !== undefined &&
       note.author &&
       note.filePath &&
       note.lineRange &&
