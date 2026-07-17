@@ -4,45 +4,79 @@ MCP server for [Code Context Notes](../..) — gives coding agents read/write ac
 
 ## Install
 
+Run it straight from npm — no global install needed:
+
 ```bash
-npm install -g @jnahian/code-notes-mcp
+npx -y @jnahian/code-notes-mcp --workspace . --agent claude-code
 ```
+
+`--workspace <path>` is required — no implicit cwd guessing. `--agent <name>` is required for write access; without it the server starts in read-only mode (only the read tools are listed). `--require-existing` fails startup (exit 3) if the workspace has no `.code-notes/` directory yet; otherwise the server starts in empty mode and creates it on first write.
 
 ## Configure
 
-Add to your agent's MCP config:
+**Claude Code** — `.mcp.json` at the project root (`--workspace .` resolves against the project directory; for a user-level server in `~/.claude.json`, use an absolute path instead):
 
 ```json
 {
   "mcpServers": {
     "code-notes": {
       "command": "npx",
-      "args": ["-y", "@jnahian/code-notes-mcp", "--workspace", "${workspaceFolder}", "--agent", "claude-code"]
+      "args": ["-y", "@jnahian/code-notes-mcp", "--workspace", ".", "--agent", "claude-code"]
     }
   }
 }
 ```
 
-`--workspace` is required — no implicit cwd guessing. `--agent` is required for write access; without it the server starts in read-only mode. `--require-existing` fails startup (exit 3) if the workspace has no `.code-notes/` directory yet.
+**Cursor** — `~/.cursor/mcp.json` (or `.cursor/mcp.json` in a project):
+
+```json
+{
+  "mcpServers": {
+    "code-notes": {
+      "command": "npx",
+      "args": ["-y", "@jnahian/code-notes-mcp", "--workspace", ".", "--agent", "cursor"]
+    }
+  }
+}
+```
 
 ## Tools
 
-Registered in subsequent milestones; this scaffold ships the server shell only.
+Read tools are always available; write tools appear only when the server was started with `--agent`.
 
-| Tool | Purpose |
-|---|---|
-| `search_notes` | Full-text + structured filter search. |
-| `get_notes_for_file` | Notes attached to a file, including scope matches. |
-| `get_notes_for_changes` | Notes overlapping edited line ranges (files or diff). |
-| `list_instructions` | `instruction`/`warning` notes ranked by priority. |
-| `get_note` | Full note with history and references. |
-| `get_handoffs` | Open handoffs. |
-| `create_note` / `edit_note` / `delete_note` | Write tools (read-write mode only). |
-| `add_handoff` / `add_decision` | Convenience write tools. |
+| Tool | Access | Input | Output |
+|---|---|---|---|
+| `get_note` | read | `id` | The full note with history and references. |
+| `get_notes_for_file` | read | `file`, `includeScopeMatches?` | Notes attached to the file, plus directory-scoped notes covering it. |
+| `get_notes_for_changes` | read | `files?` and/or `diff?` | Notes relevant to changed files or a unified diff, ranked by relevance. |
+| `list_instructions` | read | `scope?` | Active `instruction`/`warning` notes, ranked by priority then recency. |
+| `get_handoffs` | read | `stale?` | Handoff notes, most-recently-updated first (excludes expired unless `stale`). |
+| `search_notes` | read | `query`, `type?`, `tags?`, `file?`, `includeExpired?` | Full-text matches with optional type/tag/file filters. |
+| `create_note` | write | `file`, `lineRange`, `content`, `type?`, `tags?`, `scope?`, `references?`, `priority?`, `expiresAt?` | The created note (`authorType: agent`). |
+| `edit_note` | write | `id`, `content` | The updated note (adds a history entry). |
+| `delete_note` | write | `id` | Confirmation of the soft-delete. |
+| `add_handoff` | write | `file`, `lineRange`, `content`, `references?` | A handoff note (expires in 7 days by default). |
+| `add_decision` | write | `file`, `lineRange`, `content`, `references` | A decision note; `references` required. |
+
+Every tool returns its result as text content whose body is JSON — a note object on success, or `{ "error": <code>, ... }` on failure (see [Error convention](#error-convention)).
+
+## Resources
+
+| URI | MIME | Contents |
+|---|---|---|
+| `code-notes://digest` | `text/markdown` | The `AGENTS.md` digest for the workspace. |
+| `code-notes://index` | `application/json` | The `INDEX.json` note index. |
+| `code-notes://file/{path}` | `text/markdown` | Notes for a single file (`path` is the workspace-relative path). Not enumerated in `resources/list`. |
 
 ## Trust model
 
-All writes route through `@jnahian/code-notes-core`, which enforces the workspace trust setting. v0.5 will add audit and queue modes for reviewing agent-authored notes before they land.
+All writes route through `@jnahian/code-notes-core`, which enforces the workspace trust setting. The server operates in `direct` mode: an authorized agent's writes land immediately. v0.5 will add audit and queue modes for reviewing agent-authored notes before they land; until then `direct` is the only behavior.
+
+## Troubleshooting
+
+- **`{ "error": "lock_timeout", "retryable": true }`** — another writer (the VS Code extension, or a second agent) held the note's lock. Retry the same call once after a short delay; if it times out again, treat it as a real conflict rather than looping.
+- **No notes / empty results, and no `.code-notes/` in the workspace** — the server starts in empty mode when the workspace has no notes yet and creates `.code-notes/` on first write. Pass `--require-existing` if you want startup to fail (exit 3) instead.
+- **Version mismatch with the extension** — the MCP server and the VS Code extension share the on-disk note format via `@jnahian/code-notes-core`. Keep them on compatible versions; a note written by a newer format may not round-trip through an older reader.
 
 ## Error convention
 
