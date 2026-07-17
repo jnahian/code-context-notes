@@ -73,12 +73,23 @@ export async function createNote(
     return errorResult('file_not_found', { file: args.file });
   }
 
-  let note;
   try {
-    note = await deps.noteManager.createNote(
-      { filePath: absFile, lineRange: args.lineRange, content: args.content },
+    const note = await deps.noteManager.createNote(
+      {
+        filePath: absFile,
+        lineRange: args.lineRange,
+        content: args.content,
+        authorType: 'agent',
+        ...(args.type !== undefined && { type: args.type }),
+        ...(args.tags !== undefined && { tags: args.tags }),
+        ...(args.scope !== undefined && { scope: args.scope }),
+        ...(args.references !== undefined && { references: args.references }),
+        ...(args.priority !== undefined && { priority: args.priority }),
+        ...(args.expiresAt !== undefined && { expiresAt: args.expiresAt }),
+      },
       doc,
     );
+    return { content: [{ type: 'text' as const, text: JSON.stringify(note, null, 2) }] };
   } catch (e) {
     if (isLockTimeout(e)) return errorResult('lock_timeout', { retryable: true });
     // Core's range validation errors all start with "Line range"; anything
@@ -86,29 +97,5 @@ export async function createNote(
     const msg = (e as Error).message ?? String(e);
     if (msg.includes('Line range')) return errorResult('invalid_line_range', { detail: msg });
     return errorResult('internal_error', { detail: msg });
-  }
-
-  const fields: {
-    authorType: 'agent';
-    type?: NoteType;
-    tags?: string[];
-    scope?: NoteScope;
-    references?: NoteReference[];
-    priority?: NotePriority;
-    expiresAt?: string;
-  } = { authorType: 'agent' };
-  if (args.type !== undefined) fields.type = args.type;
-  if (args.tags !== undefined) fields.tags = args.tags;
-  if (args.scope !== undefined) fields.scope = args.scope;
-  if (args.references !== undefined) fields.references = args.references;
-  if (args.priority !== undefined) fields.priority = args.priority;
-  if (args.expiresAt !== undefined) fields.expiresAt = args.expiresAt;
-
-  try {
-    const final = await deps.noteManager.updateNoteMetadata(note.id, fields);
-    return { content: [{ type: 'text' as const, text: JSON.stringify(final, null, 2) }] };
-  } catch (e) {
-    if (isLockTimeout(e)) return errorResult('lock_timeout', { retryable: true });
-    throw e;
   }
 }

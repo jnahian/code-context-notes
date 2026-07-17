@@ -106,6 +106,13 @@ export class NoteManager extends EventEmitter {
             action: 'created'
           }
         ],
+        ...(params.type !== undefined && { type: params.type }),
+        ...(params.tags !== undefined && { tags: params.tags }),
+        ...(params.scope !== undefined && { scope: params.scope }),
+        ...(params.references !== undefined && { references: params.references }),
+        ...(params.priority !== undefined && { priority: params.priority }),
+        ...(params.expiresAt !== undefined && { expiresAt: params.expiresAt }),
+        ...(params.authorType !== undefined && { authorType: params.authorType }),
         isDeleted: false
       };
 

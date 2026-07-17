@@ -164,6 +164,15 @@ export interface CreateNoteParams {
   content: string;
   /** Optional author override */
   author?: string;
+  /** Optional metadata, applied in the same write as the note itself. */
+  type?: NoteType;
+  tags?: string[];
+  scope?: NoteScope;
+  references?: NoteReference[];
+  priority?: NotePriority;
+  expiresAt?: string;
+  /** 'agent' marks this as an agent write — the trust router keys off it. */
+  authorType?: AuthorType;
 }
 
 /**

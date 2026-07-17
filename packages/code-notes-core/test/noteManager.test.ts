@@ -51,6 +51,30 @@ describe('NoteManager Test Suite', () => {
 	});
 
 	describe('Note Creation', () => {
+		it('applies metadata in the single create write, with no second save', async () => {
+			const doc = createMockDocument('line0\nline1\n');
+			const note = await noteManager.createNote({
+				content: 'Watch out',
+				filePath: doc.uri.fsPath,
+				lineRange: { start: 0, end: 0 },
+				type: 'warning',
+				tags: ['security'],
+				priority: 'high',
+				authorType: 'agent',
+			}, doc);
+
+			expect(note.type).toBe('warning');
+			expect(note.tags).toEqual(['security']);
+			expect(note.priority).toBe('high');
+			expect(note.authorType).toBe('agent');
+			// One write means one history entry — a second save would add another.
+			expect(note.history).toHaveLength(1);
+
+			const onDisk = await noteManager.getNoteByIdGlobal(note.id);
+			expect(onDisk!.type).toBe('warning');
+			expect(onDisk!.authorType).toBe('agent');
+		});
+
 		it('should create a new note', async () => {
 			const doc = createMockDocument('function test() {\n  return true;\n}');
 			const params: CreateNoteParams = {
