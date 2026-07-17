@@ -250,3 +250,61 @@ export interface HistoryStore {
   get<T>(key: string): T | undefined;
   update(key: string, value: unknown): Promise<void> | PromiseLike<void>;
 }
+
+/**
+ * How agent-authored writes are handled. Lives in the workspace's
+ * config.json, never in an agent's CLI flags — an agent that picks its own
+ * mode has no rails.
+ */
+export type AgentWriteMode = 'direct' | 'audit' | 'queue';
+
+/** Workspace-owned settings shared by the extension and the MCP server. */
+export interface WorkspaceConfig {
+  agentWriteMode: AgentWriteMode;
+  /** Informational, not a security boundary: writes from agents not listed are rejected. Empty = allow all. */
+  agentAllowList: string[];
+  /** Audit log rotates once it exceeds this many entries. */
+  auditLogRetention: number;
+}
+
+/**
+ * One agent operation, as written to `<storageDir>/_audit.log` (JSONL).
+ * Carries enough to display the op and to reverse it: create reverses to
+ * delete; edit and delete restore from the note's `history[]`.
+ */
+export interface AuditEntry {
+  ts: string;
+  op: 'create' | 'edit' | 'delete';
+  noteId: string;
+  agent: string;
+  file: string;
+  lineRange?: [number, number];
+  type?: NoteType;
+  /** sha256 of the note's *content* before/after an edit — for display and
+   *  stale-proposal detection. Distinct from Note.contentHash, which hashes
+   *  the *code* the note is attached to. */
+  prevContentHash?: string;
+  newContentHash?: string;
+}
+
+/**
+ * An agent write held for human approval, stored at
+ * `<storageDir>/_pending/<proposalId>.md`. `_pending/` is a subdirectory, and
+ * StorageManager.getAllNoteFiles() reads only the top level — that is what
+ * keeps proposals from loading as real notes. Do not flatten this.
+ */
+export interface Proposal {
+  proposalId: string;
+  op: 'create' | 'edit' | 'delete';
+  /** Present for edit/delete. */
+  targetNoteId?: string;
+  file: string;
+  lineRange?: LineRange;
+  agent: string;
+  proposedAt: string;
+  /** The proposed note body. Empty for a delete proposal. */
+  content: string;
+  /** sha256 of the target note's content when proposed — lets approve detect
+   *  that a human changed the note in the meantime. */
+  targetContentHash?: string;
+}
