@@ -2,7 +2,7 @@
   "name": "code-context-notes",
   "displayName": "Code Context Notes - Smart Annotations",
   "description": "Add contextual notes to your code with full version history and intelligent tracking",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "jnahian",
   "icon": "images/icon.png",
   "galleryBanner": {
@@ -204,7 +204,7 @@
       },
       {
         "command": "codeContextNotes.filterByType",
-        "title": "Filter Notes by Type\u2026",
+        "title": "Filter Notes by Type…",
         "category": "Code Notes",
         "icon": "$(filter)"
       },
@@ -216,7 +216,7 @@
       },
       {
         "command": "codeContextNotes.setNoteMetadata",
-        "title": "Set Note Type / Tags / Priority\u2026",
+        "title": "Set Note Type / Tags / Priority…",
         "category": "Code Notes"
       }
     ],

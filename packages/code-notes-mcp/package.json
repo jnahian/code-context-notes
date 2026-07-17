@@ -5,8 +5,14 @@
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
-  "bin": { "code-notes-mcp": "./dist/index.js" },
-  "files": ["dist", "README.md", "LICENSE"],
+  "bin": {
+    "code-notes-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc -p ./",
     "compile:tsc": "tsc -p ./ --noEmit",
