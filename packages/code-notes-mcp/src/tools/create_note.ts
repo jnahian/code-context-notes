@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import * as path from 'path';
 import type { NoteManager, NoteType, NoteScope, NotePriority, NoteReference } from '@jnahian/code-notes-core';
+import { PendingWriteError } from '@jnahian/code-notes-core';
 import { buildDocumentFromFile } from '../fileDocument.js';
 import { errorResult, isLockTimeout } from './errors.js';
 
@@ -91,6 +92,11 @@ export async function createNote(
     );
     return { content: [{ type: 'text' as const, text: JSON.stringify(note, null, 2) }] };
   } catch (e) {
+    // Queue mode diverting this write is not a failure — let it reach the
+    // dispatcher, which turns it into the pending result. This catch is the
+    // only one that swallows unknown errors, so without this the agent would
+    // be told its write crashed while the proposal quietly landed.
+    if (e instanceof PendingWriteError) throw e;
     if (isLockTimeout(e)) return errorResult('lock_timeout', { retryable: true });
     // Core's range validation errors all start with "Line range"; anything
     // else is an unexpected failure and must not masquerade as a range error.
