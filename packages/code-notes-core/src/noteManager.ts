@@ -139,10 +139,12 @@ export class NoteManager extends EventEmitter {
    */
   async updateNote(params: UpdateNoteParams, document: NoteDocument): Promise<Note> {
     return this.withNoteLock(params.id, async () => {
-      // Load existing note (including deleted notes to properly handle all cases)
-      const filePath = document.uri.fsPath;
-      const notes = await this.getAllNotesForFile(filePath);
-      const note = notes.find(n => n.id === params.id);
+      // Read fresh from storage inside the lock, never from noteCache: another
+      // process (the MCP server, or the extension) may have written this note
+      // since our cache was warmed, and a cached read-modify-write would
+      // silently erase their edit.
+      const raw = await this.storage.loadNoteById(params.id);
+      const note = raw ? applyDefaults(raw) : undefined;
 
       if (!note) {
         throw new Error(`Note with id ${params.id} not found`);
@@ -234,8 +236,9 @@ export class NoteManager extends EventEmitter {
    */
   async deleteNote(noteId: string, filePath: string): Promise<void> {
     return this.withNoteLock(noteId, async () => {
-      const notes = await this.getAllNotesForFile(filePath);
-      const note = notes.find(n => n.id === noteId);
+      // Fresh read inside the lock — see updateNote.
+      const raw = await this.storage.loadNoteById(noteId);
+      const note = raw ? applyDefaults(raw) : undefined;
 
       if (!note) {
         throw new Error(`Note with id ${noteId} not found`);
@@ -433,10 +436,14 @@ export class NoteManager extends EventEmitter {
   }
 
   /**
-   * Clear all cached notes
+   * Clear all cached notes, including the workspace-wide caches. Callers use
+   * this when notes may have changed underneath us (an external writer, e.g.
+   * the MCP server or the extension's file watcher), so every cache derived
+   * from storage has to go — not just the per-file one.
    */
   clearAllCache(): void {
     this.noteCache.clear();
+    this.clearWorkspaceCache();
   }
 
   /**

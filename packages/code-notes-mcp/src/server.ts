@@ -73,6 +73,14 @@ export async function handleToolCall(
     return errorResult('read_only_mode', { detail: 'start the server with --agent <name> to enable writes' });
   }
 
+  // ponytail: drop every cache before each call. NoteManager's caches assume a
+  // single-process editor with a file watcher to invalidate them; this server is
+  // long-lived, has no watcher, and the extension writes the same files behind
+  // its back — so a warm cache is always a stale-read risk. Re-reading per call
+  // is fine at MCP call volume; revisit only if a workspace gets big enough for
+  // it to hurt (then a watcher, not a longer-lived cache).
+  deps.noteManager.clearAllCache();
+
   try {
     return await dispatchToolCall(name, args, deps);
   } catch (e) {
@@ -140,12 +148,13 @@ export interface StartArgs {
   workspace: string;
   agent?: string;
   requireExisting?: boolean;
+  storageDir?: string;
 }
 
 export async function startServer(args: StartArgs): Promise<void> {
   // Resolve and validate workspace
   const workspace = path.resolve(args.workspace);
-  const storageDir = '.code-notes';
+  const storageDir = args.storageDir ?? '.code-notes';
   const storageExists = await fs.stat(path.join(workspace, storageDir)).then(s => s.isDirectory()).catch(() => false);
   if (args.requireExisting && !storageExists) {
     console.error(`error: no .code-notes/ found at ${workspace}`);

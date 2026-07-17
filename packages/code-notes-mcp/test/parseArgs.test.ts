@@ -8,12 +8,17 @@ describe('parseArgs', () => {
 
 	it('parses --workspace, --agent, and --require-existing', () => {
 		const args = parseArgs(['--workspace', '/tmp/ws', '--agent', 'claude-code', '--require-existing']);
-		expect(args).toEqual({ workspace: '/tmp/ws', agent: 'claude-code', requireExisting: true });
+		expect(args).toEqual({ workspace: '/tmp/ws', agent: 'claude-code', requireExisting: true, storageDir: '.code-notes' });
 	});
 
 	it('leaves agent undefined and requireExisting false when omitted', () => {
 		const args = parseArgs(['--workspace', '/tmp/ws']);
-		expect(args).toEqual({ workspace: '/tmp/ws', agent: undefined, requireExisting: false });
+		expect(args).toEqual({ workspace: '/tmp/ws', agent: undefined, requireExisting: false, storageDir: '.code-notes' });
+	});
+
+	it('parses --storage-dir, overriding the .code-notes default', () => {
+		const args = parseArgs(['--workspace', '/tmp/ws', '--storage-dir', '.my-notes']);
+		expect(args.storageDir).toBe('.my-notes');
 	});
 
 	it('exits with code 2 when --workspace is missing', () => {

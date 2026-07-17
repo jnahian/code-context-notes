@@ -189,6 +189,54 @@ describe('extension + MCP cross-process race (spec §8.3)', () => {
     expect(final).toBeDefined();
     expect(['MCP edit', 'extension edit']).toContain(final!.content);
     expect(Array.isArray(final!.history)).toBe(true);
+
+    // Whichever write landed second must have built on the first, not erased
+    // it: when both succeed, both edits survive in history.
+    const bothSucceeded = extOut.status === 'fulfilled'
+      && mcpOut.status === 'fulfilled' && !mcpOut.value.error;
+    if (bothSucceeded) {
+      expect(final!.history.map((h: { content: string }) => h.content)).toEqual(
+        expect.arrayContaining(['MCP edit', 'extension edit']),
+      );
+    }
+  }, 20_000);
+
+  it('does not erase an external edit made after the server warmed its cache', async () => {
+    const rel = 'warm.ts';
+    const absFile = path.join(tempDir, rel);
+    await fs.writeFile(absFile, 'one\ntwo\n');
+
+    const { noteManager } = buildInProcessStack(tempDir);
+    const doc = await buildDocumentFromFile(absFile);
+    const created = await noteManager.createNote(
+      { filePath: absFile, lineRange: { start: 0, end: 0 }, content: 'original' },
+      doc,
+    );
+
+    // 1. Agent reads the file's notes — the server's caches are now warm.
+    const warmed = await callTool(rpc, 'get_notes_for_file', { file: rel });
+    expect(warmed.direct[0].content).toBe('original');
+
+    // 2. The user edits the same note in VS Code (a different process).
+    await noteManager.updateNote({ id: created.id, content: 'user edit' }, doc);
+
+    // 3. The agent re-reads: it must see the user's edit, not its warm cache.
+    const reread = await callTool(rpc, 'get_notes_for_file', { file: rel });
+    expect(reread.direct[0].content).toBe('user edit');
+
+    // 4. The agent edits. The user's edit must survive in history — a cached
+    //    read-modify-write here would silently drop it.
+    const edited = await callTool(rpc, 'edit_note', { id: created.id, content: 'agent edit' });
+    expect(edited.error).toBeUndefined();
+
+    const fresh = buildInProcessStack(tempDir);
+    const final = await fresh.noteManager.getNoteByIdGlobal(created.id);
+    expect(final!.content).toBe('agent edit');
+    expect(final!.history.map((h: { content: string }) => h.content)).toEqual([
+      'original',
+      'user edit',
+      'agent edit',
+    ]);
   }, 20_000);
 
   it('returns retryable lock_timeout while another process holds the note lock, then succeeds on retry', async () => {

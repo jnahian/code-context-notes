@@ -10,7 +10,7 @@ Run it straight from npm — no global install needed:
 npx -y @jnahian/code-notes-mcp --workspace . --agent claude-code
 ```
 
-`--workspace <path>` is required — no implicit cwd guessing. `--agent <name>` is required for write access; without it the server starts in read-only mode (only the read tools are listed). `--require-existing` fails startup (exit 3) if the workspace has no `.code-notes/` directory yet; otherwise the server starts in empty mode and creates it on first write.
+`--workspace <path>` is required — no implicit cwd guessing. `--agent <name>` is required for write access; without it the server starts in read-only mode (only the read tools are listed). `--require-existing` fails startup (exit 3) if the workspace has no `.code-notes/` directory yet; otherwise the server starts in empty mode and creates it on first write. `--storage-dir <name>` overrides the notes directory (default `.code-notes`) — pass it if you changed the extension's `codeContextNotes.storageDirectory` setting.
 
 ## Configure
 
@@ -70,12 +70,15 @@ Every tool returns its result as text content whose body is JSON — a note obje
 
 ## Trust model
 
-All writes route through `@jnahian/code-notes-core`, which enforces the workspace trust setting. The server operates in `direct` mode: an authorized agent's writes land immediately. v0.5 will add audit and queue modes for reviewing agent-authored notes before they land; until then `direct` is the only behavior.
+The server operates in `direct` mode, and that is currently the only behavior: starting it with `--agent <name>` authorizes writes, and an authorized agent's notes land immediately with no review step and no further gating. Without `--agent`, only the read tools are exposed.
+
+There is no audit trail or approval queue yet — v0.5 adds the trust model (`audit` / `queue` / `direct` modes) for reviewing agent-authored notes before they land. Until then, treat write access the way you'd treat handing an agent your editor: grant it to agents you'd let write files directly, and expect their notes to appear immediately for everyone sharing the workspace.
 
 ## Troubleshooting
 
 - **`{ "error": "lock_timeout", "retryable": true }`** — another writer (the VS Code extension, or a second agent) held the note's lock. Retry the same call once after a short delay; if it times out again, treat it as a real conflict rather than looping.
 - **No notes / empty results, and no `.code-notes/` in the workspace** — the server starts in empty mode when the workspace has no notes yet and creates `.code-notes/` on first write. Pass `--require-existing` if you want startup to fail (exit 3) instead.
+- **The agent sees no notes, or writes land somewhere the extension never shows** — the server defaults to `.code-notes/`, but the extension's `codeContextNotes.storageDirectory` setting can point elsewhere. If you changed it, pass the same value as `--storage-dir <name>`; otherwise the two sides read different directories and take their locks in different places, so their writes are no longer serialized against each other.
 - **Version mismatch with the extension** — the MCP server and the VS Code extension share the on-disk note format via `@jnahian/code-notes-core`. Keep them on compatible versions; a note written by a newer format may not round-trip through an older reader.
 
 ## Error convention
