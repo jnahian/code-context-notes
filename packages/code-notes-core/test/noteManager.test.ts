@@ -562,6 +562,40 @@ describe('NoteManager Test Suite', () => {
 		});
 	});
 
+	describe('Position updates', () => {
+		it('does not clobber a concurrent content edit made by another process', async () => {
+			// Note attached to line 0; later the same text moves to line 2.
+			const before = createMockDocument('target line\nfiller\nfiller\n');
+			const note = await noteManager.createNote({
+				content: 'original',
+				filePath: before.uri.fsPath,
+				lineRange: { start: 0, end: 0 }
+			}, before);
+
+			// Another process edits the note's *content* while our cache is warm.
+			const other = new NoteManager(
+				new StorageManager(tempDir, '.test-notes'),
+				new ContentHashTracker(),
+				new FakeAuthorProvider('agent'),
+			);
+			await other.updateNote({ id: note.id, content: 'edited elsewhere' }, before);
+
+			// The code moves down two lines, so repositioning kicks in.
+			const after = createMockDocument('new\nnew\ntarget line\n', before.uri.fsPath);
+			await noteManager.updateNotePositions(after);
+
+			const fresh = new NoteManager(
+				new StorageManager(tempDir, '.test-notes'),
+				new ContentHashTracker(),
+				new FakeAuthorProvider('x'),
+			);
+			const final = await fresh.getNoteByIdGlobal(note.id);
+			// Repositioning must move the note WITHOUT resurrecting stale content.
+			expect(final!.content).toBe('edited elsewhere');
+			expect(final!.lineRange.start).toBe(2);
+		});
+	});
+
 	describe('Trust router', () => {
 		let auditLog: AuditLog;
 
@@ -926,9 +960,11 @@ describe('NoteManager Test Suite', () => {
  */
 let mockDocumentSeq = 0;
 
-function createMockDocument(content: string): NoteDocument {
+// atPath lets a test model the same file changing over time — notes are keyed
+// to uri.fsPath, so "the code moved" needs two documents sharing one path.
+function createMockDocument(content: string, atPath?: string): NoteDocument {
 	const lines = content.split('\n');
-	const filePath = `/test/file-${Date.now()}-${++mockDocumentSeq}.ts`;
+	const filePath = atPath ?? `/test/file-${Date.now()}-${++mockDocumentSeq}.ts`;
 
 	return {
 		lineCount: lines.length,

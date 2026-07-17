@@ -460,37 +460,44 @@ export class NoteManager extends EventEmitter {
     const notes = await this.getNotesForFile(filePath);
     const updatedNotes: Note[] = [];
 
-    for (const note of notes) {
-      // Check if content is still at the expected location
+    for (const cached of notes) {
+      // Deciding *whether* a note moved is a pure read of the document, so the
+      // cached copy is fine for it — and it keeps the common case (nothing
+      // moved) lock-free.
       const isValid = this.hashTracker.validateContentHash(
         document,
-        note.lineRange,
-        note.contentHash
+        cached.lineRange,
+        cached.contentHash
       );
+      if (isValid) continue;
 
-      if (!isValid) {
-        // Try to find the content at a new location
-        const result = await this.hashTracker.findContentByHash(
-          document,
-          note.contentHash,
-          note.lineRange
-        );
+      const result = await this.hashTracker.findContentByHash(
+        document,
+        cached.contentHash,
+        cached.lineRange
+      );
+      if (!result.found || !result.newLineRange) continue;
 
-        if (result.found && result.newLineRange) {
-          // Update note position
-          note.lineRange = result.newLineRange;
-          note.updatedAt = new Date().toISOString();
+      const newLineRange = result.newLineRange;
+      await this.withNoteLock(cached.id, async () => {
+        // Re-read inside the lock before writing: another process may have
+        // edited this note's content since our cache warmed, and saving the
+        // cached object would erase that edit (the v0.4 lost-update bug).
+        const raw = await this.storage.loadNoteById(cached.id);
+        if (!raw) return;
+        const note = applyDefaults(raw);
+        if (note.isDeleted) return;
 
-          // Save updated note
-          await this.storage.saveNote(note);
-          updatedNotes.push(note);
-        }
-      }
+        note.lineRange = newLineRange;
+        note.updatedAt = new Date().toISOString();
+        await this.storage.saveNote(note);
+        this.updateNoteInCache(note);
+        updatedNotes.push(note);
+      });
     }
 
-    // Update cache
     if (updatedNotes.length > 0) {
-      this.noteCache.set(filePath, notes);
+      this.clearWorkspaceCache();
     }
 
     return updatedNotes;
