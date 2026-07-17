@@ -2,7 +2,7 @@
   "name": "code-context-notes",
   "displayName": "Code Context Notes - Smart Annotations",
   "description": "Add contextual notes to your code with full version history and intelligent tracking",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "jnahian",
   "icon": "images/icon.png",
   "galleryBanner": {
@@ -488,7 +488,11 @@
         },
         "codeContextNotes.agentWriteMode": {
           "type": "string",
-          "enum": ["direct", "audit", "queue"],
+          "enum": [
+            "direct",
+            "audit",
+            "queue"
+          ],
           "enumDescriptions": [
             "Agent writes land immediately.",
             "Agent writes land and are logged to .code-notes/_audit.log, reviewable in the Agent activity view.",
@@ -499,7 +503,9 @@
         },
         "codeContextNotes.agentAllowList": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "default": [],
           "description": "Agent names allowed to write (matches the server's --agent value). Empty allows any. Informational, not a security boundary."
         },
@@ -597,7 +603,7 @@
     "url": "https://github.com/jnahian/code-context-notes"
   },
   "dependencies": {
-    "@jnahian/code-notes-core": "0.1.0",
+    "@jnahian/code-notes-core": "0.2.0",
     "uuid": "^14.0.0"
   }
 }
