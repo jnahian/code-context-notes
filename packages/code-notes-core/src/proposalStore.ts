@@ -17,6 +17,23 @@ export class PendingWriteError extends Error {
 const REJECTED_DIR = '.rejected';
 
 /**
+ * Read a scalar written by save(): JSON-encoded free-text fields decode back to
+ * their raw value. Tolerant of a bare (non-JSON) value so a hand-edited or
+ * pre-hardening file still loads.
+ */
+function decodeScalar(value: string | undefined, fallback: string): string {
+  if (value === undefined) return fallback;
+  if (value.startsWith('"')) {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
+  }
+  return value;
+}
+
+/**
  * ponytail: proposals are markdown-with-frontmatter, hand-serialized like
  * notes are, rather than pulling in a YAML dependency for six scalar fields.
  * If the shape grows past scalars + one body, switch to the same serializer
@@ -31,14 +48,18 @@ export class ProposalStore {
 
   async save(p: Proposal): Promise<void> {
     await fs.mkdir(this.pendingDir, { recursive: true });
+    // JSON-encode the free-text scalars (file, agent). These are the only
+    // frontmatter values an agent influences, and a raw newline in one would
+    // introduce a premature `---` that splits the frontmatter and hijacks the
+    // fields/content below it. JSON.stringify makes them single-line.
     const lines = [
       '---',
       `proposalId: ${p.proposalId}`,
       `op: ${p.op}`,
       ...(p.targetNoteId ? [`targetNoteId: ${p.targetNoteId}`] : []),
-      `file: ${p.file}`,
+      `file: ${JSON.stringify(p.file)}`,
       ...(p.lineRange ? [`lineRange: [${p.lineRange.start}, ${p.lineRange.end}]`] : []),
-      `agent: ${p.agent}`,
+      `agent: ${JSON.stringify(p.agent)}`,
       `proposedAt: ${p.proposedAt}`,
       ...(p.targetContentHash ? [`targetContentHash: ${p.targetContentHash}`] : []),
       '---',
@@ -108,9 +129,9 @@ export class ProposalStore {
       proposalId: fields.proposalId,
       op: fields.op as Proposal['op'],
       ...(fields.targetNoteId && { targetNoteId: fields.targetNoteId }),
-      file: fields.file ?? '',
+      file: decodeScalar(fields.file, ''),
       ...(range && { lineRange: { start: Number(range[1]), end: Number(range[2]) } }),
-      agent: fields.agent ?? 'unknown-agent',
+      agent: decodeScalar(fields.agent, 'unknown-agent'),
       proposedAt: fields.proposedAt ?? '',
       ...(fields.targetContentHash && { targetContentHash: fields.targetContentHash }),
       content: match[2].replace(/\n$/, ''),
