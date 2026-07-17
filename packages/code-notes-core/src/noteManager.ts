@@ -264,6 +264,9 @@ export class NoteManager extends EventEmitter {
       const now = new Date().toISOString();
       note.content = params.content.trim();
       note.author = author;
+      if (params.approvedBy !== undefined) {
+        note.approvedBy = params.approvedBy;
+      }
       note.updatedAt = now;
 
       // Add history entry
@@ -514,7 +517,7 @@ export class NoteManager extends EventEmitter {
         content: note.content,
         author: await this.gitIntegration.getAuthorName(),
         timestamp: note.updatedAt,
-        action: 'edited',
+        action: 'restored',
       });
 
       await this.storage.saveNote(note);

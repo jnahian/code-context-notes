@@ -354,7 +354,7 @@ async function applyProposal(p: Proposal, content: string): Promise<void> {
 			approvedBy: approver,
 		}, doc);
 	} else if (p.op === 'edit') {
-		await noteManager.updateNote({ id: p.targetNoteId!, content, author: approver }, doc);
+		await noteManager.updateNote({ id: p.targetNoteId!, content, author: approver, approvedBy: approver }, doc);
 	} else {
 		await noteManager.deleteNote(p.targetNoteId!, p.file);
 	}

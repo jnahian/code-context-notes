@@ -15,7 +15,7 @@ export interface LineRange {
 /**
  * Action type for note history entries
  */
-export type NoteAction = 'created' | 'edited' | 'deleted';
+export type NoteAction = 'created' | 'edited' | 'deleted' | 'restored';
 
 /**
  * Type of note — drives prioritization in agent-facing exports
@@ -189,6 +189,9 @@ export interface UpdateNoteParams {
   content: string;
   /** Optional author override */
   author?: string;
+  /** Set when a human approves an agent's queued edit proposal. Not exposed
+   *  by the MCP edit_note tool, so an agent cannot forge it. */
+  approvedBy?: string;
 }
 
 /**

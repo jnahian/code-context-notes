@@ -199,6 +199,22 @@ describe('NoteManager Test Suite', () => {
 			expect(updatedNote.history[1].content).toBe('Updated content');
 		});
 
+		it('records approvedBy on an update when supplied (approved edit proposal)', async () => {
+			const doc = createMockDocument('function test() {}');
+			const note = await noteManager.createNote({
+				content: 'original', filePath: doc.uri.fsPath, lineRange: { start: 0, end: 0 },
+			}, doc);
+
+			const updated = await noteManager.updateNote(
+				{ id: note.id, content: 'approved edit', author: 'Jane Dev', approvedBy: 'Jane Dev' },
+				doc,
+			);
+			expect(updated.approvedBy).toBe('Jane Dev');
+			// survives a reload
+			const onDisk = await noteManager.getNoteByIdGlobal(note.id);
+			expect(onDisk!.approvedBy).toBe('Jane Dev');
+		});
+
 		it('should trim updated content', async () => {
 			const doc = createMockDocument('function test() {}');
 			const note = await noteManager.createNote({
@@ -363,8 +379,8 @@ describe('NoteManager Test Suite', () => {
 			expect(await noteManager.getNoteByIdGlobal(note.id)).toBeTruthy();
 			const onDisk = await noteManager.getNoteByIdGlobal(note.id);
 			expect(onDisk!.isDeleted).toBe(false);
-			// the restore is recorded, not silent
-			expect(restored.history[restored.history.length - 1].action).toBe('edited');
+			// the restore is recorded with its own action, not disguised as an edit
+			expect(restored.history[restored.history.length - 1].action).toBe('restored');
 		});
 
 		it('undeleteNote rejects a note that is not deleted', async () => {
