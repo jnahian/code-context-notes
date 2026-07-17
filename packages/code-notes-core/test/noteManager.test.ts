@@ -331,6 +331,65 @@ describe('NoteManager Test Suite', () => {
 
 			await expect(noteManager.deleteNote(note.id, doc.uri.fsPath)).rejects.toThrow(/already deleted/);
 		});
+
+		// Reverting a delete (the audit-mode Revert button) is the path the
+		// whole-branch review found broken: getNoteByIdGlobal hid the note and
+		// updateNote refused it. These pin the primitives that fix supplies.
+		it('getNoteByIdIncludingDeleted returns a soft-deleted note', async () => {
+			const doc = createMockDocument('function test() {}');
+			const note = await noteManager.createNote({
+				content: 'to delete', filePath: doc.uri.fsPath, lineRange: { start: 0, end: 0 },
+			}, doc);
+			await noteManager.deleteNote(note.id, doc.uri.fsPath);
+
+			expect(await noteManager.getNoteByIdGlobal(note.id)).toBeUndefined();
+			const found = await noteManager.getNoteByIdIncludingDeleted(note.id);
+			expect(found).toBeTruthy();
+			expect(found!.isDeleted).toBe(true);
+			expect(found!.content).toBe('to delete');
+		});
+
+		it('undeleteNote restores a deleted note with its content and a history entry', async () => {
+			const doc = createMockDocument('function test() {}');
+			const note = await noteManager.createNote({
+				content: 'important note', filePath: doc.uri.fsPath, lineRange: { start: 0, end: 0 },
+			}, doc);
+			await noteManager.deleteNote(note.id, doc.uri.fsPath);
+
+			const restored = await noteManager.undeleteNote(note.id);
+			expect(restored.isDeleted).toBe(false);
+			expect(restored.content).toBe('important note');
+			// visible again through the normal lookup, and it survives a reload
+			expect(await noteManager.getNoteByIdGlobal(note.id)).toBeTruthy();
+			const onDisk = await noteManager.getNoteByIdGlobal(note.id);
+			expect(onDisk!.isDeleted).toBe(false);
+			// the restore is recorded, not silent
+			expect(restored.history[restored.history.length - 1].action).toBe('edited');
+		});
+
+		it('undeleteNote rejects a note that is not deleted', async () => {
+			const doc = createMockDocument('function test() {}');
+			const note = await noteManager.createNote({
+				content: 'live', filePath: doc.uri.fsPath, lineRange: { start: 0, end: 0 },
+			}, doc);
+			await expect(noteManager.undeleteNote(note.id)).rejects.toThrow(/not deleted/);
+		});
+
+		it('undeleteNote is blocked for an agent writer', async () => {
+			const doc = createMockDocument('function test() {}');
+			const note = await noteManager.createNote({
+				content: 'x', filePath: doc.uri.fsPath, lineRange: { start: 0, end: 0 },
+			}, doc);
+			await noteManager.deleteNote(note.id, doc.uri.fsPath);
+
+			const agentManager = new NoteManager(
+				new StorageManager(tempDir, '.test-notes'),
+				new ContentHashTracker(),
+				new FakeAuthorProvider('claude-code'),
+				{ agentWriter: true, auditLog: new AuditLog(path.join(tempDir, '.test-notes', '_audit.log')) },
+			);
+			await expect(agentManager.undeleteNote(note.id)).rejects.toThrow(/not available to agent writers/);
+		});
 	});
 
 	describe('Note Retrieval', () => {

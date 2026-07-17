@@ -51,7 +51,7 @@ v0.4 gave agents write access to workspace notes. v0.5 gives that access an off 
 - [x] `audit` is the default mode
 - [x] Agent writes still land immediately in `audit` mode — logging never blocks the agent
 - [x] Each entry shows the op, file, agent name, and time
-- [x] Revert on a `create` deletes the note; on an `edit`/`delete` it restores the prior content from `history[]`
+- [x] Revert on a `create` deletes the note; on an `edit` it restores the prior content from `history[]`; on a `delete` it restores the note
 - [x] The view refreshes when an agent in another process writes, with no window reload
 - [x] A corrupt log line is skipped with one warning — the view still renders, nothing crashes
 - [x] The log rotates to `_audit.log.1` past the retention cap; no entry is lost

@@ -400,7 +400,9 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
 				return;
 			}
-			const note = await noteManager.getNoteByIdGlobal(entry.noteId);
+			// Include deleted: a delete audit entry points at a soft-deleted
+			// note, and you still want to jump to where it was.
+			const note = await noteManager.getNoteByIdIncludingDeleted(entry.noteId);
 			if (!note) {
 				vscode.window.showWarningMessage(`Note ${entry.noteId} no longer exists.`);
 				return;
@@ -439,7 +441,9 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 				return;
 			}
 			const { entry } = item;
-			const note = await noteManager.getNoteByIdGlobal(entry.noteId);
+			// Include deleted: a delete entry is precisely the case where the
+			// note is soft-deleted, and it's what Revert must restore.
+			const note = await noteManager.getNoteByIdIncludingDeleted(entry.noteId);
 			if (!note) {
 				vscode.window.showWarningMessage(`Note ${entry.noteId} no longer exists — nothing to revert.`);
 				return;
@@ -458,10 +462,14 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 				if (entry.op === 'create') {
 					// The reverse of a create is a delete.
 					await noteManager.deleteNote(note.id, note.filePath);
+				} else if (entry.op === 'delete') {
+					// The reverse of a delete is a restore. The content survived the
+					// soft-delete, so undeleteNote brings it back as it was.
+					await noteManager.undeleteNote(note.id);
 				} else {
-					// The reverse of an edit/delete is the previous content. history
-					// is append-only, so the entry before the last is the state this
-					// op replaced.
+					// The reverse of an edit is the previous content. history is
+					// append-only, so the entry before the last is the state this
+					// edit replaced.
 					const prior = note.history[note.history.length - 2];
 					if (!prior) {
 						vscode.window.showWarningMessage('No prior version recorded for this note.');

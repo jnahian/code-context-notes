@@ -477,6 +477,59 @@ export class NoteManager extends EventEmitter {
   }
 
   /**
+   * Like getNoteByIdGlobal but returns soft-deleted notes too. The audit-mode
+   * Revert of a delete needs to see the deleted note to restore it, and Open
+   * needs to jump to a deleted note's location.
+   */
+  async getNoteByIdIncludingDeleted(noteId: string): Promise<Note | undefined> {
+    const note = await this.storage.loadNoteById(noteId);
+    return note ? applyDefaults(note) : undefined;
+  }
+
+  /**
+   * Restore a soft-deleted note — the reverse of deleteNote, used by Revert.
+   * The note's content survived the delete, so this clears isDeleted and
+   * records the restore in history. Human-only, like the other unrouted write
+   * paths: fail closed for agent writers rather than let a future agent tool
+   * bypass the trust model.
+   */
+  async undeleteNote(noteId: string): Promise<Note> {
+    if (this.agentWriter) {
+      throw new Error('undeleteNote is not available to agent writers');
+    }
+    return this.withNoteLock(noteId, async () => {
+      // Fresh read inside the lock — see updateNote.
+      const raw = await this.storage.loadNoteById(noteId);
+      const note = raw ? applyDefaults(raw) : undefined;
+      if (!note) {
+        throw new Error(`Note with id ${noteId} not found`);
+      }
+      if (!note.isDeleted) {
+        throw new Error(`Note ${noteId} is not deleted`);
+      }
+
+      note.isDeleted = false;
+      note.updatedAt = new Date().toISOString();
+      note.history.push({
+        content: note.content,
+        author: await this.gitIntegration.getAuthorName(),
+        timestamp: note.updatedAt,
+        action: 'edited',
+      });
+
+      await this.storage.saveNote(note);
+      this.updateNoteInCache(note);
+      if (this.searchManager) {
+        await this.searchManager.updateIndex(note);
+      }
+      this.clearWorkspaceCache();
+      this.emit('noteUpdated', note);
+      this.emit('noteChanged', { type: 'updated', note });
+      return note;
+    });
+  }
+
+  /**
    * Update note positions when document changes
    * Returns notes that were updated
    */
