@@ -11,6 +11,8 @@ import { NoteManager } from '../src/noteManager.js';
 import { ContentHashTracker } from '../src/contentHashTracker.js';
 import { StorageManager } from '../src/storageManager.js';
 import { LockManager } from '../src/lockManager.js';
+import { AuditLog } from '../src/auditLog.js';
+import { ProposalStore, PendingWriteError } from '../src/proposalStore.js';
 import { CreateNoteParams, UpdateNoteParams, NoteDocument, AuthorProvider } from '../src/types.js';
 
 class FakeAuthorProvider implements AuthorProvider {
@@ -557,6 +559,96 @@ describe('NoteManager Test Suite', () => {
 			const notes2 = await noteManager.refreshNotesForFile(doc.uri.fsPath);
 
 			expect(notes1.length).toBe(notes2.length);
+		});
+	});
+
+	describe('Trust router', () => {
+		let auditLog: AuditLog;
+
+		const buildManager = (mode: 'direct' | 'audit') => new NoteManager(
+			new StorageManager(tempDir, '.test-notes'),
+			new ContentHashTracker(),
+			new FakeAuthorProvider('claude-code'),
+			{ auditLog, agentWriteMode: async () => mode, agentName: 'claude-code' },
+		);
+
+		beforeEach(() => {
+			auditLog = new AuditLog(path.join(tempDir, '.test-notes', '_audit.log'));
+		});
+
+		it('logs an agent create in audit mode', async () => {
+			const agentManager = buildManager('audit');
+			const doc = createMockDocument('line0\n');
+			const note = await agentManager.createNote({
+				content: 'agent note',
+				filePath: doc.uri.fsPath,
+				lineRange: { start: 0, end: 0 },
+				authorType: 'agent',
+			}, doc);
+
+			// The write still lands — audit logs, it doesn't block.
+			expect(await agentManager.getNoteByIdGlobal(note.id)).toBeTruthy();
+
+			const entries = await auditLog.read();
+			expect(entries).toHaveLength(1);
+			expect(entries[0]).toMatchObject({ op: 'create', noteId: note.id, agent: 'claude-code' });
+		});
+
+		it('logs an agent edit with before/after content hashes', async () => {
+			const agentManager = buildManager('audit');
+			const doc = createMockDocument('line0\n');
+			const note = await agentManager.createNote({
+				content: 'first',
+				filePath: doc.uri.fsPath,
+				lineRange: { start: 0, end: 0 },
+				authorType: 'agent',
+			}, doc);
+			await agentManager.updateNote({ id: note.id, content: 'second' }, doc);
+
+			const entries = await auditLog.read();
+			expect(entries[0].op).toBe('edit');
+			expect(entries[0].prevContentHash).toBeTruthy();
+			expect(entries[0].newContentHash).not.toBe(entries[0].prevContentHash);
+		});
+
+		it('logs an agent delete', async () => {
+			const agentManager = buildManager('audit');
+			const doc = createMockDocument('line0\n');
+			const note = await agentManager.createNote({
+				content: 'doomed',
+				filePath: doc.uri.fsPath,
+				lineRange: { start: 0, end: 0 },
+				authorType: 'agent',
+			}, doc);
+			await agentManager.deleteNote(note.id, doc.uri.fsPath);
+
+			const entries = await auditLog.read();
+			expect(entries[0]).toMatchObject({ op: 'delete', noteId: note.id });
+		});
+
+		it('does not log a human write, even in audit mode', async () => {
+			const agentManager = buildManager('audit');
+			const doc = createMockDocument('line0\n');
+			await agentManager.createNote({
+				content: 'human note',
+				filePath: doc.uri.fsPath,
+				lineRange: { start: 0, end: 0 },
+			}, doc);
+
+			expect(await auditLog.read()).toEqual([]);
+		});
+
+		it('does not log in direct mode', async () => {
+			const agentManager = buildManager('direct');
+			const doc = createMockDocument('line0\n');
+			await agentManager.createNote({
+				content: 'agent note',
+				filePath: doc.uri.fsPath,
+				lineRange: { start: 0, end: 0 },
+				authorType: 'agent',
+			}, doc);
+
+			expect(await auditLog.read()).toEqual([]);
 		});
 	});
 

@@ -6,11 +6,12 @@
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
-import { Note, CreateNoteParams, UpdateNoteParams, LineRange, NoteType, NotePriority, NoteScope, NoteReference, AuthorType, NoteDocument, AuthorProvider, SearchIndexSync } from './types.js';
+import { Note, CreateNoteParams, UpdateNoteParams, LineRange, NoteType, NotePriority, NoteScope, NoteReference, AuthorType, NoteDocument, AuthorProvider, SearchIndexSync, AgentWriteMode, AuditEntry } from './types.js';
 import { applyDefaults } from './noteDefaults.js';
 import { StorageManager } from './storageManager.js';
 import { ContentHashTracker } from './contentHashTracker.js';
 import { LockManager } from './lockManager.js';
+import { AuditLog, hashNoteContent } from './auditLog.js';
 
 /**
  * NoteManager coordinates all note operations
@@ -26,12 +27,22 @@ export class NoteManager extends EventEmitter {
   private workspaceNotesByFileCache: Map<string, Note[]> | null = null; // cache for notes grouped by file
   private defaultAuthor: string = 'Unknown User';
   private lockManager?: LockManager;
+  private auditLog?: AuditLog;
+  private agentWriteMode?: () => Promise<AgentWriteMode>;
+  private agentName: string;
 
   constructor(
     storage: StorageManager,
     hashTracker: ContentHashTracker,
     gitIntegration: AuthorProvider,
-    opts?: { lockManager?: LockManager }
+    opts?: {
+      lockManager?: LockManager;
+      auditLog?: AuditLog;
+      /** A function, not a value: the mode is re-read per call so a
+       *  long-lived process can't serve a stale policy. */
+      agentWriteMode?: () => Promise<AgentWriteMode>;
+      agentName?: string;
+    }
   ) {
     super();
     this.storage = storage;
@@ -39,6 +50,9 @@ export class NoteManager extends EventEmitter {
     this.gitIntegration = gitIntegration;
     this.noteCache = new Map();
     this.lockManager = opts?.lockManager;
+    this.auditLog = opts?.auditLog;
+    this.agentWriteMode = opts?.agentWriteMode;
+    this.agentName = opts?.agentName ?? 'unknown-agent';
 
     // Initialize default author
     this.initializeDefaultAuthor();
@@ -50,6 +64,18 @@ export class NoteManager extends EventEmitter {
    */
   private withNoteLock<T>(noteId: string, fn: () => Promise<T>): Promise<T> {
     return this.lockManager ? this.lockManager.withLock(noteId, fn) : fn();
+  }
+
+  /**
+   * Record an agent op if the workspace is in audit mode. Human writes are
+   * never logged — detection is `authorType: 'agent'`, never author-string
+   * sniffing.
+   */
+  private async recordAgentOp(isAgentWrite: boolean, entry: Omit<AuditEntry, 'ts' | 'agent'>): Promise<void> {
+    if (!isAgentWrite || !this.auditLog || !this.agentWriteMode) return;
+    const mode = await this.agentWriteMode();
+    if (mode !== 'audit') return;
+    await this.auditLog.append({ ...entry, ts: new Date().toISOString(), agent: this.agentName });
   }
 
   /**
@@ -137,6 +163,14 @@ export class NoteManager extends EventEmitter {
       this.emit('noteCreated', normalized);
       this.emit('noteChanged', { type: 'created', note: normalized });
 
+      await this.recordAgentOp(params.authorType === 'agent', {
+        op: 'create',
+        noteId: normalized.id,
+        file: normalized.filePath,
+        lineRange: [normalized.lineRange.start, normalized.lineRange.end],
+        type: normalized.type,
+      });
+
       return normalized;
     });
   }
@@ -160,6 +194,8 @@ export class NoteManager extends EventEmitter {
       if (note.isDeleted) {
         throw new Error(`Cannot update deleted note ${params.id}`);
       }
+
+      const prevContent = note.content;
 
       // Get author
       const author = params.author || await this.gitIntegration.getAuthorName();
@@ -196,6 +232,14 @@ export class NoteManager extends EventEmitter {
       this.clearWorkspaceCache();
       this.emit('noteUpdated', note);
       this.emit('noteChanged', { type: 'updated', note });
+
+      await this.recordAgentOp(note.authorType === 'agent', {
+        op: 'edit',
+        noteId: note.id,
+        file: note.filePath,
+        prevContentHash: hashNoteContent(prevContent),
+        newContentHash: hashNoteContent(note.content),
+      });
 
       return note;
     });
@@ -284,6 +328,12 @@ export class NoteManager extends EventEmitter {
       this.clearWorkspaceCache();
       this.emit('noteDeleted', { noteId, filePath });
       this.emit('noteChanged', { type: 'deleted', noteId, filePath });
+
+      await this.recordAgentOp(note.authorType === 'agent', {
+        op: 'delete',
+        noteId: note.id,
+        file: note.filePath,
+      });
     });
   }
 
