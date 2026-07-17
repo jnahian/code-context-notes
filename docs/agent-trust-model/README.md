@@ -116,6 +116,15 @@ An independent audit of the write path, plus adversarial testing, turned up defe
 
 **Residual, filed for a later release:** note content containing a literal `## Edit History` line is handled by v2, but the broader principle — that the on-disk format should escape rather than length-delimit — is left as a possible future refactor. v2 closes the exploit; the format is not changing again in v0.5.
 
+## Deferred follow-ups
+
+Non-blocking items from the final whole-branch review, to pick up in a later release:
+
+- **Record `approvedBy` on an approved *edit*, not just an approved create.** Parity gap: an edit-approve attributes the note to the approver as author but doesn't set `approvedBy`. Recording it means threading the field through `updateNote` (a routed, security-sensitive path), which is the reason not to rush it.
+- **Give a restore its own history action.** Un-delete currently records `action: 'edited'`; a dedicated `'restored'` would keep the edit-revert `history[length-2]` heuristic exact as non-edit history entries accumulate. Harmless today.
+- **Length-delimit proposal frontmatter** (`ProposalStore`) the way note storage now is. Theoretical — it needs a real newline-named file, which `create_note`'s existence check blocks first — but it's the one spot the "content can't forge structure" invariant isn't mirrored.
+- **Empty/whitespace-only-content notes vanish on reload** (`isValidNote` requires truthy content). Pre-existing, predates v0.5, orthogonal to the trust model.
+
 ## Out of scope
 
 - **3-way merge for stale proposals** — v0.5 ships simple-pick (spec §7.6). Add a real merge only if conflicts prove common.
