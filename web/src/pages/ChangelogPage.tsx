@@ -95,11 +95,25 @@ export function ChangelogPage() {
                             The extension and MCP agents can write at the same time without corrupting notes.
                           </p>
                           <ul className="text-xs text-muted-foreground mt-2 space-y-1 ml-3">
-                            <li>• Per-note advisory file locks (<code className="bg-brand-navy text-brand-warm px-1 rounded">.code-notes/.locks</code>) serialize writers across processes</li>
+                            <li>• Per-note advisory file locks (<code className="bg-brand-navy text-brand-warm px-1 rounded">.code-notes/.locks</code>) serialize writers across processes — writers re-read inside the lock, so your edit is never overwritten by an agent's</li>
                             <li>• In-band JSON error convention for all tool failures (invalid_arguments, retryable lock_timeout, path_escapes_workspace, …)</li>
                             <li>• Workspace-wide loader reports unparseable note files in <code className="bg-brand-navy text-brand-warm px-1 rounded">INDEX.json</code> errors</li>
                           </ul>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fixed */}
+                  <div>
+                    <h4 className="font-semibold mb-3 text-green-600 dark:text-green-400 flex items-center space-x-2">
+                      <Wrench className="h-4 w-4" />
+                      <span>Fixed</span>
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-start space-x-2">
+                        <span className="text-green-500 font-bold">✓</span>
+                        <span>Sidebar now shows notes created by agents — externally-written notes previously stayed hidden until your next edit</span>
                       </div>
                     </div>
                   </div>
@@ -134,7 +148,7 @@ export function ChangelogPage() {
                       <p>• npm workspaces monorepo: <code className="bg-brand-navy text-brand-warm px-1 rounded">packages/extension</code>, <code className="bg-brand-navy text-brand-warm px-1 rounded">packages/code-notes-core</code>, <code className="bg-brand-navy text-brand-warm px-1 rounded">packages/code-notes-mcp</code></p>
                       <p>• MCP server built on <code className="bg-brand-navy text-brand-warm px-1 rounded">@modelcontextprotocol/sdk</code> (stdio transport); all logging on stderr, stdout reserved for JSON-RPC</p>
                       <p>• Advisory lock files: exclusive create, 500ms retry, stale locks broken after 60s</p>
-                      <p>• 371 tests across packages, including cross-process extension-vs-MCP race and lock-contention tests</p>
+                      <p>• 373 tests across packages, including cross-process extension-vs-MCP race, lock-contention, and stale-cache regression tests</p>
                     </div>
                   </div>
 
