@@ -33,8 +33,37 @@ export class AuditLog {
 
   async append(entry: AuditEntry): Promise<void> {
     await fs.mkdir(path.dirname(this.logPath), { recursive: true });
-    await fs.appendFile(this.logPath, `${JSON.stringify(entry)}\n`, 'utf-8');
-    await this.rotateIfNeeded();
+    const line = `${JSON.stringify(entry)}\n`;
+    const lock = this.opts.lockManager;
+
+    // The append must share the rotation's critical section. A lock only
+    // orders writers that take it: a lock-free append landing between
+    // rotation's read and its truncating write is silently dropped.
+    let appended = false;
+    const writeThenRotate = async () => {
+      await fs.appendFile(this.logPath, line, 'utf-8');
+      appended = true;
+      try {
+        await this.rotate();
+      } catch (e) {
+        // A missed rotation is a log that grows; failing here would fail the
+        // agent's note write. A long log is the lesser evil.
+        console.warn(`[code-notes-core] audit log rotation skipped: ${(e as Error).message}`);
+      }
+    };
+
+    if (!lock) return writeThenRotate();
+
+    try {
+      await lock.withLock(ROTATE_LOCK_ID, writeThenRotate);
+    } catch (e) {
+      if (appended) throw e;
+      // Couldn't get the lock (or it broke). Never cost an agent its write
+      // over the audit lock: append lock-free. O_APPEND is atomic, so the
+      // line lands; only a rotation racing this exact moment could miss it.
+      console.warn(`[code-notes-core] audit append fell back to lock-free: ${(e as Error).message}`);
+      await fs.appendFile(this.logPath, line, 'utf-8');
+    }
   }
 
   /** Newest-first. Tolerant: unparseable lines are skipped, not fatal. */
@@ -69,32 +98,25 @@ export class AuditLog {
   }
 
   /**
-   * Rotation is read-modify-write: another process appending between our read
-   * and our rewrite would lose its line. Hold the lock across the whole thing
-   * and re-read inside it.
+   * Trim the log to the retention cap, moving the overflow to `<log>.1`.
+   *
+   * Read-modify-write, and deliberately NOT self-locking: append() calls this
+   * inside the lock it already holds, and LockManager is not reentrant —
+   * taking it again here would deadlock until lock_timeout. Never call this
+   * outside that critical section.
    */
-  private async rotateIfNeeded(): Promise<void> {
-    const run = async () => {
-      let raw: string;
-      try {
-        raw = await fs.readFile(this.logPath, 'utf-8');
-      } catch {
-        return;
-      }
-      const lines = raw.split('\n').filter(l => l.trim());
-      if (lines.length <= this.retention) return;
-
-      const overflow = lines.length - this.retention;
-      await fs.appendFile(`${this.logPath}.1`, `${lines.slice(0, overflow).join('\n')}\n`, 'utf-8');
-      await fs.writeFile(this.logPath, `${lines.slice(overflow).join('\n')}\n`, 'utf-8');
-    };
-
+  private async rotate(): Promise<void> {
+    let raw: string;
     try {
-      await (this.opts.lockManager ? this.opts.lockManager.withLock(ROTATE_LOCK_ID, run) : run());
-    } catch (e) {
-      // A missed rotation is a log that grows; a thrown error here would fail
-      // the agent's write. Losing the write is worse than a long log.
-      console.warn(`[code-notes-core] audit log rotation skipped: ${(e as Error).message}`);
+      raw = await fs.readFile(this.logPath, 'utf-8');
+    } catch {
+      return;
     }
+    const lines = raw.split('\n').filter(l => l.trim());
+    if (lines.length <= this.retention) return;
+
+    const overflow = lines.length - this.retention;
+    await fs.appendFile(`${this.logPath}.1`, `${lines.slice(0, overflow).join('\n')}\n`, 'utf-8');
+    await fs.writeFile(this.logPath, `${lines.slice(overflow).join('\n')}\n`, 'utf-8');
   }
 }

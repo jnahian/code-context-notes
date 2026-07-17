@@ -81,6 +81,77 @@ describe('AuditLog', () => {
     expect(rotated).toContain('note-0');
   });
 
+  it('loses no entry when appends race a rotation across processes', async () => {
+    // Two AuditLog instances = two processes sharing one log and one lock dir.
+    // Retention is tiny so rotation fires constantly, maximizing the window
+    // where a read-modify-write rotation could clobber a concurrent append.
+    const locksDir = path.join(tempDir, '.locks');
+    const mk = () => new AuditLog(logPath, {
+      lockManager: new LockManager(locksDir, 'test'),
+      retention: 2,
+    });
+    const a = mk();
+    const b = mk();
+
+    const total = 40;
+    await Promise.all(
+      Array.from({ length: total }, (_, i) => (i % 2 ? a : b).append(entry(`note-${i}`))),
+    );
+
+    // Every line must survive somewhere — the live log or the rotated file.
+    const live = await fs.readFile(logPath, 'utf-8');
+    const rotated = await fs.readFile(`${logPath}.1`, 'utf-8').catch(() => '');
+    const ids = new Set(
+      `${rotated}\n${live}`
+        .split('\n')
+        .filter(l => l.trim())
+        .map(l => JSON.parse(l).noteId),
+    );
+    expect(ids.size).toBe(total);
+  }, 20_000);
+
+  it('waits for the rotation lock instead of appending around it', async () => {
+    // The bug this guards: if append() writes without taking the lock, a
+    // rotation in another process can read, have this line land, then write
+    // its truncated copy back over it — silently losing the entry.
+    const locks = new LockManager(path.join(tempDir, '.locks'), 'rotator', { retryMs: 5_000 });
+    const writer = new AuditLog(logPath, {
+      lockManager: new LockManager(path.join(tempDir, '.locks'), 'writer', { retryMs: 5_000 }),
+      retention: 1000,
+    });
+
+    await locks.acquire('_audit');
+    const pending = writer.append(entry('note-serialized'));
+
+    // Give a lock-free implementation every chance to write anyway.
+    await new Promise(r => setTimeout(r, 200));
+    expect(await log.read()).toEqual([]);
+
+    await locks.release('_audit');
+    await pending;
+    expect((await log.read()).map(e => e.noteId)).toEqual(['note-serialized']);
+  }, 20_000);
+
+  it('still records the entry rather than failing the write when the lock never frees', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const locks = new LockManager(path.join(tempDir, '.locks'), 'stuck', { retryMs: 50 });
+    const held = new AuditLog(logPath, {
+      lockManager: new LockManager(path.join(tempDir, '.locks'), 'writer', { retryMs: 50 }),
+      retention: 1000,
+    });
+
+    // A jammed audit lock must never cost an agent its note write.
+    await locks.acquire('_audit');
+    try {
+      await held.append(entry('note-under-contention'));
+    } finally {
+      await locks.release('_audit');
+    }
+
+    expect((await held.read()).map(e => e.noteId)).toEqual(['note-under-contention']);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('lock-free'));
+  }, 20_000);
+
   it('truncate empties the log', async () => {
     await log.append(entry('note-1'));
     await log.truncate();

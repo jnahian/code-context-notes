@@ -2,6 +2,7 @@ export * from './types.js';
 export * from './noteDefaults.js';
 export * from './workspaceConfig.js';
 export * from './proposalStore.js';
+export * from './auditLog.js';
 export * from './exportGenerator.js';
 export * from './lockManager.js';
 export * from './storageManager.js';
