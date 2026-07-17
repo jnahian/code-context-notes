@@ -191,6 +191,9 @@ export async function startServer(args: StartArgs): Promise<void> {
   }));
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    // Same reason as handleToolCall: no watcher, and the extension writes these
+    // notes behind our back — a warm cache would serve a stale resource.
+    noteManager.clearAllCache();
     const uri = request.params.uri;
     if (uri === digestResourceDef.uri) return readDigest({ workspace, storageDir, noteManager });
     if (uri === indexResourceDef.uri) return readIndex({ workspace, storageDir, noteManager });

@@ -487,6 +487,40 @@ describe('NoteManager Test Suite', () => {
 			expect(notes2).toBeTruthy();
 		});
 
+		it('should clear the workspace-wide caches too, so notes written by another process become visible', async () => {
+			const doc = createMockDocument('function test() {}');
+			await noteManager.createNote({
+				content: 'Note 1',
+				filePath: doc.uri.fsPath,
+				lineRange: { start: 0, end: 0 }
+			}, doc);
+
+			// Warm the workspace cache.
+			expect(await noteManager.getAllNotes()).toHaveLength(1);
+
+			// A second process (the MCP server) creates a note in the same storage.
+			const other = new NoteManager(
+				new StorageManager(tempDir, '.test-notes'),
+				new ContentHashTracker(),
+				new FakeAuthorProvider('Agent'),
+			);
+			const otherDoc = createMockDocument('other file');
+			await other.createNote({
+				content: 'Note from agent',
+				filePath: otherDoc.uri.fsPath,
+				lineRange: { start: 0, end: 0 }
+			}, otherDoc);
+
+			// Without clearing, our warm workspace cache still says 1.
+			expect(await noteManager.getAllNotes()).toHaveLength(1);
+
+			noteManager.clearAllCache();
+
+			const after = await noteManager.getAllNotes();
+			expect(after).toHaveLength(2);
+			expect(after.map(n => n.content)).toContain('Note from agent');
+		});
+
 		it('should refresh notes for file', async () => {
 			const doc = createMockDocument('function test() {}');
 			await noteManager.createNote({

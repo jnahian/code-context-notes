@@ -220,11 +220,18 @@ describe('extension + MCP cross-process race (spec §8.3)', () => {
     // 2. The user edits the same note in VS Code (a different process).
     await noteManager.updateNote({ id: created.id, content: 'user edit' }, doc);
 
-    // 3. The agent re-reads: it must see the user's edit, not its warm cache.
+    // 3. The resource surface must be fresh. This is asserted BEFORE any tool
+    //    call: tool dispatch clears the caches, which would refresh the
+    //    resource's view as a side effect and make this assertion vacuous.
+    const resource = await rpc.request('resources/read', { uri: `code-notes://file/${rel}` });
+    expect(resource.contents[0].text).toContain('user edit');
+    expect(resource.contents[0].text).not.toContain('original');
+
+    // 4. The agent re-reads via a tool: also fresh, not the warm cache.
     const reread = await callTool(rpc, 'get_notes_for_file', { file: rel });
     expect(reread.direct[0].content).toBe('user edit');
 
-    // 4. The agent edits. The user's edit must survive in history — a cached
+    // 5. The agent edits. The user's edit must survive in history — a cached
     //    read-modify-write here would silently drop it.
     const edited = await callTool(rpc, 'edit_note', { id: created.id, content: 'agent edit' });
     expect(edited.error).toBeUndefined();

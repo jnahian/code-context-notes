@@ -148,7 +148,7 @@ export function ChangelogPage() {
                       <p>• npm workspaces monorepo: <code className="bg-brand-navy text-brand-warm px-1 rounded">packages/extension</code>, <code className="bg-brand-navy text-brand-warm px-1 rounded">packages/code-notes-core</code>, <code className="bg-brand-navy text-brand-warm px-1 rounded">packages/code-notes-mcp</code></p>
                       <p>• MCP server built on <code className="bg-brand-navy text-brand-warm px-1 rounded">@modelcontextprotocol/sdk</code> (stdio transport); all logging on stderr, stdout reserved for JSON-RPC</p>
                       <p>• Advisory lock files: exclusive create, 500ms retry, stale locks broken after 60s</p>
-                      <p>• 373 tests across packages, including cross-process extension-vs-MCP race, lock-contention, and stale-cache regression tests</p>
+                      <p>• 374 tests across packages, including cross-process extension-vs-MCP race, lock-contention, and stale-cache regression tests</p>
                     </div>
                   </div>
 
