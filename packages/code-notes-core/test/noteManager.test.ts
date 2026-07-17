@@ -650,6 +650,96 @@ describe('NoteManager Test Suite', () => {
 
 			expect(await auditLog.read()).toEqual([]);
 		});
+
+		describe('queue mode', () => {
+			let store: ProposalStore;
+
+			const buildQueued = () => new NoteManager(
+				new StorageManager(tempDir, '.test-notes'),
+				new ContentHashTracker(),
+				new FakeAuthorProvider('claude-code'),
+				{ proposalStore: store, agentWriteMode: async () => 'queue', agentName: 'claude-code' },
+			);
+
+			beforeEach(() => {
+				store = new ProposalStore(path.join(tempDir, '.test-notes', '_pending'));
+			});
+
+			it('diverts an agent create to a proposal, writing no note', async () => {
+				const queued = buildQueued();
+				const doc = createMockDocument('line0\n');
+
+				await expect(queued.createNote({
+					content: 'proposed',
+					filePath: doc.uri.fsPath,
+					lineRange: { start: 0, end: 0 },
+					authorType: 'agent',
+				}, doc)).rejects.toBeInstanceOf(PendingWriteError);
+
+				// No note landed...
+				expect(await queued.getAllNotes()).toHaveLength(0);
+				// ...but a proposal did.
+				const proposals = await store.list();
+				expect(proposals).toHaveLength(1);
+				expect(proposals[0]).toMatchObject({ op: 'create', agent: 'claude-code', content: 'proposed' });
+			});
+
+			it('diverts an agent edit, leaving the live note untouched', async () => {
+				const doc = createMockDocument('line0\n');
+				// Seed a note that already belongs to the agent.
+				const seeded = await buildManager('direct').createNote({
+					content: 'original',
+					filePath: doc.uri.fsPath,
+					lineRange: { start: 0, end: 0 },
+					authorType: 'agent',
+				}, doc);
+
+				const queued = buildQueued();
+				await expect(queued.updateNote({ id: seeded.id, content: 'proposed edit' }, doc))
+					.rejects.toBeInstanceOf(PendingWriteError);
+
+				expect((await queued.getNoteByIdGlobal(seeded.id))!.content).toBe('original');
+				const proposals = await store.list();
+				expect(proposals[0]).toMatchObject({
+					op: 'edit',
+					targetNoteId: seeded.id,
+					content: 'proposed edit',
+				});
+				// The stale-target check at approve time depends on this.
+				expect(proposals[0].targetContentHash).toBeTruthy();
+			});
+
+			it('diverts an agent delete, leaving the live note undeleted', async () => {
+				const doc = createMockDocument('line0\n');
+				const seeded = await buildManager('direct').createNote({
+					content: 'keep me for now',
+					filePath: doc.uri.fsPath,
+					lineRange: { start: 0, end: 0 },
+					authorType: 'agent',
+				}, doc);
+
+				const queued = buildQueued();
+				await expect(queued.deleteNote(seeded.id, doc.uri.fsPath))
+					.rejects.toBeInstanceOf(PendingWriteError);
+
+				expect((await queued.getNoteByIdGlobal(seeded.id))!.isDeleted).toBe(false);
+				expect((await store.list())[0]).toMatchObject({ op: 'delete', targetNoteId: seeded.id });
+			});
+
+			it('lets a human write through untouched', async () => {
+				const queued = buildQueued();
+				const doc = createMockDocument('line0\n');
+
+				const note = await queued.createNote({
+					content: 'human note',
+					filePath: doc.uri.fsPath,
+					lineRange: { start: 0, end: 0 },
+				}, doc);
+
+				expect(note.content).toBe('human note');
+				expect(await store.list()).toEqual([]);
+			});
+		});
 	});
 
 	describe('Note History', () => {

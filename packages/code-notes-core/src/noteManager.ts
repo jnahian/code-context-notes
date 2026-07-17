@@ -6,12 +6,13 @@
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
-import { Note, CreateNoteParams, UpdateNoteParams, LineRange, NoteType, NotePriority, NoteScope, NoteReference, AuthorType, NoteDocument, AuthorProvider, SearchIndexSync, AgentWriteMode, AuditEntry } from './types.js';
+import { Note, CreateNoteParams, UpdateNoteParams, LineRange, NoteType, NotePriority, NoteScope, NoteReference, AuthorType, NoteDocument, AuthorProvider, SearchIndexSync, AgentWriteMode, AuditEntry, Proposal } from './types.js';
 import { applyDefaults } from './noteDefaults.js';
 import { StorageManager } from './storageManager.js';
 import { ContentHashTracker } from './contentHashTracker.js';
 import { LockManager } from './lockManager.js';
 import { AuditLog, hashNoteContent } from './auditLog.js';
+import { ProposalStore, PendingWriteError } from './proposalStore.js';
 
 /**
  * NoteManager coordinates all note operations
@@ -28,6 +29,7 @@ export class NoteManager extends EventEmitter {
   private defaultAuthor: string = 'Unknown User';
   private lockManager?: LockManager;
   private auditLog?: AuditLog;
+  private proposalStore?: ProposalStore;
   private agentWriteMode?: () => Promise<AgentWriteMode>;
   private agentName: string;
 
@@ -38,6 +40,7 @@ export class NoteManager extends EventEmitter {
     opts?: {
       lockManager?: LockManager;
       auditLog?: AuditLog;
+      proposalStore?: ProposalStore;
       /** A function, not a value: the mode is re-read per call so a
        *  long-lived process can't serve a stale policy. */
       agentWriteMode?: () => Promise<AgentWriteMode>;
@@ -51,6 +54,7 @@ export class NoteManager extends EventEmitter {
     this.noteCache = new Map();
     this.lockManager = opts?.lockManager;
     this.auditLog = opts?.auditLog;
+    this.proposalStore = opts?.proposalStore;
     this.agentWriteMode = opts?.agentWriteMode;
     this.agentName = opts?.agentName ?? 'unknown-agent';
 
@@ -76,6 +80,28 @@ export class NoteManager extends EventEmitter {
     const mode = await this.agentWriteMode();
     if (mode !== 'audit') return;
     await this.auditLog.append({ ...entry, ts: new Date().toISOString(), agent: this.agentName });
+  }
+
+  /**
+   * In queue mode an agent write becomes a proposal and never touches live
+   * notes. Throws PendingWriteError rather than returning a flag, so a caller
+   * cannot accidentally carry on and write anyway.
+   */
+  private async divertToProposalIfQueued(
+    isAgentWrite: boolean,
+    proposal: Omit<Proposal, 'proposalId' | 'agent' | 'proposedAt'>,
+  ): Promise<void> {
+    if (!isAgentWrite || !this.proposalStore || !this.agentWriteMode) return;
+    if (await this.agentWriteMode() !== 'queue') return;
+
+    const proposalId = `prop-${uuidv4()}`;
+    await this.proposalStore.save({
+      ...proposal,
+      proposalId,
+      agent: this.agentName,
+      proposedAt: new Date().toISOString(),
+    });
+    throw new PendingWriteError(proposalId);
   }
 
   /**
@@ -107,6 +133,15 @@ export class NoteManager extends EventEmitter {
     const noteId = uuidv4();
 
     return this.withNoteLock(noteId, async () => {
+      // Before any storage write: in queue mode this becomes a proposal and
+      // no note is created.
+      await this.divertToProposalIfQueued(params.authorType === 'agent', {
+        op: 'create',
+        file: params.filePath,
+        lineRange: params.lineRange,
+        content: params.content.trim(),
+      });
+
       // Generate content hash
       const contentHash = this.hashTracker.generateHash(document, params.lineRange);
 
@@ -196,6 +231,15 @@ export class NoteManager extends EventEmitter {
       }
 
       const prevContent = note.content;
+
+      await this.divertToProposalIfQueued(note.authorType === 'agent', {
+        op: 'edit',
+        targetNoteId: note.id,
+        file: note.filePath,
+        lineRange: note.lineRange,
+        content: params.content.trim(),
+        targetContentHash: hashNoteContent(prevContent),
+      });
 
       // Get author
       const author = params.author || await this.gitIntegration.getAuthorName();
@@ -298,6 +342,14 @@ export class NoteManager extends EventEmitter {
       if (note.isDeleted) {
         throw new Error(`Note ${noteId} is already deleted`);
       }
+
+      await this.divertToProposalIfQueued(note.authorType === 'agent', {
+        op: 'delete',
+        targetNoteId: note.id,
+        file: note.filePath,
+        content: '',
+        targetContentHash: hashNoteContent(note.content),
+      });
 
       // Mark as deleted
       note.isDeleted = true;
