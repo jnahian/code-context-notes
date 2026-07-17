@@ -4,7 +4,7 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { StorageManager, ExportWriter, ContentHashTracker, NoteManager, SearchManager, LockManager } from '@jnahian/code-notes-core';
+import { StorageManager, ExportWriter, ContentHashTracker, NoteManager, SearchManager, LockManager, writeWorkspaceConfig } from '@jnahian/code-notes-core';
 import { GitIntegration } from './gitIntegration.js';
 import { CommentController } from './commentController.js';
 import { CodeNotesLensProvider } from './codeLensProvider.js';
@@ -65,6 +65,33 @@ export async function activate(context: vscode.ExtensionContext) {
 	const authorName = config.get<string>('authorName', '');
 	const showCodeLens = config.get<boolean>('showCodeLens', true);
 
+	// The MCP server can't read VS Code settings — it reads config.json. Treat
+	// the VS Code settings as the UI and config.json as the shared source of
+	// truth, and keep them in sync.
+	const storagePath = path.join(workspaceRoot, storageDirectory);
+	const syncWorkspaceConfig = async () => {
+		const cfg = vscode.workspace.getConfiguration('codeContextNotes');
+		await writeWorkspaceConfig(storagePath, {
+			agentWriteMode: cfg.get<'direct' | 'audit' | 'queue'>('agentWriteMode', 'audit'),
+			agentAllowList: cfg.get<string[]>('agentAllowList', []),
+			auditLogRetention: cfg.get<number>('auditLogRetention', 1000),
+		});
+	};
+
+	context.subscriptions.push(
+		vscode.workspace.onDidChangeConfiguration(async (e) => {
+			if (
+				e.affectsConfiguration('codeContextNotes.agentWriteMode') ||
+				e.affectsConfiguration('codeContextNotes.agentAllowList') ||
+				e.affectsConfiguration('codeContextNotes.auditLogRetention')
+			) {
+				// The user changed a setting, so creating the storage dir here is
+				// what they asked for.
+				await syncWorkspaceConfig();
+			}
+		}),
+	);
+
 	// Initialize components
 	const storage = new StorageManager(workspaceRoot, storageDirectory);
 	const hashTracker = new ContentHashTracker();
@@ -76,6 +103,16 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Initialize note manager
 	noteManager = new NoteManager(storage, hashTracker, gitIntegration, { lockManager });
+
+	// Mirror the settings for the MCP server, but only once this workspace
+	// actually uses notes. writeWorkspaceConfig creates a git-visible file, and
+	// opening an unrelated project with the extension installed must not add
+	// one. (storageExists() is no use as the signal — createStorage() above
+	// makes it true everywhere.) A workspace with no config.json reads as the
+	// default mode anyway, so nothing is lost by waiting.
+	if ((await storage.getAllNoteFiles()).length > 0) {
+		await syncWorkspaceConfig();
+	}
 
 	// Initialize search manager
 	searchManager = new SearchManager(context.globalState);
@@ -1206,9 +1243,25 @@ function setupEventListeners(context: vscode.ExtensionContext) {
 	const storageDirectory = config.get<string>('storageDirectory', '.code-notes');
 	const fileWatcherPattern = new vscode.RelativePattern(
 		vscode.workspace.workspaceFolders![0],
-		`${storageDirectory}/**/*.md`
+		`${storageDirectory}/**/*.{md,log}`
 	);
 	const fileWatcher = vscode.workspace.createFileSystemWatcher(fileWatcherPattern);
+
+	// Proposals and the audit log live under the storage dir but are not notes.
+	// Route them to their own views instead of the note cache/sidebar.
+	const storagePath = path.join(vscode.workspace.workspaceFolders![0].uri.fsPath, storageDirectory);
+	const routeNonNoteFile = (uri: vscode.Uri): boolean => {
+		const rel = path.relative(storagePath, uri.fsPath);
+		if (rel.startsWith('_pending')) {
+			noteManager.emit('proposalsChanged');
+			return true;
+		}
+		if (path.basename(uri.fsPath).startsWith('_audit.log')) {
+			noteManager.emit('auditLogChanged');
+			return true;
+		}
+		return false;
+	};
 
 	// AGENTS.md is a generated export living in the same directory; treating
 	// it as a note would make export regeneration re-trigger itself forever.
@@ -1216,6 +1269,9 @@ function setupEventListeners(context: vscode.ExtensionContext) {
 
 	// When a note file is created
 	fileWatcher.onDidCreate((uri) => {
+		if (routeNonNoteFile(uri)) {
+			return;
+		}
 		if (isGeneratedExport(uri)) {
 			return;
 		}
@@ -1227,6 +1283,9 @@ function setupEventListeners(context: vscode.ExtensionContext) {
 
 	// When a note file is changed
 	fileWatcher.onDidChange((uri) => {
+		if (routeNonNoteFile(uri)) {
+			return;
+		}
 		if (isGeneratedExport(uri)) {
 			return;
 		}
@@ -1238,6 +1297,9 @@ function setupEventListeners(context: vscode.ExtensionContext) {
 
 	// When a note file is deleted
 	fileWatcher.onDidDelete((uri) => {
+		if (routeNonNoteFile(uri)) {
+			return;
+		}
 		if (isGeneratedExport(uri)) {
 			return;
 		}

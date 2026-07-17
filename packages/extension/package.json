@@ -422,6 +422,28 @@
           "default": ".code-notes",
           "description": "Directory where notes are stored (relative to workspace root)"
         },
+        "codeContextNotes.agentWriteMode": {
+          "type": "string",
+          "enum": ["direct", "audit", "queue"],
+          "enumDescriptions": [
+            "Agent writes land immediately.",
+            "Agent writes land and are logged to .code-notes/_audit.log, reviewable in the Agent activity view.",
+            "Agent writes become proposals needing approval in the Pending agent proposals view."
+          ],
+          "default": "audit",
+          "description": "How writes from MCP agents are handled. Written to .code-notes/config.json so the standalone MCP server reads the same policy."
+        },
+        "codeContextNotes.agentAllowList": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Agent names allowed to write (matches the server's --agent value). Empty allows any. Informational, not a security boundary."
+        },
+        "codeContextNotes.auditLogRetention": {
+          "type": "number",
+          "default": 1000,
+          "description": "Number of audit log entries kept before older ones rotate to _audit.log.1."
+        },
         "codeContextNotes.authorName": {
           "type": "string",
           "default": "",
