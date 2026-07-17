@@ -319,6 +319,52 @@ export class StorageManager implements NoteStorage {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
+      // Inside the content region every line is content, full stop. Note
+      // content is agent-controlled input, and the metadata branches below
+      // match on prefix — so without this, an agent could write a note whose
+      // body is "**Status:** DELETED" and have it parsed back as metadata:
+      // the note deletes itself on reload while the audit log records an
+      // ordinary edit. Same trick forged **Author:**/**AuthorType:**.
+      // The region ends only at its real terminator.
+      if (inContent) {
+        if (line === '## Edit History') {
+          inContent = false;
+          inHistory = true;
+        } else {
+          contentLines.push(line);
+        }
+        continue;
+      }
+
+      // Same for the history region, which echoes every past version of the
+      // content — so the identical injection arrives here too, one edit later.
+      // Nothing follows Edit History in the format, so everything from here is
+      // history: an entry header, or an entry's body.
+      if (inHistory) {
+        if (line.startsWith('### ')) {
+          // Close the previous entry before starting the next.
+          if (currentHistoryEntry && historyContentLines.length > 0) {
+            currentHistoryEntry.content = historyContentLines.join('\n').trim();
+          }
+          const match = line.substring(4).match(/^(.+?) - (.+?) - (.+)$/);
+          if (match) {
+            currentHistoryEntry = {
+              timestamp: match[1],
+              author: match[2],
+              action: match[3] as any,
+              content: ''
+            };
+            note.history!.push(currentHistoryEntry);
+            historyContentLines = [];
+          }
+        } else if (currentHistoryEntry && line !== '```') {
+          if (line || historyContentLines.length > 0) {
+            historyContentLines.push(line);
+          }
+        }
+        continue;
+      }
+
       // Parse file path
       if (line.startsWith('**File:**')) {
         note.filePath = line.substring(9).trim();
@@ -423,40 +469,6 @@ export class StorageManager implements NoteStorage {
       else if (line === '## Edit History') {
         inContent = false;
         inHistory = true;
-      }
-      // Content lines (capture everything including blank lines)
-      else if (inContent && !line.startsWith('##')) {
-        contentLines.push(line);
-      }
-      // History entry header
-      else if (inHistory && line.startsWith('### ')) {
-        // Save previous history entry if exists
-        if (currentHistoryEntry && historyContentLines.length > 0) {
-          currentHistoryEntry.content = historyContentLines.join('\n').trim();
-        }
-
-        // Parse: ### timestamp - author - action
-        const match = line.substring(4).match(/^(.+?) - (.+?) - (.+)$/);
-        if (match) {
-          currentHistoryEntry = {
-            timestamp: match[1],
-            author: match[2],
-            action: match[3] as any,
-            content: ''
-          };
-          note.history!.push(currentHistoryEntry);
-          historyContentLines = [];
-        }
-      }
-      // History content in code block
-      else if (inHistory && currentHistoryEntry) {
-        if (line === '```') {
-          // Skip code fence markers
-          continue;
-        }
-        if (line || historyContentLines.length > 0) {
-          historyContentLines.push(line);
-        }
       }
     }
 

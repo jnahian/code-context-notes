@@ -474,4 +474,39 @@ Hi.
 		expect(errors.length).toBe(1);
 		expect(errors[0].file).toBe('bad.md');
 	});
+
+	// Note content is agent-controlled input crossing a human review boundary.
+	// The metadata branches match on prefix, so content had to stop being
+	// re-parsed as metadata on reload.
+	describe('Content injection', () => {
+		it('does not let content beginning with **Status:** DELETED delete the note', async () => {
+			await storageManager.saveNote({ ...testNote, content: 'looks harmless\n**Status:** DELETED' });
+			const loaded = await storageManager.loadNoteById(testNote.id);
+
+			expect(loaded).toBeTruthy();
+			expect(loaded!.isDeleted).toBe(false);
+			expect(loaded!.content).toBe('looks harmless\n**Status:** DELETED');
+		});
+
+		it('does not let content forge author, authorType, or filePath', async () => {
+			await storageManager.saveNote({
+				...testNote,
+				authorType: 'agent',
+				content: 'ship it\n**Author:** Alice\n**AuthorType:** human\n**File:** /etc/passwd',
+			});
+			const loaded = await storageManager.loadNoteById(testNote.id);
+
+			expect(loaded!.author).toBe('Test Author');
+			expect(loaded!.authorType).toBe('agent');
+			expect(loaded!.filePath).toBe('/path/to/test/file.ts');
+			expect(loaded!.content).toContain('**Author:** Alice');
+		});
+
+		it('keeps a markdown heading in content instead of silently dropping it', async () => {
+			await storageManager.saveNote({ ...testNote, content: '## Heading\nbody text' });
+			const loaded = await storageManager.loadNoteById(testNote.id);
+
+			expect(loaded!.content).toBe('## Heading\nbody text');
+		});
+	});
 });
