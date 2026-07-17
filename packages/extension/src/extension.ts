@@ -4,13 +4,20 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { StorageManager, ExportWriter, ContentHashTracker, NoteManager, SearchManager, LockManager, writeWorkspaceConfig } from '@jnahian/code-notes-core';
+import { StorageManager, ExportWriter, ContentHashTracker, NoteManager, SearchManager, LockManager, writeWorkspaceConfig, AuditLog } from '@jnahian/code-notes-core';
+import type { AuditEntry } from '@jnahian/code-notes-core';
+import { AgentActivityProvider, AgentActivityItem } from './agentActivityProvider.js';
 import { GitIntegration } from './gitIntegration.js';
 import { CommentController } from './commentController.js';
 import { CodeNotesLensProvider } from './codeLensProvider.js';
 import { NotesSidebarProvider } from './notesSidebarProvider.js';
 
 let noteManager: NoteManager;
+// Module-scoped like noteManager: registerAllCommands runs on both the
+// workspace and no-workspace paths, so its handlers guard on this being set
+// rather than capturing it.
+let auditLog: AuditLog | undefined;
+let agentActivityProvider: AgentActivityProvider | undefined;
 let exportWriter: ExportWriter;
 let searchManager: SearchManager;
 let commentController: CommentController;
@@ -113,6 +120,18 @@ export async function activate(context: vscode.ExtensionContext) {
 	if ((await storage.getAllNoteFiles()).length > 0) {
 		await syncWorkspaceConfig();
 	}
+
+	// Agent activity: a read-only view over the audit log the MCP server writes.
+	auditLog = new AuditLog(path.join(storagePath, '_audit.log'), {
+		lockManager,
+		retention: config.get<number>('auditLogRetention', 1000),
+	});
+	agentActivityProvider = new AgentActivityProvider(auditLog);
+	context.subscriptions.push(
+		vscode.window.registerTreeDataProvider('codeContextNotes.agentActivityView', agentActivityProvider),
+	);
+	// The watcher emits this when the MCP server appends from another process.
+	noteManager.on('auditLogChanged', () => agentActivityProvider?.refresh());
 
 	// Initialize search manager
 	searchManager = new SearchManager(context.globalState);
@@ -273,6 +292,92 @@ const x = 1;
  * error messages if workspace-dependent features (noteManager, commentController) are not initialized
  */
 function registerAllCommands(context: vscode.ExtensionContext) {
+	// --- Agent activity (audit mode) ---
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('codeContextNotes.openAuditedNote', async (entry: AuditEntry) => {
+			if (!noteManager) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+			const note = await noteManager.getNoteByIdGlobal(entry.noteId);
+			if (!note) {
+				vscode.window.showWarningMessage(`Note ${entry.noteId} no longer exists.`);
+				return;
+			}
+			const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(note.filePath));
+			const editor = await vscode.window.showTextDocument(doc);
+			const line = note.lineRange.start;
+			editor.revealRange(new vscode.Range(line, 0, line, 0), vscode.TextEditorRevealType.InCenter);
+			editor.selection = new vscode.Selection(line, 0, line, 0);
+		}),
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('codeContextNotes.truncateAuditLog', async () => {
+			if (!auditLog) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+			const pick = await vscode.window.showWarningMessage(
+				'Clear the agent audit log? Recorded activity will be lost; your notes are unaffected.',
+				{ modal: true },
+				'Clear log',
+			);
+			if (pick !== 'Clear log') {
+				return;
+			}
+			await auditLog.truncate();
+			agentActivityProvider?.refresh();
+		}),
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('codeContextNotes.revertAgentOp', async (item: AgentActivityItem) => {
+			if (!noteManager) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+			const { entry } = item;
+			const note = await noteManager.getNoteByIdGlobal(entry.noteId);
+			if (!note) {
+				vscode.window.showWarningMessage(`Note ${entry.noteId} no longer exists — nothing to revert.`);
+				return;
+			}
+
+			const confirm = await vscode.window.showWarningMessage(
+				`Revert the ${entry.op} by ${entry.agent}?`,
+				{ modal: true },
+				'Revert',
+			);
+			if (confirm !== 'Revert') {
+				return;
+			}
+
+			try {
+				if (entry.op === 'create') {
+					// The reverse of a create is a delete.
+					await noteManager.deleteNote(note.id, note.filePath);
+				} else {
+					// The reverse of an edit/delete is the previous content. history
+					// is append-only, so the entry before the last is the state this
+					// op replaced.
+					const prior = note.history[note.history.length - 2];
+					if (!prior) {
+						vscode.window.showWarningMessage('No prior version recorded for this note.');
+						return;
+					}
+					const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(note.filePath));
+					await noteManager.updateNote({ id: note.id, content: prior.content }, doc);
+				}
+				agentActivityProvider?.refresh();
+				vscode.window.showInformationMessage(`Reverted ${entry.op} on ${path.basename(note.filePath)}.`);
+			} catch (e) {
+				vscode.window.showErrorMessage(`Revert failed: ${(e as Error).message}`);
+			}
+		}),
+	);
+
 	// Add Note to Selection (via command palette or keyboard shortcut)
 	const addNoteCommand = vscode.commands.registerCommand(
 		'codeContextNotes.addNote',

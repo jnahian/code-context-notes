@@ -218,6 +218,22 @@
         "command": "codeContextNotes.setNoteMetadata",
         "title": "Set Note Type / Tags / Priority…",
         "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.revertAgentOp",
+        "title": "Revert this agent change",
+        "icon": "$(discard)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.truncateAuditLog",
+        "title": "Truncate Audit Log",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.openAuditedNote",
+        "title": "Open the note this entry refers to",
+        "category": "Code Notes"
       }
     ],
     "keybindings": [
@@ -307,6 +323,11 @@
         }
       ],
       "view/item/context": [
+        {
+          "command": "codeContextNotes.revertAgentOp",
+          "when": "view == codeContextNotes.agentActivityView && viewItem == agentActivityItem",
+          "group": "inline"
+        },
         {
           "command": "codeContextNotes.openNoteFromSidebar",
           "when": "view == codeContextNotes.sidebarView && viewItem == noteNode",
@@ -404,6 +425,11 @@
         {
           "id": "codeContextNotes.sidebarView",
           "name": "Notes",
+          "contextualTitle": "Code Context Notes"
+        },
+        {
+          "id": "codeContextNotes.agentActivityView",
+          "name": "Agent activity",
           "contextualTitle": "Code Context Notes"
         }
       ]
