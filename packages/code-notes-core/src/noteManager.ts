@@ -312,6 +312,15 @@ export class NoteManager extends EventEmitter {
     noteId: string,
     fields: { type?: NoteType; priority?: NotePriority; tags?: string[]; expiresAt?: string; scope?: NoteScope; references?: NoteReference[]; authorType?: AuthorType },
   ): Promise<Note> {
+    // Human-only path: this writes notes but is NOT routed through the trust
+    // model, and it is safe today only because no MCP tool reaches it. Fail
+    // loudly rather than let a future agent-facing caller silently bypass the
+    // rails — that class of mistake is exactly how agents got to edit
+    // human-authored notes in queue mode.
+    if (this.agentWriter) {
+      throw new Error('updateNoteMetadata is not available to agent writers — route the change through updateNote');
+    }
+
     return this.withNoteLock(noteId, async () => {
       const existing = await this.storage.loadNoteById(noteId);
       if (!existing) throw new Error(`Note ${noteId} not found`);
@@ -471,6 +480,12 @@ export class NoteManager extends EventEmitter {
    * Returns notes that were updated
    */
   async updateNotePositions(document: NoteDocument): Promise<Note[]> {
+    // Human-only path, like updateNoteMetadata: repositioning follows the
+    // editor's document changes and is not routed through the trust model.
+    if (this.agentWriter) {
+      throw new Error('updateNotePositions is not available to agent writers');
+    }
+
     const filePath = document.uri.fsPath;
     const notes = await this.getNotesForFile(filePath);
     const updatedNotes: Note[] = [];

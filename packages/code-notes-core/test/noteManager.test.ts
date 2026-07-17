@@ -681,6 +681,29 @@ describe('NoteManager Test Suite', () => {
 			expect(await auditLog.read()).toEqual([]);
 		});
 
+		// These two write notes but are deliberately NOT routed through the
+		// trust model — they're human-only paths. Guard them so a future
+		// agent-facing caller fails loudly instead of silently bypassing.
+		it('refuses updateNoteMetadata and updateNotePositions from an agent manager', async () => {
+			const agentManager = buildManager('audit');
+			const doc = createMockDocument('line0\n');
+			const note = await agentManager.createNote({
+				content: 'agent note',
+				filePath: doc.uri.fsPath,
+				lineRange: { start: 0, end: 0 },
+				authorType: 'agent',
+			}, doc);
+
+			await expect(agentManager.updateNoteMetadata(note.id, { priority: 'high' }))
+				.rejects.toThrow(/not available to agent writers/);
+			await expect(agentManager.updateNotePositions(doc))
+				.rejects.toThrow(/not available to agent writers/);
+
+			// The human's manager still uses both freely.
+			await expect(noteManager.updateNoteMetadata(note.id, { priority: 'high' })).resolves.toBeTruthy();
+			await expect(noteManager.updateNotePositions(doc)).resolves.toBeInstanceOf(Array);
+		});
+
 		it('does not log in direct mode', async () => {
 			const agentManager = buildManager('direct');
 			const doc = createMockDocument('line0\n');
