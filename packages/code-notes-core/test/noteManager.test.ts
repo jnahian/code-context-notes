@@ -1160,7 +1160,7 @@ describe('NoteManager Test Suite', () => {
 				JSON.stringify({ pid: 99999, ts: new Date().toISOString(), holder: 'other' }),
 			);
 
-			const lockManager = new LockManager(locksDir, 'test', { retryMs: 200 });
+			const lockManager = new LockManager(locksDir, 'test', { timeoutMs: 200 });
 			const lockedNoteManager = new NoteManager(storage, hashTracker, gitIntegration, { lockManager });
 
 			await expect(

@@ -1,5 +1,5 @@
-import * as path from 'path';
 import type { Note, NoteManager } from '@jnahian/code-notes-core';
+import { resolveInWorkspace } from '../pathGuard.js';
 
 export const FILE_RESOURCE_URI_PREFIX = 'code-notes://file/';
 export const fileResourceMimeType = 'text/markdown';
@@ -31,12 +31,18 @@ export function renderFileNotesMarkdown(notes: Note[]): string {
 
 export async function readFileResource(uri: string, deps: FileResourceDeps) {
   const encodedFile = uri.slice(FILE_RESOURCE_URI_PREFIX.length);
-  const file = decodeURIComponent(encodedFile);
+  let file: string;
+  try {
+    file = decodeURIComponent(encodedFile);
+  } catch {
+    // decodeURIComponent throws URIError on a malformed escape (e.g. a lone '%').
+    return {
+      contents: [{ uri, mimeType: fileResourceMimeType, text: `Error: malformed resource URI: ${uri}` }],
+    };
+  }
 
-  const absFile = path.resolve(deps.workspace, file);
-  const rel = path.relative(deps.workspace, absFile);
-  const escapesWorkspace = rel.startsWith('..') || path.isAbsolute(rel);
-  if (escapesWorkspace) {
+  const absFile = resolveInWorkspace(deps.workspace, file);
+  if (absFile === null) {
     return {
       contents: [{ uri, mimeType: fileResourceMimeType, text: `Error: path escapes workspace: ${file}` }],
     };

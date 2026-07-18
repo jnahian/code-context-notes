@@ -78,4 +78,14 @@ describe('parseUnifiedDiff', () => {
     if (!('error' in result)) throw new Error('expected error');
     expect(result.error).toBe('diff_parse_failed');
   });
+
+  it('does not let a mid-hunk "\\ No newline" marker shift added line numbers', () => {
+    // Old file lacks a trailing newline, so the marker sits between the removed
+    // and added blocks. The added line is at line 2; without the marker skip it
+    // would be recorded as line 3.
+    const diff = `--- a/f.ts\n+++ b/f.ts\n@@ -1,2 +1,2 @@\n line1\n-line2\n\\ No newline at end of file\n+line2changed\n`;
+    const result = parseUnifiedDiff(diff);
+    if (!('files' in result)) throw new Error('expected files');
+    expect(result.files[0].changedLines).toEqual([2]);
+  });
 });

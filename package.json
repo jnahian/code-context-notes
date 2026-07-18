@@ -1,5 +1,6 @@
 {
   "name": "code-context-notes",
+  "private": true,
   "displayName": "Code Context Notes - Smart Annotations",
   "description": "Add contextual notes to your code with full version history and intelligent tracking",
   "version": "0.3.0",
@@ -8,6 +9,10 @@
   "galleryBanner": {
     "color": "#2d3748",
     "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jnahian/code-context-notes"
   },
   "bugs": {
     "url": "https://github.com/jnahian/code-context-notes/issues"
@@ -488,6 +493,14 @@
     "web:build": "cd web && npm run build",
     "web:build:vercel": "cd web && npm run build:vercel",
     "web:preview:ssr": "cd web && npm run preview:ssr"
+  },
+  "overrides": {
+    "serialize-javascript": "^7.0.5",
+    "@babel/core": "7.29.7",
+    "@istanbuljs/load-nyc-config": { "js-yaml": "3.15.0" },
+    "@textlint/linter-formatter": { "js-yaml": "3.15.0" },
+    "mocha": { "js-yaml": "4.3.0" },
+    "rc-config-loader": { "js-yaml": "4.3.0" }
   },
   "devDependencies": {
     "typescript": "^5.9.3",

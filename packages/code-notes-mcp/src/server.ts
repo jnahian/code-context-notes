@@ -216,9 +216,18 @@ export async function startServer(args: StartArgs): Promise<void> {
     // notes behind our back — a warm cache would serve a stale resource.
     noteManager.clearAllCache();
     const uri = request.params.uri;
-    if (uri === digestResourceDef.uri) return readDigest({ workspace, storageDir, noteManager });
-    if (uri === indexResourceDef.uri) return readIndex({ workspace, storageDir, noteManager });
-    if (uri.startsWith(FILE_RESOURCE_URI_PREFIX)) return readFileResource(uri, { workspace, noteManager });
+    try {
+      if (uri === digestResourceDef.uri) return await readDigest({ workspace, storageDir, noteManager });
+      if (uri === indexResourceDef.uri) return await readIndex({ workspace, storageDir, noteManager });
+      if (uri.startsWith(FILE_RESOURCE_URI_PREFIX)) return await readFileResource(uri, { workspace, noteManager });
+    } catch (e) {
+      // Same contract as handleToolCall: a failed read of a known resource
+      // (malformed URI, I/O error) returns in-band error text, never a
+      // JSON-RPC protocol error.
+      return { contents: [{ uri, mimeType: 'text/plain', text: `Error: ${e instanceof Error ? e.message : String(e)}` }] };
+    }
+    // Genuinely unknown URI — a real "resource not found", distinct from a read
+    // that failed mid-flight; surface it as a protocol error.
     throw new Error(`unknown resource: ${uri}`);
   });
 

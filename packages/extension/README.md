@@ -435,49 +435,6 @@ Commit the `.code-notes/` directory to your repository. Team members with the ex
 
 Minimal. The extension uses caching and efficient algorithms. Even with 100+ notes, you won't notice any lag.
 
-## Development
-
-### Building from Source
-
-```bash
-git clone https://github.com/jnahian/code-context-notes
-cd code-context-notes
-npm install
-npm run compile
-```
-
-### Running in Development
-
-1. Open the project in VSCode
-2. Press `F5` to launch Extension Development Host
-3. Test the extension in the new window
-
-### Running Tests
-
-```bash
-# Run unit tests (fast, ~50ms)
-npm run test:unit
-
-# Run with coverage report
-npm run test:coverage
-
-# Run all tests (requires VSCode)
-npm test
-
-# Package extension with git tagging
-npm run package
-
-# Publish to both marketplaces
-npm run publish
-```
-
-**Test Coverage**: 88% overall with 100 total tests
-
-- 41 unit tests (pure Node.js)
-- 59+ integration tests (VSCode API)
-
-See [docs/TESTING.md](docs/TESTING.md) for detailed testing documentation.
-
 ## Requirements
 
 - VSCode 1.80.0 or higher

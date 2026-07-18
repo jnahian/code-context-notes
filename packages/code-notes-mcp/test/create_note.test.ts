@@ -104,7 +104,7 @@ describe('create_note', () => {
     // create_note generates a fresh note id internally, so we can't pre-seed a
     // lock file for it; force the same failure LockManager.acquire() raises
     // when it can't get the lock in time (see lockManager.test.ts).
-    const lockManager = new LockManager(path.join(tempDir, '.locks'), 'test', { retryMs: 50 });
+    const lockManager = new LockManager(path.join(tempDir, '.locks'), 'test', { timeoutMs: 50 });
     vi.spyOn(lockManager, 'acquire').mockRejectedValue(new Error('lock_timeout: forced'));
     const lockedNoteManager = new NoteManager(
       new StorageManager(tempDir, '.test-notes'),

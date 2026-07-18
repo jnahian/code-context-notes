@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import * as path from 'path';
 import type { NoteManager, NoteType, NoteScope, NotePriority, NoteReference } from '@jnahian/code-notes-core';
 import { PendingWriteError } from '@jnahian/code-notes-core';
 import { buildDocumentFromFile } from '../fileDocument.js';
+import { resolveInWorkspace } from '../pathGuard.js';
 import { errorResult, isLockTimeout } from './errors.js';
 
 const NOTE_TYPES = ['context', 'instruction', 'warning', 'decision', 'todo', 'handoff', 'rationale'] as const;
@@ -61,9 +61,8 @@ export async function createNote(
   args: z.infer<typeof createNoteInput>,
   deps: { noteManager: NoteManager; workspace: string },
 ) {
-  const absFile = path.isAbsolute(args.file) ? args.file : path.join(deps.workspace, args.file);
-  const rel = path.relative(deps.workspace, absFile);
-  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+  const absFile = resolveInWorkspace(deps.workspace, args.file);
+  if (!absFile) {
     return errorResult('path_escapes_workspace', { file: args.file });
   }
 

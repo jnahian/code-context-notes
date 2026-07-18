@@ -23,7 +23,7 @@ describe('LockManager', () => {
     // Pre-write a fresh lock owned by another process
     await fs.writeFile(path.join(dir, 'note-b.lock'),
       JSON.stringify({ pid: 99999, ts: new Date().toISOString(), holder: 'other' }));
-    const lm = new LockManager(dir, 'me', { retryMs: 200 });
+    const lm = new LockManager(dir, 'me', { timeoutMs: 200 });
     await expect(lm.acquire('note-b')).rejects.toThrow(/lock_timeout/);
   });
 
