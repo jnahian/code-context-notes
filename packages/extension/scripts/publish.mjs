@@ -88,7 +88,10 @@ async function main() {
 
   // Step 3: Package
   log('📦 Step 3: Packaging extension...', 'blue');
-  exec('vsce package --no-git-tag-version');
+  // --no-dependencies: the esbuild bundle is self-contained, and vsce's default
+  // `npm ls --production` dependency walk breaks on the monorepo workspace
+  // symlink (@jnahian/code-notes-core), reporting a missing entrypoint.
+  exec('vsce package --no-git-tag-version --no-dependencies');
   const packageFile = `${name}-${version}.vsix`;
   log(`✅ Package created: ${packageFile}`, 'green');
   console.log();
@@ -106,7 +109,7 @@ async function main() {
 
   // Step 5: Publish to VSCode Marketplace
   log('🏪 Step 5: Publishing to VSCode Marketplace...', 'blue');
-  exec(`vsce publish --pat "${VSCE_PAT}"`);
+  exec(`vsce publish --no-dependencies --pat "${VSCE_PAT}"`);
   log('✅ Published to VSCode Marketplace', 'green');
   const vscodeUrl = `https://marketplace.visualstudio.com/items?itemName=${publisher}.${name}`;
   log(`📍 VSCode Marketplace URL: ${vscodeUrl}`, 'green');
