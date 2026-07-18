@@ -490,6 +490,14 @@
     "web:build:vercel": "cd web && npm run build:vercel",
     "web:preview:ssr": "cd web && npm run preview:ssr"
   },
+  "overrides": {
+    "serialize-javascript": "^7.0.5",
+    "@babel/core": "7.29.7",
+    "@istanbuljs/load-nyc-config": { "js-yaml": "3.15.0" },
+    "@textlint/linter-formatter": { "js-yaml": "3.15.0" },
+    "mocha": { "js-yaml": "4.3.0" },
+    "rc-config-loader": { "js-yaml": "4.3.0" }
+  },
   "devDependencies": {
     "typescript": "^5.9.3",
     "@types/node": "^24.8.0"
