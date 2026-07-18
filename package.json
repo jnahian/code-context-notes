@@ -499,6 +499,9 @@
     "web:build:vercel": "cd web && npm run build:vercel",
     "web:preview:ssr": "cd web && npm run preview:ssr"
   },
+  "overrides": {
+    "serialize-javascript": "^7.0.5"
+  },
   "devDependencies": {
     "@types/chai": "^5.2.2",
     "@types/glob": "^8.1.0",
