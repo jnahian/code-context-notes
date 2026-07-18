@@ -130,7 +130,7 @@ interface Note {
 }
 ```
 
-**Storage:** stored in the markdown frontmatter (same format used today for metadata). Reader is forward-compatible (older versions ignore unknown keys). Writer omits any field equal to its default to keep frontmatter compact.
+**Storage:** stored as bold-label metadata lines in the note markdown (`**Type:** …`, same format used today for `**Author:**` etc. — see the v0.3 plan's deviation note; an earlier draft said YAML frontmatter). Reader is forward-compatible (older versions ignore unknown labels). Writer omits any field equal to its default to keep the metadata block compact.
 
 **Sidebar UI in v0.3:** small type pill on each note item; filter dropdown (type / tags / expired). Add/edit flow gets a "More fields" expander for the new fields. Richer UI deferred to v0.5.
 
@@ -374,7 +374,7 @@ The Revert button calls existing `noteManager` methods. No new storage primitive
 
 #### 5.4.6 Settings UI
 
-```
+```text
 Code Context Notes › Agent write mode: [direct | queue | audit ▼]
 Code Context Notes › Agent allow-list:  [claude-code, cursor-agent]
 Code Context Notes › Audit log retention: [last 1000 ops]
@@ -499,9 +499,9 @@ Workspace can sit on v0.3 indefinitely; only edited notes get rewritten. No mass
 
 Conservative — no legacy note suddenly becomes an `instruction` or gets an expiry.
 
-### 6.3 Frontmatter format
+### 6.3 Metadata format
 
-Writer omits any field equal to its default. A plain note that's still just a `context` note on a line range stays the shape it always had.
+Bold-label lines, not YAML frontmatter (see §5.1 Storage). Writer omits any field equal to its default. A plain note that's still just a `context` note on a line range stays the shape it always had.
 
 ### 6.4 Backward compatibility
 
@@ -588,7 +588,7 @@ Exports are a cache, not a source of truth. Markdown files are authoritative.
 
 ### 8.1 Test layout
 
-```
+```text
 src/test/                          # extension tests (existing, extended)
 packages/code-notes-core/test/     # NEW — extracted core
 packages/code-notes-mcp/test/      # NEW — MCP server

@@ -6,6 +6,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { Note } from './types.js';
+import { applyDefaults } from './noteDefaults.js';
 
 /**
  * Base class for all tree items
@@ -79,8 +80,12 @@ export class NoteTreeItem extends BaseTreeItem {
 		super(label, vscode.TreeItemCollapsibleState.None);
 
 		this.description = note.author; // Shows right-aligned
+		const filled = applyDefaults(note);
+		if (filled.type && filled.type !== 'context') {
+			this.description = `${this.description ?? ''} · ${filled.type}`.trim();
+		}
 		this.contextValue = 'noteNode';
-		this.tooltip = this.createTooltip();
+		this.tooltip = this.createTooltip(filled.priority);
 		this.iconPath = new vscode.ThemeIcon('note');
 
 		// Command to navigate to note when clicked
@@ -94,7 +99,7 @@ export class NoteTreeItem extends BaseTreeItem {
 	/**
 	 * Create rich tooltip with full note content
 	 */
-	private createTooltip(): vscode.MarkdownString {
+	private createTooltip(priority?: string): vscode.MarkdownString {
 		const tooltip = new vscode.MarkdownString();
 		tooltip.isTrusted = true;
 		tooltip.supportHtml = true;
@@ -103,6 +108,9 @@ export class NoteTreeItem extends BaseTreeItem {
 		const created = new Date(this.note.createdAt).toLocaleString();
 		const updated = new Date(this.note.updatedAt).toLocaleString();
 
+		if (priority === 'high' || priority === 'critical') {
+			tooltip.appendMarkdown(`**[${priority}]**\n\n`);
+		}
 		tooltip.appendMarkdown(`**${lineRange}**\n\n`);
 		tooltip.appendMarkdown(`**Author:** ${this.note.author}\n\n`);
 		tooltip.appendMarkdown(`**Created:** ${created}\n\n`);
@@ -130,10 +138,11 @@ export class NoteTreeItem extends BaseTreeItem {
 			.replace(/_([^_]+)_/g, '$1')
 			// Remove strikethrough
 			.replace(/~~([^~]+)~~/g, '$1')
+			// Remove images (before links — the link pattern would otherwise
+			// match the [alt](url) part and leave a stray '!')
+			.replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
 			// Remove links but keep text
 			.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-			// Remove images
-			.replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
 			// Remove headings
 			.replace(/^#+\s+/gm, '')
 			// Remove list markers
@@ -155,14 +164,15 @@ export class NoteTreeItem extends BaseTreeItem {
 			maxLength = 0;
 		}
 
-		// For very small maxLength (<=3), just return substring without ellipsis
-		if (maxLength <= 3) {
-			return text.substring(0, maxLength);
-		}
-
 		// If text fits, return unchanged
 		if (text.length <= maxLength) {
 			return text;
+		}
+
+		// For very small maxLength (<=3) there is no room for content plus
+		// ellipsis — the ellipsis itself is the truncation marker
+		if (maxLength <= 3) {
+			return '.'.repeat(maxLength);
 		}
 
 		// Otherwise, truncate and add ellipsis

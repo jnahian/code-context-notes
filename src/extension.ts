@@ -3,6 +3,8 @@
  */
 
 import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs/promises';
 import { StorageManager } from './storageManager.js';
 import { ContentHashTracker } from './contentHashTracker.js';
 import { GitIntegration } from './gitIntegration.js';
@@ -11,8 +13,11 @@ import { CommentController } from './commentController.js';
 import { CodeNotesLensProvider } from './codeLensProvider.js';
 import { NotesSidebarProvider } from './notesSidebarProvider.js';
 import { SearchManager } from './searchManager.js';
+import { ExportWriter } from './exportWriter.js';
+import { buildBlock, upsertManagedBlock } from './agentsLink.js';
 
 let noteManager: NoteManager;
+let exportWriter: ExportWriter;
 let searchManager: SearchManager;
 let commentController: CommentController;
 let codeLensProvider: CodeNotesLensProvider;
@@ -27,7 +32,7 @@ const DEBOUNCE_DELAY = 500; // ms
  */
 export async function activate(context: vscode.ExtensionContext) {
 	console.log('Code Context Notes extension is activating...');
-	console.log('Code Context Notes: Extension version 0.1.3');
+	console.log(`Code Context Notes: Extension version ${context.extension.packageJSON.version}`);
 
 	// Get workspace folder
 	const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -88,6 +93,34 @@ export async function activate(context: vscode.ExtensionContext) {
 	const allNotes = await noteManager.getAllNotes();
 	await searchManager.buildIndex(allNotes);
 	console.log(`Code Context Notes: Search index built with ${allNotes.length} notes`);
+
+	// Initialize export writer and hook into note changes
+	exportWriter = new ExportWriter(workspaceRoot, storageDirectory, {
+		debounceMs: 200,
+		getConfig: () => {
+			const cfg = vscode.workspace.getConfiguration('codeContextNotes.exports');
+			return {
+				enabled: cfg.get<boolean>('enabled', true),
+				indexJson: cfg.get<boolean>('indexJson', true),
+				agentsMarkdown: cfg.get<boolean>('agentsMarkdown', true),
+			};
+		},
+	});
+	context.subscriptions.push({ dispose: () => exportWriter.dispose() });
+
+	// Hooks are always attached; ExportWriter.regenerate reads the
+	// exports.enabled setting on every run, so toggling it takes effect
+	// in both directions without a reload.
+	// Initial export on activation (covers fresh installs, manual deletes)
+	exportWriter.scheduleRegenerate(() => noteManager.getAllNotes());
+	// Notes changed through the extension
+	noteManager.on('noteChanged', () => {
+		exportWriter.scheduleRegenerate(() => noteManager.getAllNotes());
+	});
+	// Note files changed externally (git pull, manual edits)
+	noteManager.on('noteFileChanged', () => {
+		exportWriter.scheduleRegenerate(() => noteManager.getAllNotes());
+	});
 
 	// Initialize comment controller
 	commentController = new CommentController(noteManager, context);
@@ -932,6 +965,161 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		}
 	);
 
+	// Regenerate Exports
+	const regenerateExportsCommand = vscode.commands.registerCommand(
+		'codeContextNotes.regenerateExports',
+		async () => {
+			if (!noteManager || !exportWriter) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+
+			const exportsCfg = vscode.workspace.getConfiguration('codeContextNotes.exports');
+			if (!exportsCfg.get<boolean>('enabled', true)) {
+				vscode.window.showWarningMessage('Code Notes: exports are disabled (codeContextNotes.exports.enabled is false). Nothing was written.');
+				return;
+			}
+
+			// regenerate() never throws — failures go through onError — so wrap
+			// it here to give this manual command an accurate success/failure message.
+			const previousOnError = exportWriter.onError;
+			let failure: Error | undefined;
+			exportWriter.onError = (e) => { failure = e; previousOnError(e); };
+
+			try {
+				const notes = await noteManager.getAllNotes();
+				const outcome = await exportWriter.regenerate(notes);
+				if (outcome === 'written') {
+					vscode.window.showInformationMessage(`Code Notes: regenerated exports for ${notes.length} notes.`);
+				} else if (outcome === 'disabled') {
+					vscode.window.showWarningMessage('Code Notes: exports are disabled (codeContextNotes.exports.enabled). Nothing was written.');
+				} else {
+					vscode.window.showErrorMessage(`Failed to regenerate exports: ${failure ? failure.message : 'see the developer console for details'}`);
+				}
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to regenerate exports: ${error}`);
+			} finally {
+				exportWriter.onError = previousOnError;
+			}
+		}
+	);
+
+	// Filter Notes by Type
+	const filterByTypeCommand = vscode.commands.registerCommand(
+		'codeContextNotes.filterByType',
+		async () => {
+			if (!sidebarProvider) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+			const choices = ['context', 'instruction', 'warning', 'decision', 'todo', 'handoff', 'rationale'];
+			const picked = await vscode.window.showQuickPick(choices, {
+				canPickMany: true,
+				title: 'Show only notes of these types (cancel to clear filter)',
+			});
+			sidebarProvider.setTypeFilter(picked && picked.length > 0 ? new Set(picked) : null);
+		}
+	);
+
+	// Toggle Expired Notes
+	const toggleExpiredCommand = vscode.commands.registerCommand(
+		'codeContextNotes.toggleExpired',
+		() => {
+			if (!sidebarProvider) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+			sidebarProvider.toggleHideExpired();
+		}
+	);
+
+	// Set Note Metadata (type, priority, tags, expiry)
+	const setNoteMetadataCommand = vscode.commands.registerCommand(
+		'codeContextNotes.setNoteMetadata',
+		async (noteIdArg?: string) => {
+			if (!noteManager) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+
+			let noteId = noteIdArg;
+			if (!noteId) {
+				const all = await noteManager.getAllNotes();
+				const pick = await vscode.window.showQuickPick(
+					all.map(n => ({ label: n.id, description: n.content.slice(0, 60) })),
+					{ title: 'Pick a note to update' },
+				);
+				if (!pick) return;
+				noteId = pick.label;
+			}
+
+			const type = await vscode.window.showQuickPick(
+				['context', 'instruction', 'warning', 'decision', 'todo', 'handoff', 'rationale'],
+				{ title: 'Type' },
+			);
+			if (!type) return;
+
+			const priority = await vscode.window.showQuickPick(
+				['low', 'normal', 'high', 'critical'],
+				{ title: 'Priority' },
+			);
+			if (!priority) return;
+
+			const tagsRaw = await vscode.window.showInputBox({ title: 'Tags (comma-separated, optional)' });
+			const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+			const expiresRaw = await vscode.window.showInputBox({ title: 'Expires at (ISO 8601, optional)' });
+			const expiresAt = expiresRaw && expiresRaw.trim().length > 0 ? expiresRaw.trim() : undefined;
+
+			try {
+				await noteManager.updateNoteMetadata(noteId, { type: type as any, priority: priority as any, tags, expiresAt });
+				vscode.window.showInformationMessage(`Code Notes: updated metadata for ${noteId}.`);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to update note metadata: ${error}`);
+			}
+		}
+	);
+
+	// Link Exports to AGENTS.md / CLAUDE.md
+	const linkExportsCommand = vscode.commands.registerCommand(
+		'codeContextNotes.linkExports',
+		async () => {
+			const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+			if (!workspaceFolder) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+			const workspaceRoot = workspaceFolder.uri.fsPath;
+			const storageDirectory = vscode.workspace
+				.getConfiguration('codeContextNotes')
+				.get<string>('storageDirectory', '.code-notes');
+
+			const target = await vscode.window.showQuickPick(
+				['AGENTS.md', 'CLAUDE.md', 'Both'],
+				{ title: 'Link the notes digest into which agent context file? (creates the file if missing)' },
+			);
+			if (!target) return;
+			const targets = target === 'Both' ? ['AGENTS.md', 'CLAUDE.md'] : [target];
+
+			const block = buildBlock(storageDirectory);
+			try {
+				for (const name of targets) {
+					const filePath = path.join(workspaceRoot, name);
+					let existing = '';
+					try {
+						existing = await fs.readFile(filePath, 'utf-8');
+					} catch {
+						// File doesn't exist yet — we'll create it.
+					}
+					await fs.writeFile(filePath, upsertManagedBlock(existing, block), 'utf-8');
+				}
+				vscode.window.showInformationMessage(`Code Notes: linked digest into ${targets.join(' and ')}.`);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to link exports: ${error}`);
+			}
+		}
+	);
+
 	// Register all commands
 	context.subscriptions.push(
 		addNoteCommand,
@@ -963,7 +1151,12 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		editNoteFromSidebarCommand,
 		deleteNoteFromSidebarCommand,
 		viewNoteHistoryFromSidebarCommand,
-		openFileFromSidebarCommand
+		openFileFromSidebarCommand,
+		regenerateExportsCommand,
+		filterByTypeCommand,
+		toggleExpiredCommand,
+		setNoteMetadataCommand,
+		linkExportsCommand
 	);
 }
 
@@ -1063,8 +1256,15 @@ function setupEventListeners(context: vscode.ExtensionContext) {
 	);
 	const fileWatcher = vscode.workspace.createFileSystemWatcher(fileWatcherPattern);
 
+	// AGENTS.md is a generated export living in the same directory; treating
+	// it as a note would make export regeneration re-trigger itself forever.
+	const isGeneratedExport = (uri: vscode.Uri) => path.basename(uri.fsPath) === 'AGENTS.md';
+
 	// When a note file is created
 	fileWatcher.onDidCreate((uri) => {
+		if (isGeneratedExport(uri)) {
+			return;
+		}
 		console.log(`Note file created: ${uri.fsPath}`);
 		// Clear workspace cache and emit event for sidebar refresh
 		noteManager.clearAllCache();
@@ -1073,6 +1273,9 @@ function setupEventListeners(context: vscode.ExtensionContext) {
 
 	// When a note file is changed
 	fileWatcher.onDidChange((uri) => {
+		if (isGeneratedExport(uri)) {
+			return;
+		}
 		console.log(`Note file changed: ${uri.fsPath}`);
 		// Clear workspace cache and emit event for sidebar refresh
 		noteManager.clearAllCache();
@@ -1081,6 +1284,9 @@ function setupEventListeners(context: vscode.ExtensionContext) {
 
 	// When a note file is deleted
 	fileWatcher.onDidDelete((uri) => {
+		if (isGeneratedExport(uri)) {
+			return;
+		}
 		console.log(`Note file deleted: ${uri.fsPath}`);
 		// Clear workspace cache and emit event for sidebar refresh
 		noteManager.clearAllCache();

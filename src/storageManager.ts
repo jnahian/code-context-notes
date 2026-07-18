@@ -6,7 +6,16 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { Note, NoteStorage, NoteMetadata } from './types.js';
+import { Note, NoteStorage, NoteMetadata, NoteType, NoteScope, NotePriority, AuthorType, NoteReference } from './types.js';
+import { NOTE_DEFAULTS } from './noteDefaults.js';
+
+// Allowed values for structured fields parsed from note markdown.
+// Must stay in sync with the union types in types.ts.
+const VALID_TYPES: NoteType[] = ['context', 'instruction', 'warning', 'decision', 'todo', 'handoff', 'rationale'];
+const VALID_SCOPES: NoteScope[] = ['line', 'function', 'class', 'file', 'directory'];
+const VALID_PRIORITIES: NotePriority[] = ['low', 'normal', 'high', 'critical'];
+const VALID_AUTHOR_TYPES: AuthorType[] = ['human', 'agent'];
+const VALID_REFERENCE_KINDS = ['note', 'pr', 'issue', 'commit', 'test', 'url'];
 
 /**
  * StorageManager implements the NoteStorage interface
@@ -210,6 +219,30 @@ export class StorageManager implements NoteStorage {
     lines.push(`**Author:** ${note.author}`);
     lines.push(`**Created:** ${note.createdAt}`);
     lines.push(`**Updated:** ${note.updatedAt}`);
+
+    // Structured fields — omitted if equal to default for compactness
+    if (note.type && note.type !== NOTE_DEFAULTS.type) {
+      lines.push(`**Type:** ${note.type}`);
+    }
+    if (note.scope && note.scope !== NOTE_DEFAULTS.scope) {
+      lines.push(`**Scope:** ${note.scope}`);
+    }
+    if (note.priority && note.priority !== NOTE_DEFAULTS.priority) {
+      lines.push(`**Priority:** ${note.priority}`);
+    }
+    if (note.tags && note.tags.length > 0) {
+      lines.push(`**Tags:** ${note.tags.join(', ')}`);
+    }
+    if (note.authorType && note.authorType !== NOTE_DEFAULTS.authorType) {
+      lines.push(`**AuthorType:** ${note.authorType}`);
+    }
+    if (note.expiresAt) {
+      lines.push(`**ExpiresAt:** ${note.expiresAt}`);
+    }
+    if (note.references && note.references.length > 0) {
+      lines.push(`**References:** ${JSON.stringify(note.references)}`);
+    }
+
     if (note.isDeleted) {
       lines.push(`**Status:** DELETED`);
     }
@@ -292,6 +325,67 @@ export class StorageManager implements NoteStorage {
       }
       else if (line.startsWith('**Status:** DELETED')) {
         note.isDeleted = true;
+      }
+      // Parse new structured fields — invalid values are dropped (the note
+      // then gets the schema default at the NoteManager boundary)
+      else if (line.startsWith('**Type:**')) {
+        const v = line.substring(9).trim();
+        if ((VALID_TYPES as string[]).includes(v)) {
+          note.type = v as NoteType;
+        } else {
+          console.warn(`[code-notes] Ignoring invalid Type for note: ${v}`);
+        }
+      }
+      else if (line.startsWith('**Scope:**')) {
+        const v = line.substring(10).trim();
+        if ((VALID_SCOPES as string[]).includes(v)) {
+          note.scope = v as NoteScope;
+        } else {
+          console.warn(`[code-notes] Ignoring invalid Scope for note: ${v}`);
+        }
+      }
+      else if (line.startsWith('**Priority:**')) {
+        const v = line.substring(13).trim();
+        if ((VALID_PRIORITIES as string[]).includes(v)) {
+          note.priority = v as NotePriority;
+        } else {
+          console.warn(`[code-notes] Ignoring invalid Priority for note: ${v}`);
+        }
+      }
+      else if (line.startsWith('**Tags:**')) {
+        const raw = line.substring(9).trim();
+        note.tags = raw ? raw.split(',').map(t => t.trim()).filter(t => t.length > 0) : [];
+      }
+      else if (line.startsWith('**AuthorType:**')) {
+        const v = line.substring(15).trim();
+        if ((VALID_AUTHOR_TYPES as string[]).includes(v)) {
+          note.authorType = v as AuthorType;
+        } else {
+          console.warn(`[code-notes] Ignoring invalid AuthorType for note: ${v}`);
+        }
+      }
+      else if (line.startsWith('**ExpiresAt:**')) {
+        note.expiresAt = line.substring(14).trim();
+      }
+      else if (line.startsWith('**References:**')) {
+        const raw = line.substring(15).trim();
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            // Salvage valid entries; drop malformed ones
+            note.references = Array.isArray(parsed)
+              ? parsed.filter(
+                  (r: unknown): r is NoteReference =>
+                    !!r && typeof r === 'object' &&
+                    typeof (r as NoteReference).value === 'string' &&
+                    VALID_REFERENCE_KINDS.includes((r as NoteReference).kind)
+                )
+              : [];
+          } catch {
+            console.warn(`[code-notes] Failed to parse References for note: ${raw}`);
+            note.references = [];
+          }
+        }
       }
       // Parse current content section
       else if (line === '## Current Content') {

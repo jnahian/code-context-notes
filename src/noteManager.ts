@@ -7,11 +7,12 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
-import { Note, CreateNoteParams, UpdateNoteParams, LineRange } from './types.js';
+import { Note, CreateNoteParams, UpdateNoteParams, LineRange, NoteType, NotePriority, NoteScope } from './types.js';
 import { StorageManager } from './storageManager.js';
 import { ContentHashTracker } from './contentHashTracker.js';
 import { GitIntegration } from './gitIntegration.js';
 import { SearchManager } from './searchManager.js';
+import { applyDefaults } from './noteDefaults.js';
 
 /**
  * NoteManager coordinates all note operations
@@ -95,23 +96,28 @@ export class NoteManager extends EventEmitter {
       isDeleted: false
     };
 
+    // Normalize before save/cache so this note matches the shape every other
+    // load path guarantees (applyDefaults is a no-op for on-disk serialization
+    // since storageManager omits fields already equal to their default).
+    const normalized = applyDefaults(note);
+
     // Save to storage
-    await this.storage.saveNote(note);
+    await this.storage.saveNote(normalized);
 
     // Update cache
-    this.addNoteToCache(note);
+    this.addNoteToCache(normalized);
 
     // Update search index
     if (this.searchManager) {
-      await this.searchManager.updateIndex(note);
+      await this.searchManager.updateIndex(normalized);
     }
 
     // Clear workspace cache and emit events
     this.clearWorkspaceCache();
-    this.emit('noteCreated', note);
-    this.emit('noteChanged', { type: 'created', note });
+    this.emit('noteCreated', normalized);
+    this.emit('noteChanged', { type: 'created', note: normalized });
 
-    return note;
+    return normalized;
   }
 
   /**
@@ -171,6 +177,41 @@ export class NoteManager extends EventEmitter {
   }
 
   /**
+   * Update only the metadata fields of an existing note (type, priority, tags, expiresAt, scope).
+   * Does not touch content, lineRange, contentHash, or history.
+   */
+  async updateNoteMetadata(
+    noteId: string,
+    fields: { type?: NoteType; priority?: NotePriority; tags?: string[]; expiresAt?: string; scope?: NoteScope },
+  ): Promise<Note> {
+    const existing = await this.storage.loadNoteById(noteId);
+    if (!existing) throw new Error(`Note ${noteId} not found`);
+    if (existing.isDeleted) throw new Error(`Cannot update deleted note ${noteId}`);
+
+    // Merge: only overwrite fields explicitly provided, then normalize
+    // defaults so cache/consumers see the same shape as every other load path.
+    const updated: Note = applyDefaults({
+      ...existing,
+      ...fields,
+      updatedAt: new Date().toISOString(),
+    });
+    await this.storage.saveNote(updated);
+
+    // Mirror the cache-invalidation pattern used in updateNote
+    this.updateNoteInCache(updated);
+    this.clearWorkspaceCache();
+
+    // Keep search index in sync (updatedAt / metadata affect search results)
+    if (this.searchManager) {
+      await this.searchManager.updateIndex(updated);
+    }
+
+    this.emit('noteUpdated', updated);
+    this.emit('noteChanged', { type: 'updated', note: updated });
+    return updated;
+  }
+
+  /**
    * Delete a note (soft delete)
    */
   async deleteNote(noteId: string, filePath: string): Promise<void> {
@@ -200,8 +241,10 @@ export class NoteManager extends EventEmitter {
     // Save to storage
     await this.storage.saveNote(note);
 
-    // Remove from cache
-    this.removeNoteFromCache(noteId, filePath);
+    // Keep the soft-deleted note in the cache (the cache holds ALL notes;
+    // getNotesForFile filters deleted ones at return). Removing it here
+    // would make "already deleted" lookups report "not found" instead.
+    this.updateNoteInCache(note);
 
     // Remove from search index
     if (this.searchManager) {
@@ -223,8 +266,11 @@ export class NoteManager extends EventEmitter {
       return this.noteCache.get(filePath)!.filter(n => !n.isDeleted);
     }
 
-    // Load from storage
-    const notes = await this.storage.loadNotes(filePath);
+    // Load from storage and apply defaults at the boundary. The cache always
+    // holds ALL notes (including soft-deleted) — getAllNotesForFile shares
+    // this cache, so caching a pre-filtered list here would make deleted
+    // notes invisible to it.
+    const notes = (await this.storage.loadAllNotes(filePath)).map(applyDefaults);
 
     // Update cache
     this.noteCache.set(filePath, notes);
@@ -242,8 +288,8 @@ export class NoteManager extends EventEmitter {
       return this.noteCache.get(filePath)!;
     }
 
-    // Load from storage (including deleted notes)
-    const notes = await this.storage.loadAllNotes(filePath);
+    // Load from storage (including deleted notes) and apply defaults at the boundary
+    const notes = (await this.storage.loadAllNotes(filePath)).map(applyDefaults);
 
     // Update cache
     this.noteCache.set(filePath, notes);
@@ -256,7 +302,9 @@ export class NoteManager extends EventEmitter {
    */
   async getNoteById(noteId: string, filePath: string): Promise<Note | undefined> {
     const notes = await this.getAllNotesForFile(filePath);
-    return notes.find(n => n.id === noteId);
+    // Soft-deleted notes are not retrievable through the by-id lookup —
+    // consumers (comment threads, edit mode) must treat them as gone
+    return notes.find(n => n.id === noteId && !n.isDeleted);
   }
 
   /**
@@ -322,35 +370,26 @@ export class NoteManager extends EventEmitter {
   }
 
   /**
-   * Add a note to the cache
+   * Add a note to the cache. Defaults are applied here so cached notes
+   * always honor the NoteManager boundary guarantee.
    */
   private addNoteToCache(note: Note): void {
     const notes = this.noteCache.get(note.filePath) || [];
-    notes.push(note);
+    notes.push(applyDefaults(note));
     this.noteCache.set(note.filePath, notes);
   }
 
   /**
-   * Update a note in the cache
+   * Update a note in the cache. Defaults are applied here so cached notes
+   * always honor the NoteManager boundary guarantee.
    */
   private updateNoteInCache(updatedNote: Note): void {
     const notes = this.noteCache.get(updatedNote.filePath);
     if (notes) {
       const index = notes.findIndex(n => n.id === updatedNote.id);
       if (index !== -1) {
-        notes[index] = updatedNote;
+        notes[index] = applyDefaults(updatedNote);
       }
-    }
-  }
-
-  /**
-   * Remove a note from the cache
-   */
-  private removeNoteFromCache(noteId: string, filePath: string): void {
-    const notes = this.noteCache.get(filePath);
-    if (notes) {
-      const filtered = notes.filter(n => n.id !== noteId);
-      this.noteCache.set(filePath, filtered);
     }
   }
 
@@ -453,7 +492,9 @@ export class NoteManager extends EventEmitter {
     for (const noteFilePath of allNoteFiles) {
       try {
         const noteId = this.extractNoteIdFromFilePath(noteFilePath);
-        const note = await this.storage.loadNoteById(noteId);
+        const rawNote = await this.storage.loadNoteById(noteId);
+        // Apply defaults at the boundary before cache/consumer use
+        const note = rawNote ? applyDefaults(rawNote) : null;
 
         // Include only non-deleted notes
         if (note && !note.isDeleted) {

@@ -18,6 +18,7 @@ export class CommentController {
   private commentThreads: Map<string, vscode.CommentThread>; // threadKey (lineKey) -> CommentThread
   private threadStates: Map<string, MultiNoteThreadState>; // threadKey -> state
   private currentlyEditingNoteId: string | null = null; // Track which note is being edited
+  private currentlyEditingThreadKey: string | null = null; // Thread key for the note being edited
   private currentlyCreatingThreadId: string | null = null; // Track temporary ID of thread being created
 
   constructor(noteManager: NoteManager, context: vscode.ExtensionContext) {
@@ -187,7 +188,9 @@ export class CommentController {
         ? new Date(note.history[note.history.length - 1].timestamp)
         : createdDate;
 
-    const isUpdated = note.history && note.history.length > 0;
+    // The first history entry is the creation itself — a note only counts
+    // as updated once it has more history than that
+    const isUpdated = note.history && note.history.length > 1;
     const label = isUpdated
       ? `Last updated ${lastUpdated.toLocaleDateString()}`
       : `Created ${createdDate.toLocaleDateString()}`;
@@ -424,6 +427,7 @@ export class CommentController {
     // Clear editing state only if we're not keeping a specific thread
     if (!exceptThreadKey) {
       this.currentlyEditingNoteId = null;
+      this.currentlyEditingThreadKey = null;
       this.currentlyCreatingThreadId = null;
     }
   }
@@ -759,6 +763,7 @@ export class CommentController {
 
     // Track which note is being edited
     this.currentlyEditingNoteId = noteId;
+    this.currentlyEditingThreadKey = threadKey;
 
     // Expand the thread
     thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
@@ -783,11 +788,12 @@ export class CommentController {
    * so this should return the latest content
    */
   getCurrentlyEditingComment(): vscode.Comment | null {
-    if (!this.currentlyEditingNoteId) {
+    if (!this.currentlyEditingNoteId || !this.currentlyEditingThreadKey) {
       return null;
     }
 
-    const thread = this.commentThreads.get(this.currentlyEditingNoteId);
+    // commentThreads is keyed by thread key (file + line), not note id
+    const thread = this.commentThreads.get(this.currentlyEditingThreadKey);
     if (!thread || thread.comments.length === 0) {
       return null;
     }
@@ -859,6 +865,7 @@ export class CommentController {
 
     // Clear editing state
     this.currentlyEditingNoteId = null;
+    this.currentlyEditingThreadKey = null;
 
     return true;
   }

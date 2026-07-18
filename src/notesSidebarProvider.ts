@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 import { NoteManager } from './noteManager.js';
 import { Note } from './types.js';
 import { RootTreeItem, FileTreeItem, NoteTreeItem, BaseTreeItem } from './noteTreeItem.js';
+import { applyDefaults, isExpired } from './noteDefaults.js';
 
 /**
  * Notes Sidebar Provider
@@ -21,6 +22,9 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 	private debounceTimer: NodeJS.Timeout | null = null;
 	private readonly DEBOUNCE_DELAY = 300; // ms
 	private disposables: vscode.Disposable[] = [];
+
+	private typeFilter: Set<string> | null = null; // null = no filter
+	private hideExpired: boolean = true;
 
 	constructor(
 		private readonly noteManager: NoteManager,
@@ -74,6 +78,33 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 	}
 
 	/**
+	 * Set the type filter. Pass null to clear the filter.
+	 */
+	setTypeFilter(types: Set<string> | null): void {
+		this.typeFilter = types;
+		this._onDidChangeTreeData.fire();
+	}
+
+	/**
+	 * Toggle visibility of expired notes.
+	 */
+	toggleHideExpired(): void {
+		this.hideExpired = !this.hideExpired;
+		this._onDidChangeTreeData.fire();
+	}
+
+	/**
+	 * Apply the active type/expiry filters to a list of notes.
+	 * Single filtering point shared by the root count, file nodes, and leaves.
+	 */
+	private applyNoteFilters(notes: Note[]): Note[] {
+		return notes
+			.map(applyDefaults)
+			.filter(n => !this.hideExpired || !isExpired(n))
+			.filter(n => !this.typeFilter || this.typeFilter.has(n.type!));
+	}
+
+	/**
 	 * Get tree item for a node (required by TreeDataProvider)
 	 */
 	getTreeItem(element: BaseTreeItem): vscode.TreeItem {
@@ -87,15 +118,16 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 	async getChildren(element?: BaseTreeItem): Promise<BaseTreeItem[]> {
 		// Root level: return RootTreeItem or empty state
 		if (!element) {
-			const noteCount = await this.noteManager.getNoteCount();
+			const fileNodes = await this.getFileNodes();
 
-			// Empty state - no notes
-			if (noteCount === 0) {
+			// Empty state - no visible notes (all filtered out counts too)
+			if (fileNodes.length === 0) {
 				return [];
 			}
 
-			// Return root node with count
-			return [new RootTreeItem(noteCount)];
+			// Return root node with count of notes visible under active filters
+			const visibleNoteCount = fileNodes.reduce((sum, node) => sum + node.notes.length, 0);
+			return [new RootTreeItem(visibleNoteCount)];
 		}
 
 		// Root node: return file nodes
@@ -120,10 +152,12 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 		const fileNodes: FileTreeItem[] = [];
 		const sortBy = this.getSortBy();
 
-		// Create file nodes
+		// Create file nodes from filtered notes so files whose notes are all
+		// filtered out don't appear as empty groups
 		for (const [filePath, notes] of notesByFile.entries()) {
-			if (notes.length > 0) {
-				fileNodes.push(new FileTreeItem(filePath, notes, this.workspaceRoot));
+			const visible = this.applyNoteFilters(notes);
+			if (visible.length > 0) {
+				fileNodes.push(new FileTreeItem(filePath, visible, this.workspaceRoot));
 			}
 		}
 
@@ -161,18 +195,16 @@ export class NotesSidebarProvider implements vscode.TreeDataProvider<BaseTreeIte
 	}
 
 	/**
-	 * Get note nodes for a file
+	 * Get note nodes for a file. Type/expiry filters are already applied in
+	 * getFileNodes(), so fileNode.notes here only contains visible notes.
 	 */
 	private getNoteNodes(fileNode: FileTreeItem): NoteTreeItem[] {
 		const previewLength = this.getPreviewLength();
-		const noteNodes: NoteTreeItem[] = [];
-
-		// Notes are already sorted by line range in getNotesByFile()
-		for (const note of fileNode.notes) {
-			noteNodes.push(new NoteTreeItem(note, previewLength));
-		}
-
-		return noteNodes;
+		// Sort by line number — callers may construct FileTreeItem with
+		// notes in any order
+		return [...fileNode.notes]
+			.sort((a, b) => a.lineRange.start - b.lineRange.start)
+			.map(note => new NoteTreeItem(note, previewLength));
 	}
 
 	/**

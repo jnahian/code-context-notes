@@ -204,8 +204,8 @@ suite('CommentController Test Suite', () => {
 				content: 'Updated content'
 			}, document);
 
-			// Update thread
-			commentController.updateCommentThread(updatedNote, document);
+			// Update thread (async — refreshes the comment from storage)
+			await commentController.updateCommentThread(updatedNote, document);
 
 			const updatedComment = thread.comments[0];
 			assert.ok((updatedComment.body as vscode.MarkdownString).value.includes('Updated content'));
@@ -315,7 +315,7 @@ suite('CommentController Test Suite', () => {
 			await commentController.handleDeleteNote(note.id, testFile);
 
 			const deletedNote = await noteManager.getNoteById(note.id, testFile);
-			assert.strictEqual(deletedNote, null, 'Note should be deleted');
+			assert.ok(!deletedNote, 'Note should be deleted');
 		});
 	});
 
@@ -324,6 +324,8 @@ suite('CommentController Test Suite', () => {
 			const testFile = path.join(tempDir, 'test.ts');
 			const lines = ['line 1', 'line 2'];
 			const document = createMockDocument(vscode.Uri.file(testFile), lines);
+			// This flow reopens the document from disk, so the file must exist
+			await fs.writeFile(testFile, lines.join('\n'));
 
 			const note = await noteManager.createNote({
 				filePath: testFile,
@@ -343,6 +345,8 @@ suite('CommentController Test Suite', () => {
 			const testFile = path.join(tempDir, 'test.ts');
 			const lines = ['line 1', 'line 2'];
 			const document = createMockDocument(vscode.Uri.file(testFile), lines);
+			// This flow reopens the document from disk, so the file must exist
+			await fs.writeFile(testFile, lines.join('\n'));
 
 			const note = await noteManager.createNote({
 				filePath: testFile,
@@ -367,6 +371,8 @@ suite('CommentController Test Suite', () => {
 			const testFile = path.join(tempDir, 'test.ts');
 			const lines = ['line 1', 'line 2'];
 			const document = createMockDocument(vscode.Uri.file(testFile), lines);
+			// This flow reopens the document from disk, so the file must exist
+			await fs.writeFile(testFile, lines.join('\n'));
 
 			const note = await noteManager.createNote({
 				filePath: testFile,
@@ -389,6 +395,8 @@ suite('CommentController Test Suite', () => {
 			const testFile = path.join(tempDir, 'test.ts');
 			const lines = ['line 1', 'line 2'];
 			const document = createMockDocument(vscode.Uri.file(testFile), lines);
+			// This flow reopens the document from disk, so the file must exist
+			await fs.writeFile(testFile, lines.join('\n'));
 
 			// Create and update a note to generate history
 			const note = await noteManager.createNote({
@@ -424,6 +432,8 @@ suite('CommentController Test Suite', () => {
 			const testFile = path.join(tempDir, 'test.ts');
 			const lines = ['line 1', 'line 2'];
 			const document = createMockDocument(vscode.Uri.file(testFile), lines);
+			// This flow reopens the document from disk, so the file must exist
+			await fs.writeFile(testFile, lines.join('\n'));
 
 			const note = await noteManager.createNote({
 				filePath: testFile,

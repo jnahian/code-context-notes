@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Scope
 
-This is the `web/` subproject — the marketing site, docs, and changelog page for the Code Context Notes VS Code extension. The extension source itself lives in the parent repo at `/Users/nahian/Projects/code-notes/src`. Repo-wide rules (user stories, changelog policy, release process) are in the parent `CLAUDE.md`.
+This is the `web/` subproject — the marketing site, docs, and changelog page for the Code Context Notes VS Code extension. The extension source itself lives in the parent repo at `../src`. Repo-wide rules (user stories, changelog policy, release process) are in the parent `CLAUDE.md`.
 
 ## Commands
 
