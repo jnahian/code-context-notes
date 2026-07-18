@@ -4,6 +4,7 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs/promises';
 import { StorageManager, ExportWriter, ContentHashTracker, NoteManager, SearchManager, LockManager, writeWorkspaceConfig, AuditLog, ProposalStore, hashNoteContent } from '@jnahian/code-notes-core';
 import type { AuditEntry, Proposal } from '@jnahian/code-notes-core';
 import { AgentActivityProvider, AgentActivityItem } from './agentActivityProvider.js';
@@ -12,6 +13,7 @@ import { GitIntegration } from './gitIntegration.js';
 import { CommentController } from './commentController.js';
 import { CodeNotesLensProvider } from './codeLensProvider.js';
 import { NotesSidebarProvider } from './notesSidebarProvider.js';
+import { buildBlock, upsertManagedBlock } from './agentsLink.js';
 
 let noteManager: NoteManager;
 // Module-scoped like noteManager: registerAllCommands runs on both the
@@ -1372,6 +1374,46 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		}
 	);
 
+	// Link Exports to AGENTS.md / CLAUDE.md
+	const linkExportsCommand = vscode.commands.registerCommand(
+		'codeContextNotes.linkExports',
+		async () => {
+			const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+			if (!workspaceFolder) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+			const workspaceRoot = workspaceFolder.uri.fsPath;
+			const storageDirectory = vscode.workspace
+				.getConfiguration('codeContextNotes')
+				.get<string>('storageDirectory', '.code-notes');
+
+			const target = await vscode.window.showQuickPick(
+				['AGENTS.md', 'CLAUDE.md', 'Both'],
+				{ title: 'Link the notes digest into which agent context file? (creates the file if missing)' },
+			);
+			if (!target) return;
+			const targets = target === 'Both' ? ['AGENTS.md', 'CLAUDE.md'] : [target];
+
+			const block = buildBlock(storageDirectory);
+			try {
+				for (const name of targets) {
+					const filePath = path.join(workspaceRoot, name);
+					let existing = '';
+					try {
+						existing = await fs.readFile(filePath, 'utf-8');
+					} catch {
+						// File doesn't exist yet — we'll create it.
+					}
+					await fs.writeFile(filePath, upsertManagedBlock(existing, block), 'utf-8');
+				}
+				vscode.window.showInformationMessage(`Code Notes: linked digest into ${targets.join(' and ')}.`);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to link exports: ${error}`);
+			}
+		}
+	);
+
 	// Register all commands
 	context.subscriptions.push(
 		addNoteCommand,
@@ -1407,7 +1449,8 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 		regenerateExportsCommand,
 		filterByTypeCommand,
 		toggleExpiredCommand,
-		setNoteMetadataCommand
+		setNoteMetadataCommand,
+		linkExportsCommand
 	);
 }
 
