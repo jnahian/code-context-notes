@@ -112,17 +112,6 @@ else
 fi
 echo ""
 
-# Step 7: Create Git tag
-echo -e "${BLUE}🏷️  Step 7: Creating Git tag...${NC}"
-git tag "v${VERSION}"
-git push origin "v${VERSION}"
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}✅ Git tag v${VERSION} created and pushed${NC}"
-else
-    echo -e "${YELLOW}⚠️  Git tag creation failed (non-critical)${NC}"
-fi
-echo ""
-
 # Success summary
 echo -e "${GREEN}🎉 PUBLICATION SUCCESSFUL! 🎉${NC}"
 echo -e "${GREEN}=========================${NC}"
