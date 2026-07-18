@@ -8,14 +8,9 @@ out/test/**
 out/**/*.map
 out/**/*.js.map
 
-# Exclude individual compiled files (we use bundled extension.js)
-out/codeLensProvider.js
-out/commentController.js
-out/contentHashTracker.js
-out/gitIntegration.js
-out/noteManager.js
-out/storageManager.js
-out/types.js
+# We ship the bundled extension.js only — exclude every other compiled module
+out/**/*.js
+!out/extension.js
 
 # Test files
 .nyc_output/**
@@ -33,6 +28,8 @@ node_modules/prettier/**
 
 # Development files
 .claude/**
+.superpowers/**
+packages/**
 CLAUDE.md
 NEXT_STEPS.md
 PROJECT_COMPLETE.md

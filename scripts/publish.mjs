@@ -120,17 +120,6 @@ async function main() {
   log(`📍 Open VSX URL: ${openvsxUrl}`, 'green');
   console.log();
 
-  // Step 7: Create Git tag
-  log('🏷️  Step 7: Creating Git tag...', 'blue');
-  try {
-    exec(`git tag "v${version}"`);
-    exec(`git push origin "v${version}"`);
-    log(`✅ Git tag v${version} created and pushed`, 'green');
-  } catch {
-    log('⚠️  Git tag creation failed (non-critical)', 'yellow');
-  }
-  console.log();
-
   // Success summary
   log('🎉 PUBLICATION SUCCESSFUL! 🎉', 'green');
   log('=========================', 'green');
