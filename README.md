@@ -378,6 +378,14 @@ Note content and ordering are deterministic given the same notes; only the `gene
 .code-notes/AGENTS.md
 ```
 
+### Locking
+
+Writes are serialized per-note via advisory lock files in `.code-notes/.locks/`, so the extension and other integrations (e.g. the MCP server) don't race when writing the same note. These lock files are transient and should not be committed; add to `.gitignore`:
+
+```gitignore
+.code-notes/.locks/
+```
+
 To disable export generation entirely, set `codeContextNotes.exports.enabled` to `false`.
 
 ## Commands

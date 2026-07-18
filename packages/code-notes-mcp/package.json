@@ -1,0 +1,34 @@
+{
+  "name": "@jnahian/code-notes-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Code Context Notes — gives coding agents read/write access to workspace notes.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "code-notes-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p ./",
+    "compile:tsc": "tsc -p ./ --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@jnahian/code-notes-core": "0.1.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "diff": "^5.2.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/diff": "^5.2.0",
+    "@types/node": "^24.8.0",
+    "typescript": "^5.9.3",
+    "vitest": "^1.6.0"
+  }
+}

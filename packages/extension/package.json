@@ -1,9 +1,8 @@
 {
   "name": "code-context-notes",
-  "private": true,
   "displayName": "Code Context Notes - Smart Annotations",
   "description": "Add contextual notes to your code with full version history and intelligent tracking",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "jnahian",
   "icon": "images/icon.png",
   "galleryBanner": {
@@ -17,7 +16,6 @@
   "engines": {
     "vscode": "^1.80.0"
   },
-  "workspaces": ["packages/*"],
   "categories": [
     "Other",
     "Notebooks",
@@ -219,11 +217,6 @@
       {
         "command": "codeContextNotes.setNoteMetadata",
         "title": "Set Note Type / Tags / Priority…",
-        "category": "Code Notes"
-      },
-      {
-        "command": "codeContextNotes.linkExports",
-        "title": "Link Notes Digest to AGENTS.md / CLAUDE.md",
         "category": "Code Notes"
       }
     ],
@@ -478,28 +471,47 @@
     }
   },
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
-    "test:unit": "npm run test:unit --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present",
-    "compile:tsc": "npm run compile:tsc --workspaces --if-present",
-    "web:install": "cd web && npm install",
-    "web:dev": "cd web && npm run dev",
-    "web:dev:ssr": "cd web && npm run dev:ssr",
-    "web:build": "cd web && npm run build",
-    "web:build:vercel": "cd web && npm run build:vercel",
-    "web:preview:ssr": "cd web && npm run preview:ssr"
-  },
-  "overrides": {
-    "serialize-javascript": "^7.0.5",
-    "@babel/core": "7.29.7",
-    "@istanbuljs/load-nyc-config": { "js-yaml": "3.15.0" },
-    "@textlint/linter-formatter": { "js-yaml": "3.15.0" },
-    "mocha": { "js-yaml": "4.3.0" },
-    "rc-config-loader": { "js-yaml": "4.3.0" }
+    "vscode:prepublish": "npm run compile",
+    "compile": "node esbuild.config.js --production",
+    "compile:tsc": "tsc -p ./",
+    "watch": "node esbuild.config.js --watch",
+    "watch:tsc": "tsc -watch -p ./",
+    "clean": "rm -rf out",
+    "pretest": "npm run clean && npm run compile:tsc",
+    "lint": "echo 'Linting skipped - eslint not configured'",
+    "test": "node ./out/test/runTest.js",
+    "test:unit": "npm run compile:tsc && node ./out/test/runUnitTests.js",
+    "test:coverage": "npm run compile:tsc && nyc --reporter=html --reporter=text node ./out/test/runUnitTests.js",
+    "publish": "node scripts/publish.mjs",
+    "publish:bash": "./scripts/publish.sh",
+    "package": "node scripts/package.mjs",
+    "package:simple": "vsce package --no-dependencies",
+    "package:dev": "vsce package --no-git-tag-version --no-dependencies"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
-    "@types/node": "^24.8.0"
+    "@types/chai": "^5.2.2",
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.8.0",
+    "@types/uuid": "^10.0.0",
+    "@types/vscode": "^1.80.0",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.6.2",
+    "chai": "^6.2.0",
+    "esbuild": "^0.25.11",
+    "glob": "^11.1.0",
+    "mocha": "^11.7.4",
+    "nyc": "^18.0.0",
+    "ovsx": "^0.10.6",
+    "typescript": "^5.9.3"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jnahian/code-context-notes"
+  },
+  "dependencies": {
+    "@jnahian/code-notes-core": "0.1.0",
+    "uuid": "^14.0.0"
   }
 }

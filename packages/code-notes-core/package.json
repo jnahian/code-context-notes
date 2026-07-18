@@ -1,0 +1,32 @@
+{
+  "name": "@jnahian/code-notes-core",
+  "version": "0.1.0",
+  "description": "Shared core for Code Context Notes — schema, storage, exports, lock manager.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsc -p ./",
+    "compile:tsc": "tsc -p ./ --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "uuid": "^14.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^24.8.0",
+    "@types/uuid": "^10.0.0",
+    "vitest": "^1.6.0"
+  }
+}

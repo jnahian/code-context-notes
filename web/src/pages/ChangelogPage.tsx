@@ -12,7 +12,8 @@ import {
   FileText,
   Layers,
   Search,
-  MousePointerClick
+  MousePointerClick,
+  Shield
 } from "lucide-react";
 
 export function ChangelogPage() {
@@ -36,8 +37,8 @@ export function ChangelogPage() {
           {/* Timeline Items */}
           <div className="space-y-16">
 
-          {/* Version 0.3.0 */}
-          <div id="v0.3.0" className="relative grid grid-cols-1 md:grid-cols-[30%_70%] gap-8 items-start">
+          {/* Version 0.4.0 */}
+          <div id="v0.4.0" className="relative grid grid-cols-1 md:grid-cols-[30%_70%] gap-8 items-start">
             {/* Timeline Node */}
             <div className="absolute left-0 md:left-[30%] transform -translate-x-1/2 top-2">
               <div className="w-4 h-4 rounded-full bg-brand-orange border-4 border-white dark:border-slate-900 shadow-lg"></div>
@@ -47,13 +48,136 @@ export function ChangelogPage() {
             <div className="pl-8 md:pl-0 md:pr-12 text-left md:text-right space-y-2">
               <div className="flex md:flex-col md:items-end items-start gap-2">
                 <h3 className="text-2xl font-bold flex items-center gap-2 md:flex-row-reverse">
-                  <span>Version 0.3.0</span>
+                  <span>Version 0.4.0</span>
                   <Badge className="bg-brand-orange">Latest</Badge>
                 </h3>
               </div>
               <div className="flex items-center gap-2 text-muted-foreground text-sm md:justify-end">
                 <Calendar className="h-4 w-4" />
-                <span>July 18, 2026</span>
+                <span>July 17, 2026</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Standalone MCP server gives any MCP-capable agent (Claude Code, Cursor) read/write access to workspace notes. Extension internals extracted into a shared core package; behavior unchanged.
+              </p>
+            </div>
+
+            {/* Right Column - Changes */}
+            <div className="pl-8 md:pl-12">
+              <Card className="shadow-brand-drop bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-900 border-2 border-brand-orange">
+                <CardContent className="space-y-6">
+                  {/* Added */}
+                  <div>
+                    <h4 className="font-semibold mb-3 text-green-600 dark:text-green-400 flex items-center space-x-2">
+                      <Plus className="h-4 w-4" />
+                      <span>Added</span>
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="flex items-start space-x-3 bg-white dark:bg-slate-800 p-3 rounded-xl">
+                        <Layers className="h-5 w-5 text-brand-orange mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h5 className="font-semibold text-sm">Standalone MCP Server — <code className="bg-brand-navy text-brand-warm px-1 rounded">@jnahian/code-notes-mcp</code></h5>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Run <code className="bg-brand-navy text-brand-warm px-1 rounded">npx -y @jnahian/code-notes-mcp --workspace . --agent claude-code</code> and any MCP client can read and write the same notes the extension manages.
+                          </p>
+                          <ul className="text-xs text-muted-foreground mt-2 space-y-1 ml-3">
+                            <li>• <strong>Read tools:</strong> search_notes, get_notes_for_file, get_notes_for_changes (pre-edit context), list_instructions, get_handoffs, get_note</li>
+                            <li>• <strong>Write tools</strong> (require <code className="bg-brand-navy text-brand-warm px-1 rounded">--agent &lt;name&gt;</code>): create_note, edit_note, delete_note, add_handoff, add_decision</li>
+                            <li>• <strong>Resources:</strong> <code className="bg-brand-navy text-brand-warm px-1 rounded">code-notes://digest</code>, <code className="bg-brand-navy text-brand-warm px-1 rounded">code-notes://index</code>, <code className="bg-brand-navy text-brand-warm px-1 rounded">code-notes://file/{`{path}`}</code></li>
+                            <li>• Directory-scope resolution surfaces parent-folder notes for any file</li>
+                          </ul>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3 bg-white dark:bg-slate-800 p-3 rounded-xl">
+                        <Shield className="h-5 w-5 text-brand-orange mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h5 className="font-semibold text-sm">Safe Concurrent Writes</h5>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            The extension and MCP agents can write at the same time without corrupting notes.
+                          </p>
+                          <ul className="text-xs text-muted-foreground mt-2 space-y-1 ml-3">
+                            <li>• Per-note advisory file locks (<code className="bg-brand-navy text-brand-warm px-1 rounded">.code-notes/.locks</code>) serialize writers across processes — writers re-read inside the lock, so your edit is never overwritten by an agent's</li>
+                            <li>• In-band JSON error convention for all tool failures (invalid_arguments, retryable lock_timeout, path_escapes_workspace, …)</li>
+                            <li>• Workspace-wide loader reports unparseable note files in <code className="bg-brand-navy text-brand-warm px-1 rounded">INDEX.json</code> errors</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fixed */}
+                  <div>
+                    <h4 className="font-semibold mb-3 text-green-600 dark:text-green-400 flex items-center space-x-2">
+                      <Wrench className="h-4 w-4" />
+                      <span>Fixed</span>
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-start space-x-2">
+                        <span className="text-green-500 font-bold">✓</span>
+                        <span>Sidebar now shows notes created by agents — externally-written notes previously stayed hidden until your next edit</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Changed */}
+                  <div>
+                    <h4 className="font-semibold mb-3 text-blue-600 dark:text-blue-400 flex items-center space-x-2">
+                      <Settings className="h-4 w-4" />
+                      <span>Changed</span>
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-start space-x-2 bg-white dark:bg-slate-800 p-3 rounded-xl">
+                        <span className="text-blue-500 font-bold">•</span>
+                        <span className="text-muted-foreground">
+                          <strong>Repo now uses npm workspaces</strong> — the extension lives at <code className="bg-brand-navy text-brand-warm px-1 rounded">packages/extension/</code>; shared internals extracted into <code className="bg-brand-navy text-brand-warm px-1 rounded">@jnahian/code-notes-core</code></span>
+                      </div>
+                      <div className="flex items-start space-x-2 bg-white dark:bg-slate-800 p-3 rounded-xl">
+                        <span className="text-blue-500 font-bold">•</span>
+                        <span className="text-muted-foreground">
+                          <strong>Fully backwards compatible</strong> — extension behavior unchanged, no new settings, existing workspaces work without modification; the MCP server reads/writes the same <code className="bg-brand-navy text-brand-warm px-1 rounded">.code-notes/</code> directory</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Technical */}
+                  <div>
+                    <h4 className="font-semibold mb-3 text-purple-600 dark:text-purple-400 flex items-center space-x-2">
+                      <Wrench className="h-4 w-4" />
+                      <span>Technical</span>
+                    </h4>
+                    <div className="space-y-1 text-sm text-muted-foreground bg-white dark:bg-slate-800 p-3 rounded-xl">
+                      <p>• npm workspaces monorepo: <code className="bg-brand-navy text-brand-warm px-1 rounded">packages/extension</code>, <code className="bg-brand-navy text-brand-warm px-1 rounded">packages/code-notes-core</code>, <code className="bg-brand-navy text-brand-warm px-1 rounded">packages/code-notes-mcp</code></p>
+                      <p>• MCP server built on <code className="bg-brand-navy text-brand-warm px-1 rounded">@modelcontextprotocol/sdk</code> (stdio transport); all logging on stderr, stdout reserved for JSON-RPC</p>
+                      <p>• Advisory lock files: exclusive create, 500ms retry, stale locks broken after 60s</p>
+                      <p>• 374 tests across packages, including cross-process extension-vs-MCP race, lock-contention, and stale-cache regression tests</p>
+                    </div>
+                  </div>
+
+                  {/* Coming Next */}
+                  <div className="bg-blue-50 dark:bg-slate-800 border-l-4 border-brand-orange p-3 rounded-r-xl">
+                    <p className="text-sm text-muted-foreground">
+                      <strong>Coming next:</strong> v0.5 ships the trust model (audit / queue / direct modes) and the agent activity sidebar.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Version 0.3.0 */}
+          <div id="v0.3.0" className="relative grid grid-cols-1 md:grid-cols-[30%_70%] gap-8 items-start">
+            {/* Timeline Node */}
+            <div className="absolute left-0 md:left-[30%] transform -translate-x-1/2 top-2">
+              <div className="w-4 h-4 rounded-full bg-blue-500 border-4 border-white dark:border-slate-900 shadow-lg"></div>
+            </div>
+
+            {/* Left Column - Version Info */}
+            <div className="pl-8 md:pl-0 md:pr-12 text-left md:text-right space-y-2">
+              <div className="flex md:flex-col md:items-end items-start gap-2">
+                <h3 className="text-2xl font-bold">Version 0.3.0</h3>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground text-sm md:justify-end">
+                <Calendar className="h-4 w-4" />
+                <span>May 16, 2026</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Agent integration foundation: structured note schema, auto-generated workspace exports for coding agents, and sidebar enhancements.
@@ -62,7 +186,7 @@ export function ChangelogPage() {
 
             {/* Right Column - Changes */}
             <div className="pl-8 md:pl-12">
-              <Card className="shadow-brand-drop bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-900 border-2 border-brand-orange">
+              <Card className="bg-white shadow-brand-drop">
                 <CardContent className="space-y-6">
                   {/* Added */}
                   <div>
@@ -99,7 +223,6 @@ export function ChangelogPage() {
                             <li>• <code className="bg-brand-navy text-brand-warm px-1 rounded">.code-notes/AGENTS.md</code> — human-readable digest hoisting instructions, warnings, handoffs, decisions</li>
                             <li>• Debounced (200ms) writes, atomic temp-then-rename, deterministic output</li>
                             <li>• Manual <code className="bg-brand-navy text-brand-warm px-1 rounded">Regenerate Exports</code> command for recovery</li>
-                            <li>• Opt-in <code className="bg-brand-navy text-brand-warm px-1 rounded">Link Notes Digest to AGENTS.md / CLAUDE.md</code> — injects a marker-delimited managed block so agents discover the digest, without clobbering your file</li>
                           </ul>
                         </div>
                       </div>
