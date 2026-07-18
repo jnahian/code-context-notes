@@ -2,7 +2,8 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 
 export interface LockManagerOptions {
-  retryMs?: number;
+  /** Total time acquire() will spin before giving up with lock_timeout (not a per-retry interval). */
+  timeoutMs?: number;
   staleAfterMs?: number;
 }
 
@@ -17,6 +18,12 @@ interface LockFile { pid: number; ts: string; holder: string; }
  * lock (unlink then retry) can race with another process breaking the
  * same lock; both would then attempt to create the file and one loses,
  * simply retrying. Acceptable here; revisit only if this moves multi-host.
+ *
+ * Note: staleAfterMs (60s) is much larger than the default timeoutMs (500ms),
+ * so a crashed holder's lock is only reclaimed once a later acquire() happens
+ * to run past the 60s mark — writers hitting the lock before then fast-fail
+ * with lock_timeout (retryable). Fine for a single-editor + agent workload;
+ * shorten staleAfterMs if crash recovery needs to be quicker.
  */
 export class LockManager {
   constructor(
@@ -26,11 +33,11 @@ export class LockManager {
   ) {}
 
   async acquire(noteId: string): Promise<void> {
-    const retryMs = this.opts.retryMs ?? 500;
+    const timeoutMs = this.opts.timeoutMs ?? 500;
     const staleAfterMs = this.opts.staleAfterMs ?? 60_000;
     const lockPath = path.join(this.locksDir, `${noteId}.lock`);
     await fs.mkdir(this.locksDir, { recursive: true });
-    const deadline = Date.now() + retryMs;
+    const deadline = Date.now() + timeoutMs;
 
     while (true) {
       // Try to create exclusively

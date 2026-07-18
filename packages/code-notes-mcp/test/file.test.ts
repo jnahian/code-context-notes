@@ -65,6 +65,14 @@ describe('file/{path} resource', () => {
     expect(result.contents[0].text).not.toContain('root:'); // never actually reads the file
   });
 
+  it('returns an in-band error for a malformed URI escape instead of throwing', async () => {
+    // decodeURIComponent throws URIError on a lone '%'; must not surface as a
+    // JSON-RPC protocol error.
+    const uri = FILE_RESOURCE_URI_PREFIX + '%';
+    const result = await readFileResource(uri, { workspace: tempDir, noteManager });
+    expect(result.contents[0].text.toLowerCase()).toContain('malformed');
+  });
+
   it('renderFileNotesMarkdown formats note header, metadata, and content', () => {
     const md = renderFileNotesMarkdown([
       {

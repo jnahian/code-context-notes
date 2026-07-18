@@ -39,6 +39,9 @@ export function parseUnifiedDiff(diff: string): ParseDiffResult {
             line++;
           } else if (l.startsWith('-')) {
             // removed line — not part of the post-image, skip.
+          } else if (l.startsWith('\\')) {
+            // "\ No newline at end of file" — a marker, not a real line; must
+            // not advance the counter or every following +line shifts by one.
           } else {
             line++;
           }

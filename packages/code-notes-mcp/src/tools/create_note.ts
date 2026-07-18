@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import * as path from 'path';
 import type { NoteManager, NoteType, NoteScope, NotePriority, NoteReference } from '@jnahian/code-notes-core';
 import { buildDocumentFromFile } from '../fileDocument.js';
+import { resolveInWorkspace } from '../pathGuard.js';
 import { errorResult, isLockTimeout } from './errors.js';
 
 const NOTE_TYPES = ['context', 'instruction', 'warning', 'decision', 'todo', 'handoff', 'rationale'] as const;
@@ -60,9 +60,8 @@ export async function createNote(
   args: z.infer<typeof createNoteInput>,
   deps: { noteManager: NoteManager; workspace: string },
 ) {
-  const absFile = path.isAbsolute(args.file) ? args.file : path.join(deps.workspace, args.file);
-  const rel = path.relative(deps.workspace, absFile);
-  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+  const absFile = resolveInWorkspace(deps.workspace, args.file);
+  if (!absFile) {
     return errorResult('path_escapes_workspace', { file: args.file });
   }
 
@@ -108,6 +107,10 @@ export async function createNote(
     const final = await deps.noteManager.updateNoteMetadata(note.id, fields);
     return { content: [{ type: 'text' as const, text: JSON.stringify(final, null, 2) }] };
   } catch (e) {
+    // Phase 2 failed. Roll back the note created in phase 1 (soft-delete) so a
+    // create never leaves a half-formed note behind — e.g. an add_decision
+    // landing as a plain context note with no agent marker and no references.
+    await deps.noteManager.deleteNote(note.id, absFile).catch(() => undefined);
     if (isLockTimeout(e)) return errorResult('lock_timeout', { retryable: true });
     throw e;
   }
