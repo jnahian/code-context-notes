@@ -218,6 +218,11 @@
         "command": "codeContextNotes.setNoteMetadata",
         "title": "Set Note Type / Tags / Priority…",
         "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.linkExports",
+        "title": "Link Notes Digest to AGENTS.md / CLAUDE.md",
+        "category": "Code Notes"
       }
     ],
     "keybindings": [

@@ -53,7 +53,7 @@ export function ChangelogPage() {
               </div>
               <div className="flex items-center gap-2 text-muted-foreground text-sm md:justify-end">
                 <Calendar className="h-4 w-4" />
-                <span>May 16, 2026</span>
+                <span>July 18, 2026</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Agent integration foundation: structured note schema, auto-generated workspace exports for coding agents, and sidebar enhancements.
@@ -99,6 +99,7 @@ export function ChangelogPage() {
                             <li>• <code className="bg-brand-navy text-brand-warm px-1 rounded">.code-notes/AGENTS.md</code> — human-readable digest hoisting instructions, warnings, handoffs, decisions</li>
                             <li>• Debounced (200ms) writes, atomic temp-then-rename, deterministic output</li>
                             <li>• Manual <code className="bg-brand-navy text-brand-warm px-1 rounded">Regenerate Exports</code> command for recovery</li>
+                            <li>• Opt-in <code className="bg-brand-navy text-brand-warm px-1 rounded">Link Notes Digest to AGENTS.md / CLAUDE.md</code> — injects a marker-delimited managed block so agents discover the digest, without clobbering your file</li>
                           </ul>
                         </div>
                       </div>
