@@ -10,6 +10,10 @@
     "color": "#2d3748",
     "theme": "dark"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jnahian/code-context-notes"
+  },
   "bugs": {
     "url": "https://github.com/jnahian/code-context-notes/issues"
   },
