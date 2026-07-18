@@ -6,11 +6,13 @@
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
-import { Note, CreateNoteParams, UpdateNoteParams, LineRange, NoteType, NotePriority, NoteScope, NoteReference, AuthorType, NoteDocument, AuthorProvider, SearchIndexSync } from './types.js';
+import { Note, CreateNoteParams, UpdateNoteParams, LineRange, NoteType, NotePriority, NoteScope, NoteReference, AuthorType, NoteDocument, AuthorProvider, SearchIndexSync, AgentWriteMode, AuditEntry, Proposal } from './types.js';
 import { applyDefaults } from './noteDefaults.js';
 import { StorageManager } from './storageManager.js';
 import { ContentHashTracker } from './contentHashTracker.js';
 import { LockManager } from './lockManager.js';
+import { AuditLog, hashNoteContent } from './auditLog.js';
+import { ProposalStore, PendingWriteError } from './proposalStore.js';
 
 /**
  * NoteManager coordinates all note operations
@@ -26,12 +28,36 @@ export class NoteManager extends EventEmitter {
   private workspaceNotesByFileCache: Map<string, Note[]> | null = null; // cache for notes grouped by file
   private defaultAuthor: string = 'Unknown User';
   private lockManager?: LockManager;
+  private auditLog?: AuditLog;
+  private proposalStore?: ProposalStore;
+  private agentWriteMode?: () => Promise<AgentWriteMode>;
+  private agentName: string;
+  private agentWriter: boolean;
 
   constructor(
     storage: StorageManager,
     hashTracker: ContentHashTracker,
     gitIntegration: AuthorProvider,
-    opts?: { lockManager?: LockManager }
+    opts?: {
+      lockManager?: LockManager;
+      auditLog?: AuditLog;
+      proposalStore?: ProposalStore;
+      /** A function, not a value: the mode is re-read per call so a
+       *  long-lived process can't serve a stale policy. */
+      agentWriteMode?: () => Promise<AgentWriteMode>;
+      agentName?: string;
+      /**
+       * True when this NoteManager belongs to an agent (the MCP server), so
+       * every write it makes is an agent write. One instance serves one
+       * identity — the extension's manager leaves this false.
+       *
+       * Identity has to come from the writer, not the note: keying off a
+       * note's authorType let an agent edit human-authored notes with no
+       * approval, and would have diverted a human's own revert of an agent
+       * note into a proposal.
+       */
+      agentWriter?: boolean;
+    }
   ) {
     super();
     this.storage = storage;
@@ -39,6 +65,13 @@ export class NoteManager extends EventEmitter {
     this.gitIntegration = gitIntegration;
     this.noteCache = new Map();
     this.lockManager = opts?.lockManager;
+    this.auditLog = opts?.auditLog;
+    this.proposalStore = opts?.proposalStore;
+    this.agentWriteMode = opts?.agentWriteMode;
+    this.agentName = opts?.agentName ?? 'unknown-agent';
+    // An instance wired for agent routing but not explicitly flagged is still
+    // an agent's — only the extension constructs a manager with neither.
+    this.agentWriter = opts?.agentWriter ?? !!(opts?.proposalStore || opts?.auditLog);
 
     // Initialize default author
     this.initializeDefaultAuthor();
@@ -50,6 +83,40 @@ export class NoteManager extends EventEmitter {
    */
   private withNoteLock<T>(noteId: string, fn: () => Promise<T>): Promise<T> {
     return this.lockManager ? this.lockManager.withLock(noteId, fn) : fn();
+  }
+
+  /**
+   * Record an agent op if the workspace is in audit mode. Human writes are
+   * never logged — detection is `authorType: 'agent'`, never author-string
+   * sniffing.
+   */
+  private async recordAgentOp(isAgentWrite: boolean, entry: Omit<AuditEntry, 'ts' | 'agent'>): Promise<void> {
+    if (!isAgentWrite || !this.auditLog || !this.agentWriteMode) return;
+    const mode = await this.agentWriteMode();
+    if (mode !== 'audit') return;
+    await this.auditLog.append({ ...entry, ts: new Date().toISOString(), agent: this.agentName });
+  }
+
+  /**
+   * In queue mode an agent write becomes a proposal and never touches live
+   * notes. Throws PendingWriteError rather than returning a flag, so a caller
+   * cannot accidentally carry on and write anyway.
+   */
+  private async divertToProposalIfQueued(
+    isAgentWrite: boolean,
+    proposal: Omit<Proposal, 'proposalId' | 'agent' | 'proposedAt'>,
+  ): Promise<void> {
+    if (!isAgentWrite || !this.proposalStore || !this.agentWriteMode) return;
+    if (await this.agentWriteMode() !== 'queue') return;
+
+    const proposalId = `prop-${uuidv4()}`;
+    await this.proposalStore.save({
+      ...proposal,
+      proposalId,
+      agent: this.agentName,
+      proposedAt: new Date().toISOString(),
+    });
+    throw new PendingWriteError(proposalId);
   }
 
   /**
@@ -81,6 +148,15 @@ export class NoteManager extends EventEmitter {
     const noteId = uuidv4();
 
     return this.withNoteLock(noteId, async () => {
+      // Before any storage write: in queue mode this becomes a proposal and
+      // no note is created.
+      await this.divertToProposalIfQueued(this.agentWriter || params.authorType === 'agent', {
+        op: 'create',
+        file: params.filePath,
+        lineRange: params.lineRange,
+        content: params.content.trim(),
+      });
+
       // Generate content hash
       const contentHash = this.hashTracker.generateHash(document, params.lineRange);
 
@@ -106,6 +182,14 @@ export class NoteManager extends EventEmitter {
             action: 'created'
           }
         ],
+        ...(params.type !== undefined && { type: params.type }),
+        ...(params.tags !== undefined && { tags: params.tags }),
+        ...(params.scope !== undefined && { scope: params.scope }),
+        ...(params.references !== undefined && { references: params.references }),
+        ...(params.priority !== undefined && { priority: params.priority }),
+        ...(params.expiresAt !== undefined && { expiresAt: params.expiresAt }),
+        ...(params.authorType !== undefined && { authorType: params.authorType }),
+        ...(params.approvedBy !== undefined && { approvedBy: params.approvedBy }),
         isDeleted: false
       };
 
@@ -129,6 +213,14 @@ export class NoteManager extends EventEmitter {
       this.clearWorkspaceCache();
       this.emit('noteCreated', normalized);
       this.emit('noteChanged', { type: 'created', note: normalized });
+
+      await this.recordAgentOp(this.agentWriter || params.authorType === 'agent', {
+        op: 'create',
+        noteId: normalized.id,
+        file: normalized.filePath,
+        lineRange: [normalized.lineRange.start, normalized.lineRange.end],
+        type: normalized.type,
+      });
 
       return normalized;
     });
@@ -154,6 +246,17 @@ export class NoteManager extends EventEmitter {
         throw new Error(`Cannot update deleted note ${params.id}`);
       }
 
+      const prevContent = note.content;
+
+      await this.divertToProposalIfQueued(this.agentWriter, {
+        op: 'edit',
+        targetNoteId: note.id,
+        file: note.filePath,
+        lineRange: note.lineRange,
+        content: params.content.trim(),
+        targetContentHash: hashNoteContent(prevContent),
+      });
+
       // Get author
       const author = params.author || await this.gitIntegration.getAuthorName();
 
@@ -161,6 +264,9 @@ export class NoteManager extends EventEmitter {
       const now = new Date().toISOString();
       note.content = params.content.trim();
       note.author = author;
+      if (params.approvedBy !== undefined) {
+        note.approvedBy = params.approvedBy;
+      }
       note.updatedAt = now;
 
       // Add history entry
@@ -190,6 +296,14 @@ export class NoteManager extends EventEmitter {
       this.emit('noteUpdated', note);
       this.emit('noteChanged', { type: 'updated', note });
 
+      await this.recordAgentOp(this.agentWriter, {
+        op: 'edit',
+        noteId: note.id,
+        file: note.filePath,
+        prevContentHash: hashNoteContent(prevContent),
+        newContentHash: hashNoteContent(note.content),
+      });
+
       return note;
     });
   }
@@ -202,6 +316,15 @@ export class NoteManager extends EventEmitter {
     noteId: string,
     fields: { type?: NoteType; priority?: NotePriority; tags?: string[]; expiresAt?: string; scope?: NoteScope; references?: NoteReference[]; authorType?: AuthorType },
   ): Promise<Note> {
+    // Human-only path: this writes notes but is NOT routed through the trust
+    // model, and it is safe today only because no MCP tool reaches it. Fail
+    // loudly rather than let a future agent-facing caller silently bypass the
+    // rails — that class of mistake is exactly how agents got to edit
+    // human-authored notes in queue mode.
+    if (this.agentWriter) {
+      throw new Error('updateNoteMetadata is not available to agent writers — route the change through updateNote');
+    }
+
     return this.withNoteLock(noteId, async () => {
       const existing = await this.storage.loadNoteById(noteId);
       if (!existing) throw new Error(`Note ${noteId} not found`);
@@ -248,6 +371,14 @@ export class NoteManager extends EventEmitter {
         throw new Error(`Note ${noteId} is already deleted`);
       }
 
+      await this.divertToProposalIfQueued(this.agentWriter, {
+        op: 'delete',
+        targetNoteId: note.id,
+        file: note.filePath,
+        content: '',
+        targetContentHash: hashNoteContent(note.content),
+      });
+
       // Mark as deleted
       note.isDeleted = true;
       note.updatedAt = new Date().toISOString();
@@ -277,6 +408,12 @@ export class NoteManager extends EventEmitter {
       this.clearWorkspaceCache();
       this.emit('noteDeleted', { noteId, filePath });
       this.emit('noteChanged', { type: 'deleted', noteId, filePath });
+
+      await this.recordAgentOp(this.agentWriter, {
+        op: 'delete',
+        noteId: note.id,
+        file: note.filePath,
+      });
     });
   }
 
@@ -343,45 +480,111 @@ export class NoteManager extends EventEmitter {
   }
 
   /**
+   * Like getNoteByIdGlobal but returns soft-deleted notes too. The audit-mode
+   * Revert of a delete needs to see the deleted note to restore it, and Open
+   * needs to jump to a deleted note's location.
+   */
+  async getNoteByIdIncludingDeleted(noteId: string): Promise<Note | undefined> {
+    const note = await this.storage.loadNoteById(noteId);
+    return note ? applyDefaults(note) : undefined;
+  }
+
+  /**
+   * Restore a soft-deleted note — the reverse of deleteNote, used by Revert.
+   * The note's content survived the delete, so this clears isDeleted and
+   * records the restore in history. Human-only, like the other unrouted write
+   * paths: fail closed for agent writers rather than let a future agent tool
+   * bypass the trust model.
+   */
+  async undeleteNote(noteId: string): Promise<Note> {
+    if (this.agentWriter) {
+      throw new Error('undeleteNote is not available to agent writers');
+    }
+    return this.withNoteLock(noteId, async () => {
+      // Fresh read inside the lock — see updateNote.
+      const raw = await this.storage.loadNoteById(noteId);
+      const note = raw ? applyDefaults(raw) : undefined;
+      if (!note) {
+        throw new Error(`Note with id ${noteId} not found`);
+      }
+      if (!note.isDeleted) {
+        throw new Error(`Note ${noteId} is not deleted`);
+      }
+
+      note.isDeleted = false;
+      note.updatedAt = new Date().toISOString();
+      note.history.push({
+        content: note.content,
+        author: await this.gitIntegration.getAuthorName(),
+        timestamp: note.updatedAt,
+        action: 'restored',
+      });
+
+      await this.storage.saveNote(note);
+      this.updateNoteInCache(note);
+      if (this.searchManager) {
+        await this.searchManager.updateIndex(note);
+      }
+      this.clearWorkspaceCache();
+      this.emit('noteUpdated', note);
+      this.emit('noteChanged', { type: 'updated', note });
+      return note;
+    });
+  }
+
+  /**
    * Update note positions when document changes
    * Returns notes that were updated
    */
   async updateNotePositions(document: NoteDocument): Promise<Note[]> {
+    // Human-only path, like updateNoteMetadata: repositioning follows the
+    // editor's document changes and is not routed through the trust model.
+    if (this.agentWriter) {
+      throw new Error('updateNotePositions is not available to agent writers');
+    }
+
     const filePath = document.uri.fsPath;
     const notes = await this.getNotesForFile(filePath);
     const updatedNotes: Note[] = [];
 
-    for (const note of notes) {
-      // Check if content is still at the expected location
+    for (const cached of notes) {
+      // Deciding *whether* a note moved is a pure read of the document, so the
+      // cached copy is fine for it — and it keeps the common case (nothing
+      // moved) lock-free.
       const isValid = this.hashTracker.validateContentHash(
         document,
-        note.lineRange,
-        note.contentHash
+        cached.lineRange,
+        cached.contentHash
       );
+      if (isValid) continue;
 
-      if (!isValid) {
-        // Try to find the content at a new location
-        const result = await this.hashTracker.findContentByHash(
-          document,
-          note.contentHash,
-          note.lineRange
-        );
+      const result = await this.hashTracker.findContentByHash(
+        document,
+        cached.contentHash,
+        cached.lineRange
+      );
+      if (!result.found || !result.newLineRange) continue;
 
-        if (result.found && result.newLineRange) {
-          // Update note position
-          note.lineRange = result.newLineRange;
-          note.updatedAt = new Date().toISOString();
+      const newLineRange = result.newLineRange;
+      await this.withNoteLock(cached.id, async () => {
+        // Re-read inside the lock before writing: another process may have
+        // edited this note's content since our cache warmed, and saving the
+        // cached object would erase that edit (the v0.4 lost-update bug).
+        const raw = await this.storage.loadNoteById(cached.id);
+        if (!raw) return;
+        const note = applyDefaults(raw);
+        if (note.isDeleted) return;
 
-          // Save updated note
-          await this.storage.saveNote(note);
-          updatedNotes.push(note);
-        }
-      }
+        note.lineRange = newLineRange;
+        note.updatedAt = new Date().toISOString();
+        await this.storage.saveNote(note);
+        this.updateNoteInCache(note);
+        updatedNotes.push(note);
+      });
     }
 
-    // Update cache
     if (updatedNotes.length > 0) {
-      this.noteCache.set(filePath, notes);
+      this.clearWorkspaceCache();
     }
 
     return updatedNotes;
@@ -426,6 +629,11 @@ export class NoteManager extends EventEmitter {
         notes[index] = applyDefaults(updatedNote);
       }
     }
+  }
+
+  /** The human's display name — used to attribute an approved proposal. */
+  async getDefaultAuthor(): Promise<string> {
+    return this.gitIntegration.getAuthorName();
   }
 
   /**

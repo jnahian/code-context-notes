@@ -242,6 +242,11 @@ export class StorageManager implements NoteStorage {
 
     // Metadata
     lines.push(`## Note: ${note.id}`);
+    // Format discriminator. v2 length-delimits the content and history-entry
+    // regions so agent-controlled text can never reproduce a structural
+    // delimiter and be re-parsed as one. A note without this marker is read
+    // by the untouched v1 parser.
+    lines.push(`**Format:** 2`);
     lines.push(`**Author:** ${note.author}`);
     lines.push(`**Created:** ${note.createdAt}`);
     lines.push(`**Updated:** ${note.updatedAt}`);
@@ -262,6 +267,9 @@ export class StorageManager implements NoteStorage {
     if (note.authorType && note.authorType !== NOTE_DEFAULTS.authorType) {
       lines.push(`**AuthorType:** ${note.authorType}`);
     }
+    if (note.approvedBy) {
+      lines.push(`**ApprovedBy:** ${note.approvedBy}`);
+    }
     if (note.expiresAt) {
       lines.push(`**ExpiresAt:** ${note.expiresAt}`);
     }
@@ -272,6 +280,9 @@ export class StorageManager implements NoteStorage {
     if (note.isDeleted) {
       lines.push(`**Status:** DELETED`);
     }
+    // The parser reads exactly this many lines as content, so a "## Edit
+    // History" (or any delimiter) inside the content is just content.
+    lines.push(`**Content Lines:** ${note.content.split('\n').length}`);
     lines.push('');
 
     // Current content
@@ -290,7 +301,9 @@ export class StorageManager implements NoteStorage {
         lines.push(`### ${entry.timestamp} - ${entry.author} - ${entry.action}`);
         lines.push('');
         if (entry.content) {
-          lines.push('```');
+          // The count on the fence makes the entry length-delimited too, so a
+          // ``` inside an edit's body can't break out and forge a later entry.
+          lines.push('```lines=' + entry.content.split('\n').length);
           lines.push(entry.content);
           lines.push('```');
         }
@@ -306,176 +319,187 @@ export class StorageManager implements NoteStorage {
    */
   private markdownToNote(markdown: string): Note | null {
     const lines = markdown.split('\n');
-    const note: Partial<Note> = {
-      history: []
-    };
+    // Detect the format before the content section: a v1 note's content lives
+    // after '## Current Content', so a content line can never masquerade as
+    // the marker. Absent the marker, the untouched v1 parser handles it.
+    let isV2 = false;
+    for (const line of lines) {
+      if (line === '## Current Content') break;
+      if (line === '**Format:** 2') { isV2 = true; break; }
+    }
+    return isV2 ? this.parseNoteV2(lines) : this.parseNoteV1(lines);
+  }
 
+  /** Best-effort parse of one header/metadata line. Shared by both format
+   *  parsers; unrecognized lines are ignored. Never handles content or
+   *  history — those regions are the parsers' own concern. */
+  private applyMetadataLine(note: Partial<Note>, line: string): void {
+    if (line.startsWith('**File:**')) {
+      note.filePath = line.substring(9).trim();
+    } else if (line.startsWith('**Lines:**')) {
+      const range = line.substring(10).trim().split('-');
+      note.lineRange = { start: parseInt(range[0]) - 1, end: parseInt(range[1]) - 1 };
+    } else if (line.startsWith('**Content Hash:**') && !note.contentHash) {
+      note.contentHash = line.substring(17).trim();
+    } else if (line.startsWith('## Note: ')) {
+      note.id = line.substring(9).trim();
+    } else if (line.startsWith('**Author:**')) {
+      note.author = line.substring(11).trim();
+    } else if (line.startsWith('**Created:**')) {
+      note.createdAt = line.substring(12).trim();
+    } else if (line.startsWith('**Updated:**')) {
+      note.updatedAt = line.substring(12).trim();
+    } else if (line.startsWith('**Status:** DELETED')) {
+      note.isDeleted = true;
+    } else if (line.startsWith('**Type:**')) {
+      const v = line.substring(9).trim();
+      if ((VALID_TYPES as string[]).includes(v)) note.type = v as NoteType;
+      else console.warn(`[code-notes] Ignoring invalid Type for note: ${v}`);
+    } else if (line.startsWith('**Scope:**')) {
+      const v = line.substring(10).trim();
+      if ((VALID_SCOPES as string[]).includes(v)) note.scope = v as NoteScope;
+      else console.warn(`[code-notes] Ignoring invalid Scope for note: ${v}`);
+    } else if (line.startsWith('**Priority:**')) {
+      const v = line.substring(13).trim();
+      if ((VALID_PRIORITIES as string[]).includes(v)) note.priority = v as NotePriority;
+      else console.warn(`[code-notes] Ignoring invalid Priority for note: ${v}`);
+    } else if (line.startsWith('**Tags:**')) {
+      const raw = line.substring(9).trim();
+      note.tags = raw ? raw.split(',').map(t => t.trim()).filter(t => t.length > 0) : [];
+    } else if (line.startsWith('**ApprovedBy:**')) {
+      note.approvedBy = line.substring(15).trim();
+    } else if (line.startsWith('**AuthorType:**')) {
+      const v = line.substring(15).trim();
+      if ((VALID_AUTHOR_TYPES as string[]).includes(v)) note.authorType = v as AuthorType;
+      else console.warn(`[code-notes] Ignoring invalid AuthorType for note: ${v}`);
+    } else if (line.startsWith('**ExpiresAt:**')) {
+      note.expiresAt = line.substring(14).trim();
+    } else if (line.startsWith('**References:**')) {
+      const raw = line.substring(15).trim();
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          note.references = Array.isArray(parsed)
+            ? parsed.filter((r: unknown): r is NoteReference =>
+                !!r && typeof r === 'object' &&
+                typeof (r as NoteReference).value === 'string' &&
+                VALID_REFERENCE_KINDS.includes((r as NoteReference).kind))
+            : [];
+        } catch {
+          console.warn(`[code-notes] Failed to parse References for note: ${raw}`);
+          note.references = [];
+        }
+      }
+    }
+  }
+
+  private finalizeNote(note: Partial<Note>): Note | null {
+    if (note.isDeleted === undefined) note.isDeleted = false;
+    return this.isValidNote(note) ? (note as Note) : null;
+  }
+
+  /**
+   * Legacy parser for notes written before the v2 length-delimited format.
+   * Delimiter-based, and kept intact for back-compat — do not extend it; new
+   * fields belong in the v2 path. Its content/history regions are spoofable by
+   * content that reproduces a delimiter, which is exactly why v2 exists; v1 is
+   * only ever produced by pre-v0.5 code, and any note re-saved migrates to v2.
+   */
+  private parseNoteV1(lines: string[]): Note | null {
+    const note: Partial<Note> = { history: [] };
     let inContent = false;
     let inHistory = false;
     let contentLines: string[] = [];
     let historyContentLines: string[] = [];
     let currentHistoryEntry: any = null;
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      // Parse file path
-      if (line.startsWith('**File:**')) {
-        note.filePath = line.substring(9).trim();
+    for (const line of lines) {
+      if (inContent) {
+        if (line === '## Edit History') { inContent = false; inHistory = true; }
+        else contentLines.push(line);
+        continue;
       }
-      // Parse line range
-      else if (line.startsWith('**Lines:**')) {
-        const range = line.substring(10).trim().split('-');
-        note.lineRange = {
-          start: parseInt(range[0]) - 1,
-          end: parseInt(range[1]) - 1
-        };
-      }
-      // Parse content hash (at top level)
-      else if (line.startsWith('**Content Hash:**') && !note.contentHash) {
-        note.contentHash = line.substring(17).trim();
-      }
-      // Parse note ID
-      else if (line.startsWith('## Note: ')) {
-        note.id = line.substring(9).trim();
-      }
-      // Parse metadata
-      else if (line.startsWith('**Author:**')) {
-        note.author = line.substring(11).trim();
-      }
-      else if (line.startsWith('**Created:**')) {
-        note.createdAt = line.substring(12).trim();
-      }
-      else if (line.startsWith('**Updated:**')) {
-        note.updatedAt = line.substring(12).trim();
-      }
-      else if (line.startsWith('**Status:** DELETED')) {
-        note.isDeleted = true;
-      }
-      // Parse new structured fields — invalid values are dropped (the note
-      // then gets the schema default at the NoteManager boundary)
-      else if (line.startsWith('**Type:**')) {
-        const v = line.substring(9).trim();
-        if ((VALID_TYPES as string[]).includes(v)) {
-          note.type = v as NoteType;
-        } else {
-          console.warn(`[code-notes] Ignoring invalid Type for note: ${v}`);
-        }
-      }
-      else if (line.startsWith('**Scope:**')) {
-        const v = line.substring(10).trim();
-        if ((VALID_SCOPES as string[]).includes(v)) {
-          note.scope = v as NoteScope;
-        } else {
-          console.warn(`[code-notes] Ignoring invalid Scope for note: ${v}`);
-        }
-      }
-      else if (line.startsWith('**Priority:**')) {
-        const v = line.substring(13).trim();
-        if ((VALID_PRIORITIES as string[]).includes(v)) {
-          note.priority = v as NotePriority;
-        } else {
-          console.warn(`[code-notes] Ignoring invalid Priority for note: ${v}`);
-        }
-      }
-      else if (line.startsWith('**Tags:**')) {
-        const raw = line.substring(9).trim();
-        note.tags = raw ? raw.split(',').map(t => t.trim()).filter(t => t.length > 0) : [];
-      }
-      else if (line.startsWith('**AuthorType:**')) {
-        const v = line.substring(15).trim();
-        if ((VALID_AUTHOR_TYPES as string[]).includes(v)) {
-          note.authorType = v as AuthorType;
-        } else {
-          console.warn(`[code-notes] Ignoring invalid AuthorType for note: ${v}`);
-        }
-      }
-      else if (line.startsWith('**ExpiresAt:**')) {
-        note.expiresAt = line.substring(14).trim();
-      }
-      else if (line.startsWith('**References:**')) {
-        const raw = line.substring(15).trim();
-        if (raw) {
-          try {
-            const parsed = JSON.parse(raw);
-            // Salvage valid entries; drop malformed ones
-            note.references = Array.isArray(parsed)
-              ? parsed.filter(
-                  (r: unknown): r is NoteReference =>
-                    !!r && typeof r === 'object' &&
-                    typeof (r as NoteReference).value === 'string' &&
-                    VALID_REFERENCE_KINDS.includes((r as NoteReference).kind)
-                )
-              : [];
-          } catch {
-            console.warn(`[code-notes] Failed to parse References for note: ${raw}`);
-            note.references = [];
+      if (inHistory) {
+        if (line.startsWith('### ')) {
+          if (currentHistoryEntry && historyContentLines.length > 0) {
+            currentHistoryEntry.content = historyContentLines.join('\n').trim();
           }
+          const match = line.substring(4).match(/^(.+?) - (.+?) - (.+)$/);
+          if (match) {
+            currentHistoryEntry = { timestamp: match[1], author: match[2], action: match[3] as any, content: '' };
+            note.history!.push(currentHistoryEntry);
+            historyContentLines = [];
+          }
+        } else if (currentHistoryEntry && line !== '```') {
+          if (line || historyContentLines.length > 0) historyContentLines.push(line);
         }
+        continue;
       }
-      // Parse current content section
-      else if (line === '## Current Content') {
-        inContent = true;
-        inHistory = false;
-        contentLines = [];
-      }
-      // Parse history section
-      else if (line === '## Edit History') {
-        inContent = false;
-        inHistory = true;
-      }
-      // Content lines (capture everything including blank lines)
-      else if (inContent && !line.startsWith('##')) {
-        contentLines.push(line);
-      }
-      // History entry header
-      else if (inHistory && line.startsWith('### ')) {
-        // Save previous history entry if exists
-        if (currentHistoryEntry && historyContentLines.length > 0) {
-          currentHistoryEntry.content = historyContentLines.join('\n').trim();
-        }
-
-        // Parse: ### timestamp - author - action
-        const match = line.substring(4).match(/^(.+?) - (.+?) - (.+)$/);
-        if (match) {
-          currentHistoryEntry = {
-            timestamp: match[1],
-            author: match[2],
-            action: match[3] as any,
-            content: ''
-          };
-          note.history!.push(currentHistoryEntry);
-          historyContentLines = [];
-        }
-      }
-      // History content in code block
-      else if (inHistory && currentHistoryEntry) {
-        if (line === '```') {
-          // Skip code fence markers
-          continue;
-        }
-        if (line || historyContentLines.length > 0) {
-          historyContentLines.push(line);
-        }
-      }
+      if (line === '## Current Content') { inContent = true; inHistory = false; contentLines = []; continue; }
+      if (line === '## Edit History') { inContent = false; inHistory = true; continue; }
+      this.applyMetadataLine(note, line);
     }
 
-    // Save last history entry content
     if (currentHistoryEntry && historyContentLines.length > 0) {
       currentHistoryEntry.content = historyContentLines.join('\n').trim();
     }
+    if (contentLines.length > 0) note.content = contentLines.join('\n').trim();
+    return this.finalizeNote(note);
+  }
 
-    // Set final content
-    if (contentLines.length > 0) {
-      note.content = contentLines.join('\n').trim();
+  /**
+   * v2 parser. Content and every history entry are length-delimited: the
+   * parser reads exactly the declared number of lines, so agent-controlled
+   * text can contain any delimiter and is still captured verbatim.
+   */
+  private parseNoteV2(lines: string[]): Note | null {
+    const note: Partial<Note> = { history: [] };
+    let contentLineCount = 0;
+    let i = 0;
+
+    let sawContentSection = false;
+    for (; i < lines.length; i++) {
+      const line = lines[i];
+      if (line === '## Current Content') { sawContentSection = true; break; }
+      if (line === '**Format:** 2') continue;
+      if (line.startsWith('**Content Lines:**')) {
+        contentLineCount = parseInt(line.substring(18).trim(), 10) || 0;
+        continue;
+      }
+      this.applyMetadataLine(note, line);
     }
 
-    // Set default for isDeleted if not specified
-    if (note.isDeleted === undefined) {
-      note.isDeleted = false;
+    // Only set content if the section was actually present. An empty content
+    // section is a valid empty note; a *missing* one is a corrupt file, and
+    // leaving content undefined lets isValidNote reject it rather than
+    // silently accept a blank note (or, worse, drop a real one on reload).
+    if (sawContentSection) {
+      // '## Current Content', then one blank separator, then exactly N lines.
+      i += 2;
+      note.content = lines.slice(i, i + contentLineCount).join('\n');
+      i += contentLineCount;
     }
 
-    return this.isValidNote(note) ? (note as Note) : null;
+    while (i < lines.length && lines[i] !== '## Edit History') i++;
+    i++;
+    while (i < lines.length) {
+      const header = lines[i].startsWith('### ')
+        ? lines[i].substring(4).match(/^(.+?) - (.+?) - (.+)$/)
+        : null;
+      if (!header) { i++; continue; }
+      const entry: any = { timestamp: header[1], author: header[2], action: header[3] as any, content: '' };
+      note.history!.push(entry);
+      i++;
+      while (i < lines.length && !lines[i].startsWith('```lines=') && !lines[i].startsWith('### ')) i++;
+      const fence = i < lines.length ? lines[i].match(/^```lines=(\d+)$/) : null;
+      if (fence) {
+        const m = parseInt(fence[1], 10) || 0;
+        entry.content = lines.slice(i + 1, i + 1 + m).join('\n');
+        i += m + 2; // opener + m content lines + closing ```
+      }
+    }
+
+    return this.finalizeNote(note);
   }
 
   /**
@@ -484,7 +508,10 @@ export class StorageManager implements NoteStorage {
   private isValidNote(note: Partial<Note>): note is Note {
     return !!(
       note.id &&
-      note.content &&
+      // Empty-string content is a valid (contentless) note; only a missing
+      // content section — undefined — is invalid. The extension supports
+      // notes whose content is filled in later, and they must survive reload.
+      note.content !== undefined &&
       note.author &&
       note.filePath &&
       note.lineRange &&

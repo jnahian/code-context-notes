@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { NoteManager, NoteType, NoteScope, NotePriority, NoteReference } from '@jnahian/code-notes-core';
+import { PendingWriteError } from '@jnahian/code-notes-core';
 import { buildDocumentFromFile } from '../fileDocument.js';
 import { resolveInWorkspace } from '../pathGuard.js';
 import { errorResult, isLockTimeout } from './errors.js';
@@ -72,46 +73,34 @@ export async function createNote(
     return errorResult('file_not_found', { file: args.file });
   }
 
-  let note;
   try {
-    note = await deps.noteManager.createNote(
-      { filePath: absFile, lineRange: args.lineRange, content: args.content },
+    const note = await deps.noteManager.createNote(
+      {
+        filePath: absFile,
+        lineRange: args.lineRange,
+        content: args.content,
+        authorType: 'agent',
+        ...(args.type !== undefined && { type: args.type }),
+        ...(args.tags !== undefined && { tags: args.tags }),
+        ...(args.scope !== undefined && { scope: args.scope }),
+        ...(args.references !== undefined && { references: args.references }),
+        ...(args.priority !== undefined && { priority: args.priority }),
+        ...(args.expiresAt !== undefined && { expiresAt: args.expiresAt }),
+      },
       doc,
     );
+    return { content: [{ type: 'text' as const, text: JSON.stringify(note, null, 2) }] };
   } catch (e) {
+    // Queue mode diverting this write is not a failure — let it reach the
+    // dispatcher, which turns it into the pending result. This catch is the
+    // only one that swallows unknown errors, so without this the agent would
+    // be told its write crashed while the proposal quietly landed.
+    if (e instanceof PendingWriteError) throw e;
     if (isLockTimeout(e)) return errorResult('lock_timeout', { retryable: true });
     // Core's range validation errors all start with "Line range"; anything
     // else is an unexpected failure and must not masquerade as a range error.
     const msg = (e as Error).message ?? String(e);
     if (msg.includes('Line range')) return errorResult('invalid_line_range', { detail: msg });
     return errorResult('internal_error', { detail: msg });
-  }
-
-  const fields: {
-    authorType: 'agent';
-    type?: NoteType;
-    tags?: string[];
-    scope?: NoteScope;
-    references?: NoteReference[];
-    priority?: NotePriority;
-    expiresAt?: string;
-  } = { authorType: 'agent' };
-  if (args.type !== undefined) fields.type = args.type;
-  if (args.tags !== undefined) fields.tags = args.tags;
-  if (args.scope !== undefined) fields.scope = args.scope;
-  if (args.references !== undefined) fields.references = args.references;
-  if (args.priority !== undefined) fields.priority = args.priority;
-  if (args.expiresAt !== undefined) fields.expiresAt = args.expiresAt;
-
-  try {
-    const final = await deps.noteManager.updateNoteMetadata(note.id, fields);
-    return { content: [{ type: 'text' as const, text: JSON.stringify(final, null, 2) }] };
-  } catch (e) {
-    // Phase 2 failed. Roll back the note created in phase 1 (soft-delete) so a
-    // create never leaves a half-formed note behind — e.g. an add_decision
-    // landing as a plain context note with no agent marker and no references.
-    await deps.noteManager.deleteNote(note.id, absFile).catch(() => undefined);
-    if (isLockTimeout(e)) return errorResult('lock_timeout', { retryable: true });
-    throw e;
   }
 }

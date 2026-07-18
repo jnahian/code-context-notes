@@ -2,7 +2,7 @@
   "name": "code-context-notes",
   "displayName": "Code Context Notes - Smart Annotations",
   "description": "Add contextual notes to your code with full version history and intelligent tracking",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "jnahian",
   "icon": "images/icon.png",
   "galleryBanner": {
@@ -218,6 +218,40 @@
         "command": "codeContextNotes.setNoteMetadata",
         "title": "Set Note Type / Tags / Priority…",
         "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.revertAgentOp",
+        "title": "Revert this agent change",
+        "icon": "$(discard)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.truncateAuditLog",
+        "title": "Truncate Audit Log",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.openAuditedNote",
+        "title": "Open the note this entry refers to",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.approveProposal",
+        "title": "Approve",
+        "icon": "$(check)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.rejectProposal",
+        "title": "Reject",
+        "icon": "$(x)",
+        "category": "Code Notes"
+      },
+      {
+        "command": "codeContextNotes.editAndApproveProposal",
+        "title": "Edit and approve",
+        "icon": "$(edit)",
+        "category": "Code Notes"
       }
     ],
     "keybindings": [
@@ -307,6 +341,26 @@
         }
       ],
       "view/item/context": [
+        {
+          "command": "codeContextNotes.revertAgentOp",
+          "when": "view == codeContextNotes.agentActivityView && viewItem == agentActivityItem",
+          "group": "inline"
+        },
+        {
+          "command": "codeContextNotes.approveProposal",
+          "when": "view == codeContextNotes.pendingProposalsView && viewItem == proposalItem",
+          "group": "inline@1"
+        },
+        {
+          "command": "codeContextNotes.editAndApproveProposal",
+          "when": "view == codeContextNotes.pendingProposalsView && viewItem == proposalItem",
+          "group": "inline@2"
+        },
+        {
+          "command": "codeContextNotes.rejectProposal",
+          "when": "view == codeContextNotes.pendingProposalsView",
+          "group": "inline@3"
+        },
         {
           "command": "codeContextNotes.openNoteFromSidebar",
           "when": "view == codeContextNotes.sidebarView && viewItem == noteNode",
@@ -405,6 +459,16 @@
           "id": "codeContextNotes.sidebarView",
           "name": "Notes",
           "contextualTitle": "Code Context Notes"
+        },
+        {
+          "id": "codeContextNotes.agentActivityView",
+          "name": "Agent activity",
+          "contextualTitle": "Code Context Notes"
+        },
+        {
+          "id": "codeContextNotes.pendingProposalsView",
+          "name": "Pending agent proposals",
+          "contextualTitle": "Code Context Notes"
         }
       ]
     },
@@ -421,6 +485,34 @@
           "type": "string",
           "default": ".code-notes",
           "description": "Directory where notes are stored (relative to workspace root)"
+        },
+        "codeContextNotes.agentWriteMode": {
+          "type": "string",
+          "enum": [
+            "direct",
+            "audit",
+            "queue"
+          ],
+          "enumDescriptions": [
+            "Agent writes land immediately.",
+            "Agent writes land and are logged to .code-notes/_audit.log, reviewable in the Agent activity view.",
+            "Agent writes become proposals needing approval in the Pending agent proposals view."
+          ],
+          "default": "audit",
+          "description": "How writes from MCP agents are handled. Written to .code-notes/config.json so the standalone MCP server reads the same policy."
+        },
+        "codeContextNotes.agentAllowList": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Agent names allowed to write (matches the server's --agent value). Empty allows any. Informational, not a security boundary."
+        },
+        "codeContextNotes.auditLogRetention": {
+          "type": "number",
+          "default": 1000,
+          "description": "Number of audit log entries kept before older ones rotate to _audit.log.1."
         },
         "codeContextNotes.authorName": {
           "type": "string",
@@ -511,7 +603,7 @@
     "url": "https://github.com/jnahian/code-context-notes"
   },
   "dependencies": {
-    "@jnahian/code-notes-core": "0.1.0",
+    "@jnahian/code-notes-core": "0.2.0",
     "uuid": "^14.0.0"
   }
 }

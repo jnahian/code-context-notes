@@ -70,14 +70,40 @@ Every tool returns its result as text content whose body is JSON — a note obje
 
 ## Trust model
 
-The server operates in `direct` mode, and that is currently the only behavior: starting it with `--agent <name>` authorizes writes, and an authorized agent's notes land immediately with no review step and no further gating. Without `--agent`, only the read tools are exposed.
+Agent writes are governed by `agentWriteMode` in `<storageDir>/config.json` — a workspace-owned file, not a server flag. There is deliberately no `--write-mode` option: an agent that picks its own mode has no rails.
 
-There is no audit trail or approval queue yet — v0.5 adds the trust model (`audit` / `queue` / `direct` modes) for reviewing agent-authored notes before they land. Until then, treat write access the way you'd treat handing an agent your editor: grant it to agents you'd let write files directly, and expect their notes to appear immediately for everyone sharing the workspace.
+| Mode | Agent writes | Use when |
+|---|---|---|
+| `direct` | Land immediately, attributed `authorType: agent`. | Solo dev, trusted agent. |
+| `audit` (default) | Land immediately, and every op is appended to `<storageDir>/_audit.log`. The extension's **Agent activity** view lists them with a Revert action. | Most teams. |
+| `queue` | Do **not** touch live notes. Each write becomes a proposal in `<storageDir>/_pending/`, surfaced in the extension's **Pending agent proposals** view for Approve / Reject. | Shared or regulated codebases. |
+
+```jsonc
+// .code-notes/config.json
+{
+  "agentWriteMode": "audit",   // "direct" | "audit" | "queue"
+  "agentAllowList": [],         // informational; empty allows any --agent name
+  "auditLogRetention": 1000     // ops kept before rotating to _audit.log.1
+}
+```
+
+Without `--agent`, the server is read-only and none of this applies.
+
+### What write tools return in `queue` mode
+
+Not a note, and **not an error** — retrying will not help:
+
+```json
+{ "status": "pending", "proposalId": "prop-xyz", "message": "Awaiting human approval." }
+```
+
+The mode is re-read from disk on every call, so a human changing it takes effect immediately — no server restart.
 
 ## Troubleshooting
 
 - **`{ "error": "lock_timeout", "retryable": true }`** — another writer (the VS Code extension, or a second agent) held the note's lock. Retry the same call once after a short delay; if it times out again, treat it as a real conflict rather than looping.
 - **No notes / empty results, and no `.code-notes/` in the workspace** — the server starts in empty mode when the workspace has no notes yet and creates `.code-notes/` on first write. Pass `--require-existing` if you want startup to fail (exit 3) instead.
+- **Write tools return `{ "status": "pending" }` instead of a note** — the workspace is in `queue` mode. This is not a failure and retrying won't change it: a human approves the proposal in the extension's **Pending agent proposals** view. Check `agentWriteMode` in `<storageDir>/config.json`.
 - **The agent sees no notes, or writes land somewhere the extension never shows** — the server defaults to `.code-notes/`, but the extension's `codeContextNotes.storageDirectory` setting can point elsewhere. If you changed it, pass the same value as `--storage-dir <name>`; otherwise the two sides read different directories and take their locks in different places, so their writes are no longer serialized against each other.
 - **Version mismatch with the extension** — the MCP server and the VS Code extension share the on-disk note format via `@jnahian/code-notes-core`. Keep them on compatible versions; a note written by a newer format may not round-trip through an older reader.
 

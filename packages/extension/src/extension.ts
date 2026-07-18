@@ -5,7 +5,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { StorageManager, ExportWriter, ContentHashTracker, NoteManager, SearchManager, LockManager } from '@jnahian/code-notes-core';
+import { StorageManager, ExportWriter, ContentHashTracker, NoteManager, SearchManager, LockManager, writeWorkspaceConfig, AuditLog, ProposalStore, hashNoteContent } from '@jnahian/code-notes-core';
+import type { AuditEntry, Proposal } from '@jnahian/code-notes-core';
+import { AgentActivityProvider, AgentActivityItem } from './agentActivityProvider.js';
+import { PendingProposalsProvider, ProposalItem } from './pendingProposalsProvider.js';
 import { GitIntegration } from './gitIntegration.js';
 import { CommentController } from './commentController.js';
 import { CodeNotesLensProvider } from './codeLensProvider.js';
@@ -13,6 +16,13 @@ import { NotesSidebarProvider } from './notesSidebarProvider.js';
 import { buildBlock, upsertManagedBlock } from './agentsLink.js';
 
 let noteManager: NoteManager;
+// Module-scoped like noteManager: registerAllCommands runs on both the
+// workspace and no-workspace paths, so its handlers guard on this being set
+// rather than capturing it.
+let auditLog: AuditLog | undefined;
+let agentActivityProvider: AgentActivityProvider | undefined;
+let proposalStore: ProposalStore | undefined;
+let pendingProposalsProvider: PendingProposalsProvider | undefined;
 let exportWriter: ExportWriter;
 let searchManager: SearchManager;
 let commentController: CommentController;
@@ -67,6 +77,56 @@ export async function activate(context: vscode.ExtensionContext) {
 	const authorName = config.get<string>('authorName', '');
 	const showCodeLens = config.get<boolean>('showCodeLens', true);
 
+	// The MCP server can't read VS Code settings — it reads config.json. Treat
+	// the VS Code settings as the UI and config.json as the shared source of
+	// truth, and keep them in sync.
+	const storagePath = path.join(workspaceRoot, storageDirectory);
+	const syncWorkspaceConfig = async () => {
+		const cfg = vscode.workspace.getConfiguration('codeContextNotes');
+		await writeWorkspaceConfig(storagePath, {
+			agentWriteMode: cfg.get<'direct' | 'audit' | 'queue'>('agentWriteMode', 'audit'),
+			agentAllowList: cfg.get<string[]>('agentAllowList', []),
+			auditLogRetention: cfg.get<number>('auditLogRetention', 1000),
+		});
+	};
+
+	context.subscriptions.push(
+		vscode.workspace.onDidChangeConfiguration(async (e) => {
+			if (
+				e.affectsConfiguration('codeContextNotes.agentWriteMode') ||
+				e.affectsConfiguration('codeContextNotes.agentAllowList') ||
+				e.affectsConfiguration('codeContextNotes.auditLogRetention')
+			) {
+				// The user changed a setting, so creating the storage dir here is
+				// what they asked for.
+				await syncWorkspaceConfig();
+			}
+
+			// Leaving queue mode strands anything still pending — those writes
+			// were never applied, and silently abandoning them would lose an
+			// agent's work without anyone deciding to.
+			if (e.affectsConfiguration('codeContextNotes.agentWriteMode') && proposalStore) {
+				const mode = vscode.workspace.getConfiguration('codeContextNotes').get<string>('agentWriteMode');
+				const stranded = await proposalStore.list();
+				if (mode !== 'queue' && stranded.length > 0) {
+					const pick = await vscode.window.showWarningMessage(
+						`${stranded.length} agent proposal(s) are still pending, but queue mode is off.`,
+						'Review them',
+						'Reject all',
+					);
+					if (pick === 'Review them') {
+						await vscode.commands.executeCommand('codeContextNotes.pendingProposalsView.focus');
+					} else if (pick === 'Reject all') {
+						for (const p of stranded) {
+							await proposalStore.reject(p.proposalId);
+						}
+						pendingProposalsProvider?.refresh();
+					}
+				}
+			}
+		}),
+	);
+
 	// Initialize components
 	const storage = new StorageManager(workspaceRoot, storageDirectory);
 	const hashTracker = new ContentHashTracker();
@@ -78,6 +138,40 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Initialize note manager
 	noteManager = new NoteManager(storage, hashTracker, gitIntegration, { lockManager });
+
+	// Mirror the settings for the MCP server, but only once this workspace
+	// actually uses notes. writeWorkspaceConfig creates a git-visible file, and
+	// opening an unrelated project with the extension installed must not add
+	// one. (storageExists() is no use as the signal — createStorage() above
+	// makes it true everywhere.) A workspace with no config.json reads as the
+	// default mode anyway, so nothing is lost by waiting.
+	if ((await storage.getAllNoteFiles()).length > 0) {
+		await syncWorkspaceConfig();
+	}
+
+	// Agent activity: a read-only view over the audit log the MCP server writes.
+	auditLog = new AuditLog(path.join(storagePath, '_audit.log'), {
+		lockManager,
+		retention: config.get<number>('auditLogRetention', 1000),
+	});
+	agentActivityProvider = new AgentActivityProvider(auditLog);
+	context.subscriptions.push(
+		vscode.window.registerTreeDataProvider('codeContextNotes.agentActivityView', agentActivityProvider),
+	);
+	// The watcher emits this when the MCP server appends from another process.
+	noteManager.on('auditLogChanged', () => agentActivityProvider?.refresh());
+
+	// Pending proposals (queue mode): the review queue for agent writes.
+	proposalStore = new ProposalStore(path.join(storagePath, '_pending'));
+	// A proposal is orphaned when the note it targets is gone — approving it
+	// would have nothing to apply to.
+	const isOrphaned = async (p: Proposal): Promise<boolean> =>
+		p.op !== 'create' && !(await noteManager.getNoteByIdGlobal(p.targetNoteId!));
+	pendingProposalsProvider = new PendingProposalsProvider(proposalStore, isOrphaned);
+	context.subscriptions.push(
+		vscode.window.registerTreeDataProvider('codeContextNotes.pendingProposalsView', pendingProposalsProvider),
+	);
+	noteManager.on('proposalsChanged', () => pendingProposalsProvider?.refresh());
 
 	// Initialize search manager
 	searchManager = new SearchManager(context.globalState);
@@ -237,7 +331,215 @@ const x = 1;
  * Note: Commands are registered even without a workspace, but many will show
  * error messages if workspace-dependent features (noteManager, commentController) are not initialized
  */
+/**
+ * Apply an approved proposal as if the approver wrote it. The approver's name
+ * goes on the note and in approvedBy; authorType stays 'agent' because an
+ * agent did compose it — approval is accountability, not authorship laundering.
+ *
+ * noteManager here is the extension's (agentWriter false), so applying is a
+ * human write: it is not re-diverted into another proposal.
+ */
+async function applyProposal(p: Proposal, content: string): Promise<void> {
+	if (!noteManager || !proposalStore) {
+		throw new Error('Code Context Notes requires a workspace folder to be opened.');
+	}
+	const approver = await noteManager.getDefaultAuthor();
+	const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(p.file));
+
+	if (p.op === 'create') {
+		await noteManager.createNote({
+			filePath: p.file,
+			lineRange: p.lineRange!,
+			content,
+			author: approver,
+			authorType: 'agent',
+			approvedBy: approver,
+		}, doc);
+	} else if (p.op === 'edit') {
+		await noteManager.updateNote({ id: p.targetNoteId!, content, author: approver, approvedBy: approver }, doc);
+	} else {
+		await noteManager.deleteNote(p.targetNoteId!, p.file);
+	}
+
+	await proposalStore.remove(p.proposalId);
+	pendingProposalsProvider?.refresh();
+}
+
+/**
+ * Simple-pick, not a 3-way merge (spec §7.6): if the note changed after the
+ * agent proposed its edit, the human picks a side. Returns the content to
+ * apply, or undefined to abandon. Add a real merge only if conflicts turn out
+ * to be common.
+ */
+async function resolveStaleTarget(p: Proposal): Promise<string | undefined> {
+	if (p.op === 'create' || !p.targetContentHash || !noteManager) {
+		return p.content;
+	}
+	const current = await noteManager.getNoteByIdGlobal(p.targetNoteId!);
+	if (!current) {
+		vscode.window.showWarningMessage('The note this proposal targets no longer exists. Reject it instead.');
+		return undefined;
+	}
+	if (hashNoteContent(current.content) === p.targetContentHash) {
+		return p.content;
+	}
+
+	const pick = await vscode.window.showWarningMessage(
+		'This note changed after the agent proposed its edit.',
+		{ modal: true, detail: `Yours:\n${current.content}\n\nAgent's:\n${p.content}` },
+		"Use agent's version",
+		'Keep mine',
+	);
+	return pick === "Use agent's version" ? p.content : undefined;
+}
+
 function registerAllCommands(context: vscode.ExtensionContext) {
+	// --- Agent activity (audit mode) ---
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('codeContextNotes.openAuditedNote', async (entry: AuditEntry) => {
+			if (!noteManager) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+			// Include deleted: a delete audit entry points at a soft-deleted
+			// note, and you still want to jump to where it was.
+			const note = await noteManager.getNoteByIdIncludingDeleted(entry.noteId);
+			if (!note) {
+				vscode.window.showWarningMessage(`Note ${entry.noteId} no longer exists.`);
+				return;
+			}
+			const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(note.filePath));
+			const editor = await vscode.window.showTextDocument(doc);
+			const line = note.lineRange.start;
+			editor.revealRange(new vscode.Range(line, 0, line, 0), vscode.TextEditorRevealType.InCenter);
+			editor.selection = new vscode.Selection(line, 0, line, 0);
+		}),
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('codeContextNotes.truncateAuditLog', async () => {
+			if (!auditLog) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+			const pick = await vscode.window.showWarningMessage(
+				'Clear the agent audit log? Recorded activity will be lost; your notes are unaffected.',
+				{ modal: true },
+				'Clear log',
+			);
+			if (pick !== 'Clear log') {
+				return;
+			}
+			await auditLog.truncate();
+			agentActivityProvider?.refresh();
+		}),
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('codeContextNotes.revertAgentOp', async (item: AgentActivityItem) => {
+			if (!noteManager) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+			const { entry } = item;
+			// Include deleted: a delete entry is precisely the case where the
+			// note is soft-deleted, and it's what Revert must restore.
+			const note = await noteManager.getNoteByIdIncludingDeleted(entry.noteId);
+			if (!note) {
+				vscode.window.showWarningMessage(`Note ${entry.noteId} no longer exists — nothing to revert.`);
+				return;
+			}
+
+			const confirm = await vscode.window.showWarningMessage(
+				`Revert the ${entry.op} by ${entry.agent}?`,
+				{ modal: true },
+				'Revert',
+			);
+			if (confirm !== 'Revert') {
+				return;
+			}
+
+			try {
+				if (entry.op === 'create') {
+					// The reverse of a create is a delete.
+					await noteManager.deleteNote(note.id, note.filePath);
+				} else if (entry.op === 'delete') {
+					// The reverse of a delete is a restore. The content survived the
+					// soft-delete, so undeleteNote brings it back as it was.
+					await noteManager.undeleteNote(note.id);
+				} else {
+					// The reverse of an edit is the content this edit replaced. Find
+					// it by prevContentHash rather than by position: the clicked entry
+					// may not be the note's latest change (a later agent or human edit
+					// could have landed on top), and history[length - 2] would then
+					// restore the wrong version — including re-applying the agent's own
+					// content if a human edited after it.
+					const prior = entry.prevContentHash
+						? note.history.find(h => hashNoteContent(h.content) === entry.prevContentHash)
+						: undefined;
+					if (!prior) {
+						vscode.window.showWarningMessage('No prior version recorded for this note.');
+						return;
+					}
+					const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(note.filePath));
+					await noteManager.updateNote({ id: note.id, content: prior.content }, doc);
+				}
+				agentActivityProvider?.refresh();
+				vscode.window.showInformationMessage(`Reverted ${entry.op} on ${path.basename(note.filePath)}.`);
+			} catch (e) {
+				vscode.window.showErrorMessage(`Revert failed: ${(e as Error).message}`);
+			}
+		}),
+	);
+
+	// --- Pending agent proposals (queue mode) ---
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('codeContextNotes.rejectProposal', async (item: ProposalItem) => {
+			if (!proposalStore) {
+				vscode.window.showErrorMessage('Code Context Notes requires a workspace folder to be opened.');
+				return;
+			}
+			await proposalStore.reject(item.proposal.proposalId);
+			pendingProposalsProvider?.refresh();
+			vscode.window.showInformationMessage('Proposal rejected. Kept in _pending/.rejected/ for audit.');
+		}),
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('codeContextNotes.approveProposal', async (item: ProposalItem) => {
+			try {
+				const content = await resolveStaleTarget(item.proposal);
+				if (content === undefined) {
+					return;
+				}
+				await applyProposal(item.proposal, content);
+				vscode.window.showInformationMessage('Proposal approved.');
+			} catch (e) {
+				vscode.window.showErrorMessage(`Approve failed: ${(e as Error).message}`);
+			}
+		}),
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('codeContextNotes.editAndApproveProposal', async (item: ProposalItem) => {
+			const edited = await vscode.window.showInputBox({
+				prompt: 'Edit the proposed note before approving',
+				value: item.proposal.content,
+			});
+			if (edited === undefined) {
+				return;
+			}
+			try {
+				await applyProposal(item.proposal, edited);
+				vscode.window.showInformationMessage('Proposal approved with your edits.');
+			} catch (e) {
+				vscode.window.showErrorMessage(`Approve failed: ${(e as Error).message}`);
+			}
+		}),
+	);
+
 	// Add Note to Selection (via command palette or keyboard shortcut)
 	const addNoteCommand = vscode.commands.registerCommand(
 		'codeContextNotes.addNote',
@@ -1249,9 +1551,25 @@ function setupEventListeners(context: vscode.ExtensionContext) {
 	const storageDirectory = config.get<string>('storageDirectory', '.code-notes');
 	const fileWatcherPattern = new vscode.RelativePattern(
 		vscode.workspace.workspaceFolders![0],
-		`${storageDirectory}/**/*.md`
+		`${storageDirectory}/**/*.{md,log}`
 	);
 	const fileWatcher = vscode.workspace.createFileSystemWatcher(fileWatcherPattern);
+
+	// Proposals and the audit log live under the storage dir but are not notes.
+	// Route them to their own views instead of the note cache/sidebar.
+	const storagePath = path.join(vscode.workspace.workspaceFolders![0].uri.fsPath, storageDirectory);
+	const routeNonNoteFile = (uri: vscode.Uri): boolean => {
+		const rel = path.relative(storagePath, uri.fsPath);
+		if (rel.startsWith('_pending')) {
+			noteManager.emit('proposalsChanged');
+			return true;
+		}
+		if (path.basename(uri.fsPath).startsWith('_audit.log')) {
+			noteManager.emit('auditLogChanged');
+			return true;
+		}
+		return false;
+	};
 
 	// AGENTS.md is a generated export living in the same directory; treating
 	// it as a note would make export regeneration re-trigger itself forever.
@@ -1259,6 +1577,9 @@ function setupEventListeners(context: vscode.ExtensionContext) {
 
 	// When a note file is created
 	fileWatcher.onDidCreate((uri) => {
+		if (routeNonNoteFile(uri)) {
+			return;
+		}
 		if (isGeneratedExport(uri)) {
 			return;
 		}
@@ -1270,6 +1591,9 @@ function setupEventListeners(context: vscode.ExtensionContext) {
 
 	// When a note file is changed
 	fileWatcher.onDidChange((uri) => {
+		if (routeNonNoteFile(uri)) {
+			return;
+		}
 		if (isGeneratedExport(uri)) {
 			return;
 		}
@@ -1281,6 +1605,9 @@ function setupEventListeners(context: vscode.ExtensionContext) {
 
 	// When a note file is deleted
 	fileWatcher.onDidDelete((uri) => {
+		if (routeNonNoteFile(uri)) {
+			return;
+		}
 		if (isGeneratedExport(uri)) {
 			return;
 		}

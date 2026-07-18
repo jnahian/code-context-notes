@@ -6,6 +6,7 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import {
   StorageManager, NoteManager, LockManager, ContentHashTracker, AuthorProvider,
+  AuditLog, ProposalStore, PendingWriteError, readWorkspaceConfig,
 } from '@jnahian/code-notes-core';
 import { getNoteToolDef, getNoteInput, getNote } from './tools/get_note.js';
 import { getNotesForFileToolDef, getNotesForFileInput, getNotesForFile } from './tools/get_notes_for_file.js';
@@ -18,7 +19,7 @@ import { editNoteToolDef, editNoteInput, editNote } from './tools/edit_note.js';
 import { deleteNoteToolDef, deleteNoteInput, deleteNote } from './tools/delete_note.js';
 import { addHandoffToolDef, addHandoffInput, addHandoff } from './tools/add_handoff.js';
 import { addDecisionToolDef, addDecisionInput, addDecision } from './tools/add_decision.js';
-import { errorResult } from './tools/errors.js';
+import { errorResult, pendingResult } from './tools/errors.js';
 import { digestResourceDef, readDigest } from './resources/digest.js';
 import { indexResourceDef, readIndex } from './resources/indexResource.js';
 import { FILE_RESOURCE_URI_PREFIX, readFileResource } from './resources/file.js';
@@ -84,6 +85,9 @@ export async function handleToolCall(
   try {
     return await dispatchToolCall(name, args, deps);
   } catch (e) {
+    // Queue mode diverted the write to a proposal — the expected outcome in
+    // that mode, not a failure.
+    if (e instanceof PendingWriteError) return pendingResult(e.proposalId);
     // Last-resort guard: anything a tool still throws (e.g. an unexpected
     // failure after a note was already created) becomes an in-band error, so
     // tool failures are never surfaced as JSON-RPC protocol errors.
@@ -173,7 +177,24 @@ export async function startServer(args: StartArgs): Promise<void> {
     getAuthorName: async () => args.agent ?? 'unknown-agent',
     updateConfigOverride: () => {},
   };
-  const noteManager = new NoteManager(storage, hashTracker, authorProvider, { lockManager });
+  const storagePath = path.join(workspace, storageDir);
+  const auditLog = new AuditLog(path.join(storagePath, '_audit.log'), {
+    lockManager,
+    retention: (await readWorkspaceConfig(storagePath)).auditLogRetention,
+  });
+  const proposalStore = new ProposalStore(path.join(storagePath, '_pending'));
+  const noteManager = new NoteManager(storage, hashTracker, authorProvider, {
+    lockManager,
+    auditLog,
+    proposalStore,
+    // Re-read per call, never captured: a human can change the mode while this
+    // long-lived server runs, and a cached policy is a policy that lies.
+    agentWriteMode: async () => (await readWorkspaceConfig(storagePath)).agentWriteMode,
+    agentName: args.agent ?? 'unknown-agent',
+    // This server is the agent: every write it makes is an agent write,
+    // whatever note it targets.
+    agentWriter: true,
+  });
 
   const readOnly = !args.agent;
   const server = new Server(

@@ -11,6 +11,8 @@ import { NoteManager } from '../src/noteManager.js';
 import { ContentHashTracker } from '../src/contentHashTracker.js';
 import { StorageManager } from '../src/storageManager.js';
 import { LockManager } from '../src/lockManager.js';
+import { AuditLog, hashNoteContent } from '../src/auditLog.js';
+import { ProposalStore, PendingWriteError } from '../src/proposalStore.js';
 import { CreateNoteParams, UpdateNoteParams, NoteDocument, AuthorProvider } from '../src/types.js';
 
 class FakeAuthorProvider implements AuthorProvider {
@@ -51,6 +53,30 @@ describe('NoteManager Test Suite', () => {
 	});
 
 	describe('Note Creation', () => {
+		it('applies metadata in the single create write, with no second save', async () => {
+			const doc = createMockDocument('line0\nline1\n');
+			const note = await noteManager.createNote({
+				content: 'Watch out',
+				filePath: doc.uri.fsPath,
+				lineRange: { start: 0, end: 0 },
+				type: 'warning',
+				tags: ['security'],
+				priority: 'high',
+				authorType: 'agent',
+			}, doc);
+
+			expect(note.type).toBe('warning');
+			expect(note.tags).toEqual(['security']);
+			expect(note.priority).toBe('high');
+			expect(note.authorType).toBe('agent');
+			// One write means one history entry — a second save would add another.
+			expect(note.history).toHaveLength(1);
+
+			const onDisk = await noteManager.getNoteByIdGlobal(note.id);
+			expect(onDisk!.type).toBe('warning');
+			expect(onDisk!.authorType).toBe('agent');
+		});
+
 		it('should create a new note', async () => {
 			const doc = createMockDocument('function test() {\n  return true;\n}');
 			const params: CreateNoteParams = {
@@ -171,6 +197,22 @@ describe('NoteManager Test Suite', () => {
 			expect(updatedNote.history.length).toBe(2);
 			expect(updatedNote.history[1].action).toBe('edited');
 			expect(updatedNote.history[1].content).toBe('Updated content');
+		});
+
+		it('records approvedBy on an update when supplied (approved edit proposal)', async () => {
+			const doc = createMockDocument('function test() {}');
+			const note = await noteManager.createNote({
+				content: 'original', filePath: doc.uri.fsPath, lineRange: { start: 0, end: 0 },
+			}, doc);
+
+			const updated = await noteManager.updateNote(
+				{ id: note.id, content: 'approved edit', author: 'Jane Dev', approvedBy: 'Jane Dev' },
+				doc,
+			);
+			expect(updated.approvedBy).toBe('Jane Dev');
+			// survives a reload
+			const onDisk = await noteManager.getNoteByIdGlobal(note.id);
+			expect(onDisk!.approvedBy).toBe('Jane Dev');
 		});
 
 		it('should trim updated content', async () => {
@@ -304,6 +346,65 @@ describe('NoteManager Test Suite', () => {
 			await noteManager.deleteNote(note.id, doc.uri.fsPath);
 
 			await expect(noteManager.deleteNote(note.id, doc.uri.fsPath)).rejects.toThrow(/already deleted/);
+		});
+
+		// Reverting a delete (the audit-mode Revert button) is the path the
+		// whole-branch review found broken: getNoteByIdGlobal hid the note and
+		// updateNote refused it. These pin the primitives that fix supplies.
+		it('getNoteByIdIncludingDeleted returns a soft-deleted note', async () => {
+			const doc = createMockDocument('function test() {}');
+			const note = await noteManager.createNote({
+				content: 'to delete', filePath: doc.uri.fsPath, lineRange: { start: 0, end: 0 },
+			}, doc);
+			await noteManager.deleteNote(note.id, doc.uri.fsPath);
+
+			expect(await noteManager.getNoteByIdGlobal(note.id)).toBeUndefined();
+			const found = await noteManager.getNoteByIdIncludingDeleted(note.id);
+			expect(found).toBeTruthy();
+			expect(found!.isDeleted).toBe(true);
+			expect(found!.content).toBe('to delete');
+		});
+
+		it('undeleteNote restores a deleted note with its content and a history entry', async () => {
+			const doc = createMockDocument('function test() {}');
+			const note = await noteManager.createNote({
+				content: 'important note', filePath: doc.uri.fsPath, lineRange: { start: 0, end: 0 },
+			}, doc);
+			await noteManager.deleteNote(note.id, doc.uri.fsPath);
+
+			const restored = await noteManager.undeleteNote(note.id);
+			expect(restored.isDeleted).toBe(false);
+			expect(restored.content).toBe('important note');
+			// visible again through the normal lookup, and it survives a reload
+			expect(await noteManager.getNoteByIdGlobal(note.id)).toBeTruthy();
+			const onDisk = await noteManager.getNoteByIdGlobal(note.id);
+			expect(onDisk!.isDeleted).toBe(false);
+			// the restore is recorded with its own action, not disguised as an edit
+			expect(restored.history[restored.history.length - 1].action).toBe('restored');
+		});
+
+		it('undeleteNote rejects a note that is not deleted', async () => {
+			const doc = createMockDocument('function test() {}');
+			const note = await noteManager.createNote({
+				content: 'live', filePath: doc.uri.fsPath, lineRange: { start: 0, end: 0 },
+			}, doc);
+			await expect(noteManager.undeleteNote(note.id)).rejects.toThrow(/not deleted/);
+		});
+
+		it('undeleteNote is blocked for an agent writer', async () => {
+			const doc = createMockDocument('function test() {}');
+			const note = await noteManager.createNote({
+				content: 'x', filePath: doc.uri.fsPath, lineRange: { start: 0, end: 0 },
+			}, doc);
+			await noteManager.deleteNote(note.id, doc.uri.fsPath);
+
+			const agentManager = new NoteManager(
+				new StorageManager(tempDir, '.test-notes'),
+				new ContentHashTracker(),
+				new FakeAuthorProvider('claude-code'),
+				{ agentWriter: true, auditLog: new AuditLog(path.join(tempDir, '.test-notes', '_audit.log')) },
+			);
+			await expect(agentManager.undeleteNote(note.id)).rejects.toThrow(/not available to agent writers/);
 		});
 	});
 
@@ -536,6 +637,360 @@ describe('NoteManager Test Suite', () => {
 		});
 	});
 
+	describe('Position updates', () => {
+		it('does not clobber a concurrent content edit made by another process', async () => {
+			// Note attached to line 0; later the same text moves to line 2.
+			const before = createMockDocument('target line\nfiller\nfiller\n');
+			const note = await noteManager.createNote({
+				content: 'original',
+				filePath: before.uri.fsPath,
+				lineRange: { start: 0, end: 0 }
+			}, before);
+
+			// Another process edits the note's *content* while our cache is warm.
+			const other = new NoteManager(
+				new StorageManager(tempDir, '.test-notes'),
+				new ContentHashTracker(),
+				new FakeAuthorProvider('agent'),
+			);
+			await other.updateNote({ id: note.id, content: 'edited elsewhere' }, before);
+
+			// The code moves down two lines, so repositioning kicks in.
+			const after = createMockDocument('new\nnew\ntarget line\n', before.uri.fsPath);
+			await noteManager.updateNotePositions(after);
+
+			const fresh = new NoteManager(
+				new StorageManager(tempDir, '.test-notes'),
+				new ContentHashTracker(),
+				new FakeAuthorProvider('x'),
+			);
+			const final = await fresh.getNoteByIdGlobal(note.id);
+			// Repositioning must move the note WITHOUT resurrecting stale content.
+			expect(final!.content).toBe('edited elsewhere');
+			expect(final!.lineRange.start).toBe(2);
+		});
+	});
+
+	describe('Trust router', () => {
+		let auditLog: AuditLog;
+
+		const buildManager = (mode: 'direct' | 'audit') => new NoteManager(
+			new StorageManager(tempDir, '.test-notes'),
+			new ContentHashTracker(),
+			new FakeAuthorProvider('claude-code'),
+			{ auditLog, agentWriteMode: async () => mode, agentName: 'claude-code' },
+		);
+
+		beforeEach(() => {
+			auditLog = new AuditLog(path.join(tempDir, '.test-notes', '_audit.log'));
+		});
+
+		it('logs an agent create in audit mode', async () => {
+			const agentManager = buildManager('audit');
+			const doc = createMockDocument('line0\n');
+			const note = await agentManager.createNote({
+				content: 'agent note',
+				filePath: doc.uri.fsPath,
+				lineRange: { start: 0, end: 0 },
+				authorType: 'agent',
+			}, doc);
+
+			// The write still lands — audit logs, it doesn't block.
+			expect(await agentManager.getNoteByIdGlobal(note.id)).toBeTruthy();
+
+			const entries = await auditLog.read();
+			expect(entries).toHaveLength(1);
+			expect(entries[0]).toMatchObject({ op: 'create', noteId: note.id, agent: 'claude-code' });
+		});
+
+		it('logs an agent edit with before/after content hashes', async () => {
+			const agentManager = buildManager('audit');
+			const doc = createMockDocument('line0\n');
+			const note = await agentManager.createNote({
+				content: 'first',
+				filePath: doc.uri.fsPath,
+				lineRange: { start: 0, end: 0 },
+				authorType: 'agent',
+			}, doc);
+			await agentManager.updateNote({ id: note.id, content: 'second' }, doc);
+
+			const entries = await auditLog.read();
+			expect(entries[0].op).toBe('edit');
+			expect(entries[0].prevContentHash).toBeTruthy();
+			expect(entries[0].newContentHash).not.toBe(entries[0].prevContentHash);
+		});
+
+		it('logs an agent delete', async () => {
+			const agentManager = buildManager('audit');
+			const doc = createMockDocument('line0\n');
+			const note = await agentManager.createNote({
+				content: 'doomed',
+				filePath: doc.uri.fsPath,
+				lineRange: { start: 0, end: 0 },
+				authorType: 'agent',
+			}, doc);
+			await agentManager.deleteNote(note.id, doc.uri.fsPath);
+
+			const entries = await auditLog.read();
+			expect(entries[0]).toMatchObject({ op: 'delete', noteId: note.id });
+		});
+
+		// Regression: reverting an agent edit that is NOT the note's latest change.
+		// The Agent activity view lets you Revert any listed entry, so a later
+		// edit (here a human's) may sit on top of the one being reverted. The
+		// revert must restore the version this edit replaced — identified by the
+		// entry's prevContentHash — not the positionally-second-to-last history
+		// entry, which after a later edit is the agent's own content.
+		it('an agent edit is reverted by prevContentHash, not by history position', async () => {
+			const agentManager = buildManager('audit');
+			const doc = createMockDocument('line0\n');
+			const note = await agentManager.createNote({
+				content: 'c0-original',
+				filePath: doc.uri.fsPath,
+				lineRange: { start: 0, end: 0 },
+				authorType: 'agent',
+			}, doc);
+
+			// The agent edit we will later revert (c0 -> c1).
+			await agentManager.updateNote({ id: note.id, content: 'c1-agent-edit' }, doc);
+
+			// A human edits afterwards (c1 -> c2), so the agent edit is no longer
+			// the note's most recent change. Human writes are not audited.
+			const humanManager = new NoteManager(
+				new StorageManager(tempDir, '.test-notes'),
+				new ContentHashTracker(),
+				new FakeAuthorProvider('a-human'),
+				{ auditLog, agentWriteMode: async () => 'audit', agentWriter: false },
+			);
+			await humanManager.updateNote({ id: note.id, content: 'c2-human-later-edit' }, doc);
+
+			// The audit log holds only the two agent ops; the edit is newest.
+			const editEntry = (await auditLog.read()).find(e => e.op === 'edit')!;
+			expect(editEntry.prevContentHash).toBe(hashNoteContent('c0-original'));
+
+			const reloaded = (await humanManager.getNoteByIdGlobal(note.id))!;
+
+			// What revertAgentOp does: locate the version this edit replaced.
+			const prior = reloaded.history.find(
+				h => hashNoteContent(h.content) === editEntry.prevContentHash,
+			);
+			expect(prior?.content).toBe('c0-original');
+
+			// The old positional approach (history[length - 2]) would restore the
+			// agent's own content instead — exactly the bug this guards against.
+			expect(reloaded.history[reloaded.history.length - 2].content).toBe('c1-agent-edit');
+		});
+
+		// One instance, one identity: the extension's manager is a human's, so
+		// even sharing the audit log it must never record its own writes.
+		it('does not log a write from a non-agent manager, even in audit mode', async () => {
+			const humanManager = new NoteManager(
+				new StorageManager(tempDir, '.test-notes'),
+				new ContentHashTracker(),
+				new FakeAuthorProvider('a-human'),
+				{ auditLog, agentWriteMode: async () => 'audit', agentWriter: false },
+			);
+			const doc = createMockDocument('line0\n');
+			const note = await humanManager.createNote({
+				content: 'human note',
+				filePath: doc.uri.fsPath,
+				lineRange: { start: 0, end: 0 },
+			}, doc);
+			await humanManager.updateNote({ id: note.id, content: 'human edit' }, doc);
+			await humanManager.deleteNote(note.id, doc.uri.fsPath);
+
+			expect(await auditLog.read()).toEqual([]);
+		});
+
+		// These two write notes but are deliberately NOT routed through the
+		// trust model — they're human-only paths. Guard them so a future
+		// agent-facing caller fails loudly instead of silently bypassing.
+		it('refuses updateNoteMetadata and updateNotePositions from an agent manager', async () => {
+			const agentManager = buildManager('audit');
+			const doc = createMockDocument('line0\n');
+			const note = await agentManager.createNote({
+				content: 'agent note',
+				filePath: doc.uri.fsPath,
+				lineRange: { start: 0, end: 0 },
+				authorType: 'agent',
+			}, doc);
+
+			await expect(agentManager.updateNoteMetadata(note.id, { priority: 'high' }))
+				.rejects.toThrow(/not available to agent writers/);
+			await expect(agentManager.updateNotePositions(doc))
+				.rejects.toThrow(/not available to agent writers/);
+
+			// The human's manager still uses both freely.
+			await expect(noteManager.updateNoteMetadata(note.id, { priority: 'high' })).resolves.toBeTruthy();
+			await expect(noteManager.updateNotePositions(doc)).resolves.toBeInstanceOf(Array);
+		});
+
+		it('does not log in direct mode', async () => {
+			const agentManager = buildManager('direct');
+			const doc = createMockDocument('line0\n');
+			await agentManager.createNote({
+				content: 'agent note',
+				filePath: doc.uri.fsPath,
+				lineRange: { start: 0, end: 0 },
+				authorType: 'agent',
+			}, doc);
+
+			expect(await auditLog.read()).toEqual([]);
+		});
+
+		describe('queue mode', () => {
+			let store: ProposalStore;
+
+			const buildQueued = () => new NoteManager(
+				new StorageManager(tempDir, '.test-notes'),
+				new ContentHashTracker(),
+				new FakeAuthorProvider('claude-code'),
+				{ proposalStore: store, agentWriteMode: async () => 'queue', agentName: 'claude-code' },
+			);
+
+			beforeEach(() => {
+				store = new ProposalStore(path.join(tempDir, '.test-notes', '_pending'));
+			});
+
+			it('diverts an agent create to a proposal, writing no note', async () => {
+				const queued = buildQueued();
+				const doc = createMockDocument('line0\n');
+
+				await expect(queued.createNote({
+					content: 'proposed',
+					filePath: doc.uri.fsPath,
+					lineRange: { start: 0, end: 0 },
+					authorType: 'agent',
+				}, doc)).rejects.toBeInstanceOf(PendingWriteError);
+
+				// No note landed...
+				expect(await queued.getAllNotes()).toHaveLength(0);
+				// ...but a proposal did.
+				const proposals = await store.list();
+				expect(proposals).toHaveLength(1);
+				expect(proposals[0]).toMatchObject({ op: 'create', agent: 'claude-code', content: 'proposed' });
+			});
+
+			it('diverts an agent edit, leaving the live note untouched', async () => {
+				const doc = createMockDocument('line0\n');
+				// Seed a note that already belongs to the agent.
+				const seeded = await buildManager('direct').createNote({
+					content: 'original',
+					filePath: doc.uri.fsPath,
+					lineRange: { start: 0, end: 0 },
+					authorType: 'agent',
+				}, doc);
+
+				const queued = buildQueued();
+				await expect(queued.updateNote({ id: seeded.id, content: 'proposed edit' }, doc))
+					.rejects.toBeInstanceOf(PendingWriteError);
+
+				expect((await queued.getNoteByIdGlobal(seeded.id))!.content).toBe('original');
+				const proposals = await store.list();
+				expect(proposals[0]).toMatchObject({
+					op: 'edit',
+					targetNoteId: seeded.id,
+					content: 'proposed edit',
+				});
+				// The stale-target check at approve time depends on this.
+				expect(proposals[0].targetContentHash).toBeTruthy();
+			});
+
+			it('diverts an agent delete, leaving the live note undeleted', async () => {
+				const doc = createMockDocument('line0\n');
+				const seeded = await buildManager('direct').createNote({
+					content: 'keep me for now',
+					filePath: doc.uri.fsPath,
+					lineRange: { start: 0, end: 0 },
+					authorType: 'agent',
+				}, doc);
+
+				const queued = buildQueued();
+				await expect(queued.deleteNote(seeded.id, doc.uri.fsPath))
+					.rejects.toBeInstanceOf(PendingWriteError);
+
+				expect((await queued.getNoteByIdGlobal(seeded.id))!.isDeleted).toBe(false);
+				expect((await store.list())[0]).toMatchObject({ op: 'delete', targetNoteId: seeded.id });
+			});
+
+			it('lets a non-agent manager write through untouched', async () => {
+				const humanManager = new NoteManager(
+					new StorageManager(tempDir, '.test-notes'),
+					new ContentHashTracker(),
+					new FakeAuthorProvider('a-human'),
+					{ proposalStore: store, agentWriteMode: async () => 'queue', agentWriter: false },
+				);
+				const doc = createMockDocument('line0\n');
+
+				const note = await humanManager.createNote({
+					content: 'human note',
+					filePath: doc.uri.fsPath,
+					lineRange: { start: 0, end: 0 },
+				}, doc);
+
+				expect(note.content).toBe('human note');
+				expect(await store.list()).toEqual([]);
+			});
+
+			// Identity comes from the writer, not the note. Keying off the note's
+			// authorType let an agent edit any human-authored note with no
+			// approval at all — the rails only covered notes agents had made
+			// themselves, which is exactly backwards for a shared codebase.
+			it('diverts an agent edit of a HUMAN-authored note', async () => {
+				const doc = createMockDocument('line0\n');
+				const humanNote = await noteManager.createNote({
+					content: 'human wrote this',
+					filePath: doc.uri.fsPath,
+					lineRange: { start: 0, end: 0 },
+				}, doc);
+
+				const agent = buildQueued();
+				await expect(agent.updateNote({ id: humanNote.id, content: 'agent rewrite' }, doc))
+					.rejects.toBeInstanceOf(PendingWriteError);
+
+				expect((await agent.getNoteByIdGlobal(humanNote.id))!.content).toBe('human wrote this');
+				expect((await store.list())[0]).toMatchObject({ op: 'edit', targetNoteId: humanNote.id });
+			});
+
+			it('diverts an agent delete of a HUMAN-authored note', async () => {
+				const doc = createMockDocument('line0\n');
+				const humanNote = await noteManager.createNote({
+					content: 'human wrote this',
+					filePath: doc.uri.fsPath,
+					lineRange: { start: 0, end: 0 },
+				}, doc);
+
+				const agent = buildQueued();
+				await expect(agent.deleteNote(humanNote.id, doc.uri.fsPath))
+					.rejects.toBeInstanceOf(PendingWriteError);
+
+				expect((await agent.getNoteByIdGlobal(humanNote.id))!.isDeleted).toBe(false);
+			});
+
+			// The mirror case: the extension has no agent wiring, so a human
+			// editing an agent's note (e.g. clicking Revert) must never be
+			// diverted into a proposal awaiting their own approval.
+			it('does not divert a human editing an AGENT-authored note', async () => {
+				const doc = createMockDocument('line0\n');
+				const agentNote = await buildManager('direct').createNote({
+					content: 'agent wrote this',
+					filePath: doc.uri.fsPath,
+					lineRange: { start: 0, end: 0 },
+					authorType: 'agent',
+				}, doc);
+
+				// noteManager is the extension's: no proposalStore, no agent wiring.
+				const reverted = await noteManager.updateNote(
+					{ id: agentNote.id, content: 'human reverted it' },
+					doc,
+				);
+
+				expect(reverted.content).toBe('human reverted it');
+				expect(await store.list()).toEqual([]);
+			});
+		});
+	});
+
 	describe('Note History', () => {
 		it('should get note history', async () => {
 			const doc = createMockDocument('function test() {}');
@@ -720,9 +1175,11 @@ describe('NoteManager Test Suite', () => {
  */
 let mockDocumentSeq = 0;
 
-function createMockDocument(content: string): NoteDocument {
+// atPath lets a test model the same file changing over time — notes are keyed
+// to uri.fsPath, so "the code moved" needs two documents sharing one path.
+function createMockDocument(content: string, atPath?: string): NoteDocument {
 	const lines = content.split('\n');
-	const filePath = `/test/file-${Date.now()}-${++mockDocumentSeq}.ts`;
+	const filePath = atPath ?? `/test/file-${Date.now()}-${++mockDocumentSeq}.ts`;
 
 	return {
 		lineCount: lines.length,
