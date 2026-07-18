@@ -4,16 +4,16 @@
 <section id="features" style="background:#0B1220;padding:92px 32px;">
   <div style="max-width:1120px;margin:0 auto;">
     <div data-reveal style="text-align:center;max-width:620px;margin:0 auto 56px;">
-      <div style="font:600 12px 'IBM Plex Mono';letter-spacing:.2em;color:#57B6A9;text-transform:uppercase;">What you get</div>
-      <h2 style="margin:14px 0 0;font:700 42px/1.1 'Space Grotesk';color:#F4F1E9;letter-spacing:-.02em;">Built for how code — and agents — actually move.</h2>
+      <div style="font:600 12px 'IBM Plex Mono';letter-spacing:.2em;color:#57B6A9;text-transform:uppercase;">Agent-first by design</div>
+      <h2 style="margin:14px 0 0;font:700 42px/1.1 'Space Grotesk';color:#F4F1E9;letter-spacing:-.02em;">Optimized context, in and out of the agent loop.</h2>
     </div>
 
     <!-- feature row 1: content hash -->
     <div data-reveal class="dc-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:center;margin-bottom:28px;">
       <div>
         <div style="display:inline-flex;font:600 12px 'IBM Plex Mono';color:#FF8A3D;background:rgba(255,138,61,.1);border:1px solid rgba(255,138,61,.25);padding:5px 11px;border-radius:999px;">CONTENT-HASH ANCHORING</div>
-        <h3 style="margin:16px 0 10px;font:600 28px 'Space Grotesk';color:#F4F1E9;">Notes survive the refactor.</h3>
-        <p style="margin:0;max-width:440px;font:400 16px/1.65 'IBM Plex Sans';color:#9BA3B4;">Every note is bound to the <em style="color:#FFC79E;font-style:normal;">content</em> of the code it describes, not a line number. Move the function, rename it, reformat the file — the note follows. No more annotations pointing at the wrong line after a rebase.</p>
+        <h3 style="margin:16px 0 10px;font:600 28px 'Space Grotesk';color:#F4F1E9;">Context that never points at the wrong line.</h3>
+        <p style="margin:0;max-width:440px;font:400 16px/1.65 'IBM Plex Sans';color:#9BA3B4;">Every note is bound to the <em style="color:#FFC79E;font-style:normal;">content</em> of the code it describes, not a line number. Refactor, rename, reformat — the note follows. Your agent is never handed context that drifted onto the wrong lines.</p>
       </div>
       <div style="background:#0F1826;border:1px solid #24313f;border-radius:15px;overflow:hidden;">
         <div style="display:flex;align-items:center;gap:7px;padding:11px 14px;border-bottom:1px solid #1a2536;"><span style="width:10px;height:10px;border-radius:50%;background:#FF8A3D;"></span><span style="width:10px;height:10px;border-radius:50%;background:#33405a;"></span><span style="width:10px;height:10px;border-radius:50%;background:#33405a;"></span><span style="margin-left:8px;font:500 12px 'IBM Plex Mono';color:#5c6780;">hash.ts</span></div>
@@ -40,7 +40,7 @@
       <div class="dc-order-2" style="order:2;">
         <div style="display:inline-flex;font:600 12px 'IBM Plex Mono';color:#57B6A9;background:rgba(87,182,169,.1);border:1px solid rgba(87,182,169,.28);padding:5px 11px;border-radius:999px;">MCP SERVER · TRUST MODEL</div>
         <h3 style="margin:16px 0 10px;font:600 28px 'Space Grotesk';color:#F4F1E9;">Agents read &amp; write — on your terms.</h3>
-        <p style="margin:0 0 16px;max-width:440px;font:400 16px/1.65 'IBM Plex Sans';color:#9BA3B4;">A standalone MCP server exposes your notes to AI coding agents through a trust gate. Pick the mode per workspace — nothing gets written without the access you granted.</p>
+        <p style="margin:0 0 16px;max-width:440px;font:400 16px/1.65 'IBM Plex Sans';color:#9BA3B4;">A standalone MCP server hands agents the right context on demand — <span style="font-family:'IBM Plex Mono';color:#c8d1e0;">get_notes_for_changes</span> returns the notes for the exact code they're about to edit. Writes pass through a trust gate you set per workspace.</p>
         <div style="display:flex;flex-direction:column;gap:8px;max-width:380px;">
           <div style="display:flex;gap:10px;align-items:center;"><span style="font:600 12px 'IBM Plex Mono';color:#57B6A9;width:58px;">Audit</span><span style="font:400 13px 'IBM Plex Sans';color:#9BA3B4;">the default — writes land immediately and are logged so you can review and revert.</span></div>
           <div style="display:flex;gap:10px;align-items:center;"><span style="font:600 12px 'IBM Plex Mono';color:#57B6A9;width:58px;">Queue</span><span style="font:400 13px 'IBM Plex Sans';color:#9BA3B4;">writes wait for your one-click approval.</span></div>
@@ -76,24 +76,24 @@
     <!-- feature grid -->
     <div class="dc-grid-4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;">
       <div data-reveal style="background:#0F1826;border:1px solid #1E2A40;border-radius:14px;padding:22px;">
-        <div style="font:600 16px 'IBM Plex Mono';color:#FF8A3D;">⟲</div>
-        <h4 style="margin:12px 0 7px;font:600 16px 'Space Grotesk';color:#F4F1E9;">Full edit history</h4>
-        <p style="margin:0;font:400 13.5px/1.55 'IBM Plex Sans';color:#8A93A6;">Every change keeps author + timestamp. See how the note evolved.</p>
+        <div style="font:600 16px 'IBM Plex Mono';color:#FF8A3D;">⌖</div>
+        <h4 style="margin:12px 0 7px;font:600 16px 'Space Grotesk';color:#F4F1E9;">Pre-edit context</h4>
+        <p style="margin:0;font:400 13.5px/1.55 'IBM Plex Sans';color:#8A93A6;"><span style="font-family:'IBM Plex Mono';color:#c8d1e0;">get_notes_for_changes</span> hands an agent the notes for the exact code it's about to touch.</p>
       </div>
       <div data-reveal style="background:#0F1826;border:1px solid #1E2A40;border-radius:14px;padding:22px;">
         <div style="font:600 16px 'IBM Plex Mono';color:#FF8A3D;">◫</div>
-        <h4 style="margin:12px 0 7px;font:600 16px 'Space Grotesk';color:#F4F1E9;">Rich metadata</h4>
-        <p style="margin:0;font:400 13.5px/1.55 'IBM Plex Sans';color:#8A93A6;">Type, tags, priority, scope, and references on every note.</p>
+        <h4 style="margin:12px 0 7px;font:600 16px 'Space Grotesk';color:#F4F1E9;">Living digest</h4>
+        <p style="margin:0;font:400 13.5px/1.55 'IBM Plex Sans';color:#8A93A6;">Every change regenerates <span style="font-family:'IBM Plex Mono';color:#c8d1e0;">AGENTS.md</span> + <span style="font-family:'IBM Plex Mono';color:#c8d1e0;">INDEX.json</span> — a prioritized context digest agents ingest.</p>
       </div>
       <div data-reveal style="background:#0F1826;border:1px solid #1E2A40;border-radius:14px;padding:22px;">
         <div style="font:600 16px 'IBM Plex Mono';color:#FF8A3D;">☰</div>
-        <h4 style="margin:12px 0 7px;font:600 16px 'Space Grotesk';color:#F4F1E9;">Workspace sidebar</h4>
-        <p style="margin:0;font:400 13.5px/1.55 'IBM Plex Sans';color:#8A93A6;">Browse, filter, and jump to every note in the project from one panel.</p>
+        <h4 style="margin:12px 0 7px;font:600 16px 'Space Grotesk';color:#F4F1E9;">Structured, not prose</h4>
+        <p style="margin:0;font:400 13.5px/1.55 'IBM Plex Sans';color:#8A93A6;">Type, priority, scope, tags, and references make every note machine-readable.</p>
       </div>
       <div data-reveal style="background:#0F1826;border:1px solid #1E2A40;border-radius:14px;padding:22px;">
         <div style="font:600 16px 'IBM Plex Mono';color:#FF8A3D;">⑃</div>
-        <h4 style="margin:12px 0 7px;font:600 16px 'Space Grotesk';color:#F4F1E9;">Team-friendly</h4>
-        <p style="margin:0;font:400 13.5px/1.55 'IBM Plex Sans';color:#8A93A6;">Commit <span style="font-family:'IBM Plex Mono';color:#c8d1e0;">.code-notes/</span> to share, or gitignore to keep local.</p>
+        <h4 style="margin:12px 0 7px;font:600 16px 'Space Grotesk';color:#F4F1E9;">Handoffs &amp; decisions</h4>
+        <p style="margin:0;font:400 13.5px/1.55 'IBM Plex Sans';color:#8A93A6;">Agents leave breadcrumbs — <span style="font-family:'IBM Plex Mono';color:#c8d1e0;">add_handoff</span> and <span style="font-family:'IBM Plex Mono';color:#c8d1e0;">add_decision</span> — for the next agent or teammate.</p>
       </div>
     </div>
   </div>
