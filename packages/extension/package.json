@@ -539,10 +539,17 @@
         "codeContextNotes.sidebar.sortBy": {
           "type": "string",
           "enum": [
-            "file"
+            "file",
+            "date",
+            "author"
+          ],
+          "enumDescriptions": [
+            "Alphabetically by file path",
+            "Most recently updated notes first",
+            "By author name, then file path"
           ],
           "default": "file",
-          "description": "Sort notes by file path"
+          "description": "How to sort files in the Notes sidebar"
         },
         "codeContextNotes.exports.enabled": {
           "type": "boolean",
