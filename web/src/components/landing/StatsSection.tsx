@@ -20,7 +20,7 @@ export function StatsSection() {
     },
     {
       icon: Zap,
-      value: "100+",
+      value: "446",
       label: "Total Tests",
       description: "Comprehensive test suite",
     },

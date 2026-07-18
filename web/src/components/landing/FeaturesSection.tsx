@@ -12,11 +12,32 @@ import {
   FileText,
   Users,
   Layers,
+  Server,
+  Shield,
+  Tag,
 } from "lucide-react";
 import { AnimatedSection } from "@/components/AnimatedSection";
 
 export function FeaturesSection() {
   const features = [
+    {
+      icon: Server,
+      title: "AI Agents & MCP Server",
+      description:
+        "A standalone MCP server gives Claude Code, Cursor, and other agents read/write access to your notes",
+    },
+    {
+      icon: Shield,
+      title: "Agent Trust Model",
+      description:
+        "Choose how agent writes land — direct, audited with one-click revert, or queued for your approval",
+    },
+    {
+      icon: Tag,
+      title: "Structured Notes",
+      description:
+        "Types, priorities, tags, references, and expiry turn notes into data agents can filter and act on",
+    },
     {
       icon: Layers,
       title: "Multiple Notes Per Line",
