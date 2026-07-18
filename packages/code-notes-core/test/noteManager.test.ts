@@ -11,7 +11,7 @@ import { NoteManager } from '../src/noteManager.js';
 import { ContentHashTracker } from '../src/contentHashTracker.js';
 import { StorageManager } from '../src/storageManager.js';
 import { LockManager } from '../src/lockManager.js';
-import { AuditLog } from '../src/auditLog.js';
+import { AuditLog, hashNoteContent } from '../src/auditLog.js';
 import { ProposalStore, PendingWriteError } from '../src/proposalStore.js';
 import { CreateNoteParams, UpdateNoteParams, NoteDocument, AuthorProvider } from '../src/types.js';
 
@@ -733,6 +733,52 @@ describe('NoteManager Test Suite', () => {
 
 			const entries = await auditLog.read();
 			expect(entries[0]).toMatchObject({ op: 'delete', noteId: note.id });
+		});
+
+		// Regression: reverting an agent edit that is NOT the note's latest change.
+		// The Agent activity view lets you Revert any listed entry, so a later
+		// edit (here a human's) may sit on top of the one being reverted. The
+		// revert must restore the version this edit replaced — identified by the
+		// entry's prevContentHash — not the positionally-second-to-last history
+		// entry, which after a later edit is the agent's own content.
+		it('an agent edit is reverted by prevContentHash, not by history position', async () => {
+			const agentManager = buildManager('audit');
+			const doc = createMockDocument('line0\n');
+			const note = await agentManager.createNote({
+				content: 'c0-original',
+				filePath: doc.uri.fsPath,
+				lineRange: { start: 0, end: 0 },
+				authorType: 'agent',
+			}, doc);
+
+			// The agent edit we will later revert (c0 -> c1).
+			await agentManager.updateNote({ id: note.id, content: 'c1-agent-edit' }, doc);
+
+			// A human edits afterwards (c1 -> c2), so the agent edit is no longer
+			// the note's most recent change. Human writes are not audited.
+			const humanManager = new NoteManager(
+				new StorageManager(tempDir, '.test-notes'),
+				new ContentHashTracker(),
+				new FakeAuthorProvider('a-human'),
+				{ auditLog, agentWriteMode: async () => 'audit', agentWriter: false },
+			);
+			await humanManager.updateNote({ id: note.id, content: 'c2-human-later-edit' }, doc);
+
+			// The audit log holds only the two agent ops; the edit is newest.
+			const editEntry = (await auditLog.read()).find(e => e.op === 'edit')!;
+			expect(editEntry.prevContentHash).toBe(hashNoteContent('c0-original'));
+
+			const reloaded = (await humanManager.getNoteByIdGlobal(note.id))!;
+
+			// What revertAgentOp does: locate the version this edit replaced.
+			const prior = reloaded.history.find(
+				h => hashNoteContent(h.content) === editEntry.prevContentHash,
+			);
+			expect(prior?.content).toBe('c0-original');
+
+			// The old positional approach (history[length - 2]) would restore the
+			// agent's own content instead — exactly the bug this guards against.
+			expect(reloaded.history[reloaded.history.length - 2].content).toBe('c1-agent-edit');
 		});
 
 		// One instance, one identity: the extension's manager is a human's, so

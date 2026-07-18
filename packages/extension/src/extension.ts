@@ -469,10 +469,15 @@ function registerAllCommands(context: vscode.ExtensionContext) {
 					// soft-delete, so undeleteNote brings it back as it was.
 					await noteManager.undeleteNote(note.id);
 				} else {
-					// The reverse of an edit is the previous content. history is
-					// append-only, so the entry before the last is the state this
-					// edit replaced.
-					const prior = note.history[note.history.length - 2];
+					// The reverse of an edit is the content this edit replaced. Find
+					// it by prevContentHash rather than by position: the clicked entry
+					// may not be the note's latest change (a later agent or human edit
+					// could have landed on top), and history[length - 2] would then
+					// restore the wrong version — including re-applying the agent's own
+					// content if a human edited after it.
+					const prior = entry.prevContentHash
+						? note.history.find(h => hashNoteContent(h.content) === entry.prevContentHash)
+						: undefined;
 					if (!prior) {
 						vscode.window.showWarningMessage('No prior version recorded for this note.');
 						return;
