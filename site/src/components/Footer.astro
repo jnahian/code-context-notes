@@ -1,0 +1,18 @@
+---
+// Footer
+import { GITHUB_URL, OPENVSX_URL } from '../consts';
+---
+<footer style="background:#0B1220;border-top:1px solid #182234;padding:34px 32px;">
+  <div style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <img src="/logo.png" width="26" height="26" style="border-radius:7px;" alt="Code Context Notes logo" />
+      <span style="font:600 14px 'Space Grotesk';color:#9BA3B4;">Code Context Notes</span>
+    </div>
+    <div style="display:flex;gap:22px;">
+      <a href="/docs" style="font:500 13px 'IBM Plex Sans';color:#6B7488;">Docs</a>
+      <a href="/changelog" style="font:500 13px 'IBM Plex Sans';color:#6B7488;">Changelog</a>
+      <a href={GITHUB_URL} target="_blank" rel="noopener" style="font:500 13px 'IBM Plex Sans';color:#6B7488;">GitHub</a>
+      <a href={OPENVSX_URL} target="_blank" rel="noopener" style="font:500 13px 'IBM Plex Sans';color:#6B7488;">Open VSX</a>
+    </div>
+  </div>
+</footer>

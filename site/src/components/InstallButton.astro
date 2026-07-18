@@ -1,0 +1,26 @@
+---
+// Orange install button that opens a marketplace dropdown (VS Code + Open VSX).
+// Native <details> — no JS needed to toggle.
+import { MARKETPLACE_URL, OPENVSX_URL } from '../consts';
+
+interface Props {
+  label?: string;
+  size?: 'sm' | 'lg';
+  align?: 'left' | 'right';
+}
+const { label = 'Add to VS Code', size = 'lg', align = 'left' } = Astro.props;
+
+const pad = size === 'sm' ? '9px 15px' : '14px 24px';
+const fs = size === 'sm' ? '14px' : '16px';
+const shadow = size === 'lg' ? 'box-shadow:0 12px 28px rgba(255,138,61,.32);' : '';
+---
+<details class="install-dd">
+  <summary style={`font:600 ${fs} 'IBM Plex Sans';color:#0B1220;background:#FF8A3D;padding:${pad};border-radius:11px;display:inline-flex;align-items:center;gap:9px;${shadow}`}>
+    {label}
+    <span class="dd-caret" style="font-size:11px;line-height:1;">▾</span>
+  </summary>
+  <div class={`dd-menu${align === 'right' ? ' right' : ''}`}>
+    <a href={MARKETPLACE_URL} target="_blank" rel="noopener">VS Code Marketplace<span class="dd-sub">code</span></a>
+    <a href={OPENVSX_URL} target="_blank" rel="noopener">Open VSX<span class="dd-sub">VSCodium</span></a>
+  </div>
+</details>

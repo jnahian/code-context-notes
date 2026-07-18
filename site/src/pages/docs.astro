@@ -1,0 +1,101 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import DocsSidebar from '../components/DocsSidebar.astro';
+import DocsToc from '../components/DocsToc.astro';
+import { GITHUB_URL } from '../consts';
+
+const navLinks = [
+  { label: 'Features', href: '/#features' },
+  { label: 'Changelog', href: '/changelog' },
+  { label: 'GitHub', href: GITHUB_URL, external: true },
+];
+---
+
+<Layout title="Docs — Code Context Notes">
+  <div style="background:#0B1220;min-height:100vh;">
+    <Nav links={navLinks} badge="docs" maxWidth={1280} />
+
+    <div class="docs-grid" style="max-width:1280px;margin:0 auto;display:grid;grid-template-columns:236px 1fr 200px;gap:40px;padding:40px 32px 100px;">
+
+      <DocsSidebar />
+
+      <main style="max-width:720px;min-width:0;">
+        <div style="font:600 12px 'IBM Plex Mono';letter-spacing:.16em;color:#FF8A3D;text-transform:uppercase;">Documentation</div>
+        <h1 id="intro" style="margin:12px 0 0;font:700 40px/1.1 'Space Grotesk';color:#F4F1E9;letter-spacing:-.02em;scroll-margin-top:88px;">Introduction</h1>
+        <p style="margin:18px 0 0;font:400 16.5px/1.7 'IBM Plex Sans';color:#c8d1e0;">Code Context Notes lets you attach contextual notes alongside your code without touching source files or git history. Notes live in a <span style="font-family:'IBM Plex Mono';color:#FFC79E;">.code-notes/</span> directory and follow code by content hash, so they survive moves and refactors instead of breaking on line numbers.</p>
+        <div style="margin:22px 0 0;background:#0F1826;border:1px solid #1E2A40;border-left:3px solid #57B6A9;border-radius:10px;padding:16px 18px;">
+          <div style="font:600 12px 'IBM Plex Mono';color:#57B6A9;margin-bottom:5px;">TL;DR</div>
+          <p style="margin:0;font:400 14.5px/1.6 'IBM Plex Sans';color:#9BA3B4;">Annotations that live next to code without being part of it — versioned, filterable, and reachable by AI agents through a trust gate you control.</p>
+        </div>
+
+        <h2 id="install" style="margin:44px 0 0;font:600 26px 'Space Grotesk';color:#F4F1E9;scroll-margin-top:88px;">Installation</h2>
+        <p style="margin:14px 0 0;font:400 16px/1.7 'IBM Plex Sans';color:#c8d1e0;">Install from the VS Code Marketplace or Open VSX, or from the command line:</p>
+        <div style="margin:16px 0 0;background:#080d17;border:1px solid #1E2A40;border-radius:11px;padding:16px 18px;font:500 13.5px/1.7 'IBM Plex Mono';color:#c8d1e0;"><span style="color:#57B6A9;">$</span> code --install-extension jnahian.code-context-notes</div>
+
+        <h2 id="first-note" style="margin:44px 0 0;font:600 26px 'Space Grotesk';color:#F4F1E9;scroll-margin-top:88px;">Your first note</h2>
+        <p style="margin:14px 0 0;font:400 16px/1.7 'IBM Plex Sans';color:#c8d1e0;">Select any range of code (or just place the cursor on a line) and press <span style="font-family:'IBM Plex Mono';color:#FFC79E;">⌘⌥N</span> — or run <span style="font-family:'IBM Plex Mono';color:#FFC79E;">Add Note</span> from the command palette. Write the note, set an optional type and tags, and save. It's written to <span style="font-family:'IBM Plex Mono';color:#FFC79E;">.code-notes/</span> and anchored to the selection's content hash.</p>
+
+        <h2 id="anatomy" style="margin:52px 0 0;font:600 26px 'Space Grotesk';color:#F4F1E9;scroll-margin-top:88px;">Anatomy of a note</h2>
+        <p style="margin:14px 0 18px;font:400 16px/1.7 'IBM Plex Sans';color:#c8d1e0;">Every note is a small JSON record. Beyond the body, it carries structured metadata and a full edit history.</p>
+        <div style="background:#080d17;border:1px solid #1E2A40;border-radius:12px;overflow:hidden;">
+          <div style="padding:10px 16px;border-bottom:1px solid #16202f;font:500 12px 'IBM Plex Mono';color:#5c6780;">.code-notes/charge.json</div>
+          <div style="padding:16px 18px;font:500 13.5px/1.85 'IBM Plex Mono';">
+            <div style="color:#c8d1e0;">&#123;</div>
+            <div><span style="color:#57B6A9;">&nbsp;&nbsp;"anchor"</span><span style="color:#c8d1e0;">: </span><span style="color:#FFC79E;">"#7c1e0a9d"</span><span style="color:#c8d1e0;">,</span> <span style="color:#3c4a63;">// content hash</span></div>
+            <div><span style="color:#57B6A9;">&nbsp;&nbsp;"type"</span><span style="color:#c8d1e0;">: </span><span style="color:#FFC79E;">"warning"</span><span style="color:#c8d1e0;">,</span> <span style="color:#3c4a63;">// context · instruction · warning · decision · todo · handoff · rationale</span></div>
+            <div><span style="color:#57B6A9;">&nbsp;&nbsp;"priority"</span><span style="color:#c8d1e0;">: </span><span style="color:#FF8A3D;">"high"</span><span style="color:#c8d1e0;">,</span> <span style="color:#3c4a63;">// low · normal · high · critical</span></div>
+            <div><span style="color:#57B6A9;">&nbsp;&nbsp;"tags"</span><span style="color:#c8d1e0;">: [</span><span style="color:#FFC79E;">"payments"</span><span style="color:#c8d1e0;">, </span><span style="color:#FFC79E;">"idempotency"</span><span style="color:#c8d1e0;">],</span></div>
+            <div><span style="color:#57B6A9;">&nbsp;&nbsp;"scope"</span><span style="color:#c8d1e0;">: </span><span style="color:#FFC79E;">"function"</span><span style="color:#c8d1e0;">,</span> <span style="color:#3c4a63;">// line · function · class · file · directory</span></div>
+            <div><span style="color:#57B6A9;">&nbsp;&nbsp;"references"</span><span style="color:#c8d1e0;">: [</span><span style="color:#FFC79E;">"RFC-integrations"</span><span style="color:#c8d1e0;">],</span></div>
+            <div><span style="color:#57B6A9;">&nbsp;&nbsp;"body"</span><span style="color:#c8d1e0;">: </span><span style="color:#FFC79E;">"Idempotency assumed — read the RFC first."</span><span style="color:#c8d1e0;">,</span></div>
+            <div><span style="color:#57B6A9;">&nbsp;&nbsp;"history"</span><span style="color:#c8d1e0;">: [&#123; </span><span style="color:#57B6A9;">"by"</span><span style="color:#c8d1e0;">: </span><span style="color:#FFC79E;">"@sam"</span><span style="color:#c8d1e0;">, </span><span style="color:#57B6A9;">"at"</span><span style="color:#c8d1e0;">: </span><span style="color:#FFC79E;">"2026-07-16"</span><span style="color:#c8d1e0;"> &#125;]</span></div>
+            <div style="color:#c8d1e0;">&#125;</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;">
+          <span style="font:500 12px 'IBM Plex Mono';color:#c8d1e0;background:#131C2E;border:1px solid #24313f;padding:5px 11px;border-radius:7px;">type</span>
+          <span style="font:500 12px 'IBM Plex Mono';color:#c8d1e0;background:#131C2E;border:1px solid #24313f;padding:5px 11px;border-radius:7px;">tags</span>
+          <span style="font:500 12px 'IBM Plex Mono';color:#c8d1e0;background:#131C2E;border:1px solid #24313f;padding:5px 11px;border-radius:7px;">priority</span>
+          <span style="font:500 12px 'IBM Plex Mono';color:#c8d1e0;background:#131C2E;border:1px solid #24313f;padding:5px 11px;border-radius:7px;">scope</span>
+          <span style="font:500 12px 'IBM Plex Mono';color:#c8d1e0;background:#131C2E;border:1px solid #24313f;padding:5px 11px;border-radius:7px;">references</span>
+          <span style="font:500 12px 'IBM Plex Mono';color:#c8d1e0;background:#131C2E;border:1px solid #24313f;padding:5px 11px;border-radius:7px;">edit history</span>
+        </div>
+
+        <h2 id="anchoring" style="margin:52px 0 0;font:600 26px 'Space Grotesk';color:#F4F1E9;scroll-margin-top:88px;">Content-hash anchoring</h2>
+        <p style="margin:14px 0 0;font:400 16px/1.7 'IBM Plex Sans';color:#c8d1e0;">When you attach a note, the extension hashes the selected code's content — not its position. On every edit it re-scans the file for that hash. If the code moved, the note moves with it. If the code changed enough that the hash no longer matches, the note is flagged as <span style="font-family:'IBM Plex Mono';color:#FFC79E;">drifted</span> rather than silently pointing at the wrong line.</p>
+        <div class="dc-grid-3" style="margin:20px 0 0;display:grid;grid-template-columns:1fr auto 1fr;gap:0;align-items:center;">
+          <div style="background:#0F1826;border:1px solid #24313f;border-radius:11px;padding:14px 16px;"><div style="font:500 11px 'IBM Plex Mono';color:#8A93A6;margin-bottom:6px;">line 40</div><div style="font:500 13px 'IBM Plex Mono';color:#c8d1e0;">function validate() &#123;</div><div style="font:500 12px 'IBM Plex Mono';color:#57B6A9;margin-top:5px;">└ #b21f attached</div></div>
+          <div style="text-align:center;padding:0 16px;"><div style="font:500 11px 'IBM Plex Mono';color:#8A93A6;">refactor</div><div style="font:700 20px 'IBM Plex Mono';color:#FF8A3D;">→</div></div>
+          <div style="background:#0F1826;border:1px solid #24313f;border-radius:11px;padding:14px 16px;"><div style="font:500 11px 'IBM Plex Mono';color:#8A93A6;margin-bottom:6px;">line 12</div><div style="font:500 13px 'IBM Plex Mono';color:#c8d1e0;">const check = () => &#123;</div><div style="font:500 12px 'IBM Plex Mono';color:#2e8a7d;">└ #b21f still attached ✓</div></div>
+        </div>
+
+        <h2 id="sidebar" style="margin:52px 0 0;font:600 26px 'Space Grotesk';color:#F4F1E9;scroll-margin-top:88px;">The sidebar</h2>
+        <p style="margin:14px 0 0;font:400 16px/1.7 'IBM Plex Sans';color:#c8d1e0;">A dedicated panel lists every note in the workspace. Filter by tag, type, priority, or scope; click to jump straight to the anchored code; and spot drifted notes at a glance.</p>
+
+        <h2 id="mcp" style="margin:52px 0 0;font:600 26px 'Space Grotesk';color:#F4F1E9;scroll-margin-top:88px;">MCP server &amp; trust model</h2>
+        <p style="margin:14px 0 0;font:400 16px/1.7 'IBM Plex Sans';color:#c8d1e0;">A standalone MCP server exposes your notes to AI coding agents. Access is governed by a trust mode set per workspace:</p>
+        <div style="display:flex;flex-direction:column;gap:10px;margin:20px 0 0;">
+          <div style="display:flex;gap:14px;align-items:flex-start;background:#0F1826;border:1px solid #1E2A40;border-radius:11px;padding:14px 16px;"><span style="font:600 13px 'IBM Plex Mono';color:#57B6A9;width:64px;flex:none;">Audit</span><span style="font:400 14.5px/1.55 'IBM Plex Sans';color:#9BA3B4;">The default. Agent writes land immediately and are logged to an audit trail you can review and revert.</span></div>
+          <div style="display:flex;gap:14px;align-items:flex-start;background:#0F1826;border:1px solid #1E2A40;border-radius:11px;padding:14px 16px;"><span style="font:600 13px 'IBM Plex Mono';color:#57B6A9;width:64px;flex:none;">Queue</span><span style="font:400 14.5px/1.55 'IBM Plex Sans';color:#9BA3B4;">Proposed writes wait in a queue for your one-click approval or rejection.</span></div>
+          <div style="display:flex;gap:14px;align-items:flex-start;background:#0F1826;border:1px solid #1E2A40;border-radius:11px;padding:14px 16px;"><span style="font:600 13px 'IBM Plex Mono';color:#57B6A9;width:64px;flex:none;">Direct</span><span style="font:400 14.5px/1.55 'IBM Plex Sans';color:#9BA3B4;">Trusted agents commit straight to <span style="font-family:'IBM Plex Mono';color:#FFC79E;">.code-notes/</span> with no prompt.</span></div>
+        </div>
+        <div style="margin:18px 0 0;background:#080d17;border:1px solid #1E2A40;border-radius:11px;padding:16px 18px;font:500 13.5px/1.8 'IBM Plex Mono';"><div style="color:#3c4a63;">// .code-notes/config.json</div><div><span style="color:#c8d1e0;">&#123; </span><span style="color:#57B6A9;">"agentWriteMode"</span><span style="color:#c8d1e0;">: </span><span style="color:#FF8A3D;">"audit"</span><span style="color:#c8d1e0;"> &#125;</span></div></div>
+
+        <h2 id="team" style="margin:52px 0 0;font:600 26px 'Space Grotesk';color:#F4F1E9;scroll-margin-top:88px;">Team workflow</h2>
+        <p style="margin:14px 0 0;font:400 16px/1.7 'IBM Plex Sans';color:#c8d1e0;">Commit <span style="font-family:'IBM Plex Mono';color:#FFC79E;">.code-notes/</span> to share context with the whole team, or add it to <span style="font-family:'IBM Plex Mono';color:#FFC79E;">.gitignore</span> to keep your notes private and local. Either way, source files and history stay untouched.</p>
+
+        <h2 id="commands" style="margin:52px 0 0;font:600 26px 'Space Grotesk';color:#F4F1E9;scroll-margin-top:88px;">Command reference</h2>
+        <div style="margin:16px 0 0;border:1px solid #1E2A40;border-radius:12px;overflow:hidden;">
+          <div style="display:grid;grid-template-columns:1.3fr 1fr;background:#0F1826;padding:11px 16px;font:600 12px 'IBM Plex Mono';color:#57B6A9;"><span>Command</span><span>Shortcut</span></div>
+          <div style="display:grid;grid-template-columns:1.3fr 1fr;padding:12px 16px;border-top:1px solid #16202f;font:500 13px 'IBM Plex Mono';"><span style="color:#c8d1e0;">Add Note</span><span style="color:#8A93A6;">⌘⌥N</span></div>
+          <div style="display:grid;grid-template-columns:1.3fr 1fr;padding:12px 16px;border-top:1px solid #16202f;font:500 13px 'IBM Plex Mono';"><span style="color:#c8d1e0;">View Note History</span><span style="color:#8A93A6;">⌘⌥H</span></div>
+          <div style="display:grid;grid-template-columns:1.3fr 1fr;padding:12px 16px;border-top:1px solid #16202f;font:500 13px 'IBM Plex Mono';"><span style="color:#c8d1e0;">Delete Note at Cursor</span><span style="color:#8A93A6;">⌘⌥D</span></div>
+          <div style="display:grid;grid-template-columns:1.3fr 1fr;padding:12px 16px;border-top:1px solid #16202f;font:500 13px 'IBM Plex Mono';"><span style="color:#c8d1e0;">Refresh All Notes</span><span style="color:#8A93A6;">⌘⌥R</span></div>
+        </div>
+      </main>
+
+      <DocsToc />
+    </div>
+  </div>
+</Layout>

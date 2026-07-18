@@ -1,0 +1,27 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import Hero from '../components/Hero.astro';
+import ProblemSolution from '../components/ProblemSolution.astro';
+import Features from '../components/Features.astro';
+import QuickStart from '../components/QuickStart.astro';
+import StatsCTA from '../components/StatsCTA.astro';
+import Footer from '../components/Footer.astro';
+
+const navLinks = [
+  { label: 'Features', href: '#features' },
+  { label: 'Quick start', href: '#start' },
+  { label: 'Docs', href: '/docs' },
+  { label: 'Changelog', href: '/changelog' },
+];
+---
+
+<Layout>
+  <Nav links={navLinks} />
+  <Hero />
+  <ProblemSolution />
+  <Features />
+  <QuickStart />
+  <StatsCTA />
+  <Footer />
+</Layout>

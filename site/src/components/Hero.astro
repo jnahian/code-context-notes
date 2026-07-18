@@ -1,0 +1,50 @@
+---
+// Hero — headline + animated "pinned note" code card
+import InstallButton from './InstallButton.astro';
+---
+<section style="position:relative;background:radial-gradient(900px 520px at 78% 4%, #16233b 0%, #0B1220 56%);padding:72px 32px 88px;">
+  <div class="dc-grid-2" style="max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;">
+    <div data-reveal>
+      <div style="display:inline-flex;align-items:center;gap:8px;font:500 12px 'IBM Plex Mono';color:#FFC79E;background:rgba(255,138,61,.1);border:1px solid rgba(255,138,61,.28);padding:6px 13px;border-radius:999px;">◆ VS Code · Open VSX · MCP-ready</div>
+      <h1 class="dc-hero-h1" style="margin:22px 0 0;font:700 58px/1.04 'Space Grotesk';color:#F4F1E9;letter-spacing:-.02em;">Your notes stick to the <span style="color:#FF8A3D;">code</span>. Not the line number.</h1>
+      <p style="margin:22px 0 0;max-width:460px;font:400 18px/1.65 'IBM Plex Sans';color:#9BA3B4;">Attach context beside any code — no source edits, no git noise. Notes follow by content hash and survive every refactor. And AI agents can read &amp; write them, on your terms.</p>
+      <div style="display:flex;gap:14px;margin-top:32px;flex-wrap:wrap;align-items:center;">
+        <InstallButton label="Add to VS Code" size="lg" />
+        <a href="#start" style="font:600 16px 'IBM Plex Sans';color:#F4F1E9;border:1px solid #33405a;padding:14px 27px;border-radius:11px;">Quick start</a>
+      </div>
+      <div style="display:flex;gap:30px;margin-top:36px;">
+        <div><div style="font:700 23px 'Space Grotesk';color:#F4F1E9;">446</div><div style="font:500 12px 'IBM Plex Mono';color:#6B7488;">tests</div></div>
+        <div><div style="font:700 23px 'Space Grotesk';color:#F4F1E9;">88%</div><div style="font:500 12px 'IBM Plex Mono';color:#6B7488;">coverage</div></div>
+        <div><div style="font:700 23px 'Space Grotesk';color:#F4F1E9;">MIT</div><div style="font:500 12px 'IBM Plex Mono';color:#6B7488;">open source</div></div>
+      </div>
+    </div>
+    <div data-reveal style="background:#0B1220;border:1px solid #24313f;border-radius:15px;overflow:hidden;box-shadow:0 34px 80px rgba(0,0,0,.55);">
+      <div style="display:flex;align-items:center;gap:7px;padding:12px 15px;border-bottom:1px solid #1a2536;">
+        <span style="width:11px;height:11px;border-radius:50%;background:#FF8A3D;"></span><span style="width:11px;height:11px;border-radius:50%;background:#33405a;"></span><span style="width:11px;height:11px;border-radius:50%;background:#33405a;"></span><span style="margin-left:8px;font:500 12px 'IBM Plex Mono';color:#5c6780;">payments.ts</span>
+      </div>
+      <div style="position:relative;padding:16px 0;font:500 13.5px/1.75 'IBM Plex Mono';">
+        <div style="display:flex;"><span style="width:46px;text-align:right;padding-right:16px;color:#3c4a63;">21</span><span style="color:#7d8aa6;">async function</span><span style="color:#c8d1e0;">&nbsp;charge(o) &#123;</span></div>
+        <div style="overflow:hidden;animation:insertGrow 7s ease-in-out infinite;">
+          <div style="display:flex;background:rgba(87,182,169,.07);"><span style="width:46px;text-align:right;padding-right:16px;color:#57B6A9;">+</span><span style="color:#c8d1e0;">&nbsp;&nbsp;await guard(o)</span></div>
+          <div style="display:flex;background:rgba(87,182,169,.07);"><span style="width:46px;text-align:right;padding-right:16px;color:#57B6A9;">+</span><span style="color:#c8d1e0;">&nbsp;</span></div>
+        </div>
+        <div style="position:relative;">
+          <div style="display:flex;background:rgba(255,138,61,.06);"><span style="width:46px;text-align:right;padding-right:16px;color:#3c4a63;">22</span><span style="color:#c8d1e0;">&nbsp;&nbsp;return </span><span style="color:#57B6A9;">gateway</span><span style="color:#c8d1e0;">.run(o)</span></div>
+          <div style="display:flex;"><span style="width:46px;text-align:right;padding-right:16px;color:#3c4a63;">23</span><span style="color:#c8d1e0;">&nbsp;&nbsp;&#125;</span></div>
+          <div style="position:absolute;top:-18px;right:16px;width:214px;">
+            <div style="position:absolute;top:-12px;left:22px;width:21px;height:21px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffb27a,#E8722A);box-shadow:0 4px 10px rgba(0,0,0,.5);animation:pinBob 7s ease-in-out infinite;"></div>
+            <div style="background:#F4F1E9;border-radius:10px;padding:12px 13px;animation:chipPulse 7s ease-in-out infinite;">
+              <div style="font:400 12.5px/1.45 'IBM Plex Sans';color:#2a2f3a;">Idempotency assumed here — see RFC-integrations before you touch it.</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:9px;"><span style="font:600 11px 'IBM Plex Mono';color:#E8722A;background:#FFE6D3;padding:2px 7px;border-radius:5px;">#7c1e0a9d</span><span style="font:500 10px 'IBM Plex Mono';color:#8A93A6;">@sam · 2d</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:1200px;margin:64px auto 0;display:flex;align-items:center;gap:14px;opacity:.6;flex-wrap:wrap;">
+    <span style="font:500 11px 'IBM Plex Mono';color:#6B7488;letter-spacing:.14em;">WORKS WITH</span>
+    <div style="flex:1;height:1px;background:#182234;"></div>
+    <span style="font:600 14px 'IBM Plex Sans';color:#9BA3B4;">VS Code</span><span style="color:#33405a;">·</span><span style="font:600 14px 'IBM Plex Sans';color:#9BA3B4;">Cursor</span><span style="color:#33405a;">·</span><span style="font:600 14px 'IBM Plex Sans';color:#9BA3B4;">Windsurf</span><span style="color:#33405a;">·</span><span style="font:600 14px 'IBM Plex Sans';color:#9BA3B4;">Open VSX</span>
+  </div>
+</section>

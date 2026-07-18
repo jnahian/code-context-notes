@@ -1,0 +1,139 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import ReleaseCard from '../components/ReleaseCard.astro';
+import { GITHUB_URL } from '../consts';
+
+const navLinks = [
+  { label: 'Features', href: '/#features' },
+  { label: 'Docs', href: '/docs' },
+  { label: 'GitHub', href: GITHUB_URL, external: true },
+];
+
+// tag presets
+const A = { tag: 'ADDED', tagColor: '#0B1220', tagBg: '#57B6A9' };
+const C = { tag: 'CHANGED', tagColor: '#FFC79E', tagBg: 'rgba(255,138,61,.16)' };
+const F = { tag: 'FIXED', tagColor: '#9BB0D0', tagBg: 'rgba(120,150,190,.16)' };
+
+const releases = [
+  {
+    version: 'v0.5.0', date: 'Jul 17, 2026', latest: true, dot: '#FF8A3D',
+    title: 'Trust modes for agent writes',
+    items: [
+      { ...A, text: 'Three agent write modes — direct, audit (default), and queue — configurable per workspace in .code-notes/config.json.' },
+      { ...A, text: 'Agent Activity view with inline one-click Revert, plus a Pending Proposals view to approve, reject, or edit-and-approve queued writes.' },
+      { ...F, text: 'Concurrent note edits are lock-guarded, so an agent write can no longer clobber a human edit made in another process.' },
+    ],
+  },
+  {
+    version: 'v0.4.0', date: 'Jul 17, 2026', latest: false, dot: '#57B6A9',
+    title: 'Standalone MCP server',
+    items: [
+      { ...A, text: '@jnahian/code-notes-mcp exposes your notes to any MCP agent (Claude Code, Cursor) with read and write tools.' },
+      { ...A, text: 'Per-note advisory file locks make extension and agent writes safe across processes.' },
+      { ...C, text: 'Repo moved to an npm-workspaces monorepo; shared internals extracted into @jnahian/code-notes-core.' },
+    ],
+  },
+  {
+    version: 'v0.3.0', date: 'May 16, 2026', latest: false, dot: '#57B6A9',
+    title: 'Structured schema & agent exports',
+    items: [
+      { ...A, text: 'Structured note metadata — type, priority, scope, tags, expiry, and references.' },
+      { ...A, text: 'Auto-generated INDEX.json and AGENTS.md regenerate on every note change for agents to ingest.' },
+      { ...A, text: 'Sidebar type badges, priority indicators, and filter-by-type.' },
+    ],
+  },
+  {
+    version: 'v0.2.1', date: 'Nov 12, 2025', latest: false, dot: '#57B6A9',
+    title: 'Context-menu note creation',
+    items: [
+      { ...A, text: 'Add Note is now in the editor right-click context menu.' },
+      { ...C, text: 'Selection-based CodeLens temporarily disabled to reduce visual clutter.' },
+    ],
+  },
+  {
+    version: 'v0.2.0', date: 'Oct 27, 2025', latest: false, dot: '#57B6A9',
+    title: 'Workspace sidebar',
+    items: [
+      { ...A, text: 'A sidebar tree of every note in the workspace, grouped by file, with configurable sorting.' },
+      { ...C, text: 'Add Note works with no selection — it annotates the current cursor line.' },
+    ],
+  },
+  {
+    version: 'v0.1.8', date: 'Oct 23, 2025', latest: false, dot: '#33405a',
+    title: 'Multiple notes per line',
+    items: [
+      { ...F, text: 'Fixed multi-note creation and navigation by using proper thread keys.' },
+      { ...C, text: 'Previous / Next buttons appear only when a line has multiple notes.' },
+    ],
+  },
+  {
+    version: 'v0.1.7', date: 'Oct 19, 2025', latest: false, dot: '#33405a',
+    title: 'Quieter UX',
+    items: [
+      { ...F, text: 'Adding a note via CodeLens no longer scrolls the viewport.' },
+      { ...C, text: 'Removed auto focus/scroll on view and the cancel notification.' },
+    ],
+  },
+  {
+    version: 'v0.1.6', date: 'Oct 19, 2025', latest: false, dot: '#33405a',
+    title: 'Input focus fixes',
+    items: [
+      { ...F, text: 'CodeLens "Add Note" now focuses the input for immediate typing.' },
+      { ...C, text: 'Unified note creation; removed the gutter + icon.' },
+    ],
+  },
+  {
+    version: 'v0.1.5', date: 'Oct 19, 2025', latest: false, dot: '#33405a',
+    title: 'Focus mode',
+    items: [
+      { ...A, text: 'Auto-collapse other notes so only one is open at a time.' },
+      { ...F, text: 'Keyboard shortcuts now use the modern comment UI.' },
+    ],
+  },
+  {
+    version: 'v0.1.4', date: 'Oct 17, 2025', latest: false, dot: '#33405a',
+    title: 'ESM migration',
+    items: [
+      { ...C, text: 'Migrated from CommonJS to ES Modules for modern package compatibility.' },
+      { ...F, text: 'Fixed "Cannot find module \'uuid\'" on activation.' },
+    ],
+  },
+  {
+    version: 'v0.1.1', date: 'Oct 17, 2025', latest: false, dot: '#33405a',
+    title: 'Activation fixes',
+    items: [
+      { ...F, text: 'Activates correctly when no workspace is initially open.' },
+      { ...F, text: 'Graceful handling of commands when no workspace is available.' },
+    ],
+  },
+  {
+    version: 'v0.1.0', date: 'Oct 17, 2025', latest: false, dot: '#33405a',
+    title: 'First public release',
+    items: [
+      { ...A, text: 'Notes via VS Code\'s native comment UI, with markdown formatting shortcuts.' },
+      { ...A, text: 'CodeLens indicators, content-hash tracking, and complete edit history.' },
+      { ...A, text: 'Git-based author detection; published to both the VS Code Marketplace and Open VSX.' },
+    ],
+  },
+];
+---
+
+<Layout title="Changelog — Code Context Notes">
+  <div style="background:#0B1220;min-height:100vh;">
+    <Nav links={navLinks} badge="changelog" maxWidth={1000} />
+
+    <div style="max-width:820px;margin:0 auto;padding:64px 32px 100px;">
+      <div data-reveal>
+        <div style="font:600 12px 'IBM Plex Mono';letter-spacing:.2em;color:#FF8A3D;text-transform:uppercase;">Changelog</div>
+        <h1 style="margin:14px 0 0;font:700 44px/1.08 'Space Grotesk';color:#F4F1E9;letter-spacing:-.02em;">What's new.</h1>
+        <p style="margin:14px 0 0;max-width:520px;font:400 17px/1.6 'IBM Plex Sans';color:#9BA3B4;">Every release, in order. Anchoring got smarter, agents got a trust gate, and the sidebar keeps growing.</p>
+      </div>
+
+      <div style="margin-top:52px;position:relative;padding-left:34px;">
+        <div style="position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(#FF8A3D, #1E2A40 40%, #1E2A40);"></div>
+        {releases.map((rel) => <ReleaseCard {...rel} />)}
+      </div>
+    </div>
+  </div>
+</Layout>

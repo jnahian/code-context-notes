@@ -1,0 +1,41 @@
+---
+// One release entry on the changelog timeline
+interface Item {
+  tag: string;
+  tagColor: string;
+  tagBg: string;
+  text: string;
+}
+interface Props {
+  version: string;
+  date: string;
+  latest?: boolean;
+  dot: string;
+  title: string;
+  items: Item[];
+}
+const { version, date, latest = false, dot, title, items } = Astro.props;
+---
+<div data-reveal style="position:relative;margin-bottom:36px;">
+  <div style={`position:absolute;left:-34px;top:4px;width:16px;height:16px;border-radius:50%;background:${dot};box-shadow:0 0 0 4px #0B1220;`}></div>
+  <div style="background:#0F1826;border:1px solid #1E2A40;border-radius:16px;padding:24px 26px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font:700 22px 'Space Grotesk';color:#F4F1E9;">{version}</span>
+        {latest && (
+          <span style="font:600 11px 'IBM Plex Mono';color:#0B1220;background:#FF8A3D;padding:3px 9px;border-radius:6px;">LATEST</span>
+        )}
+      </div>
+      <span style="font:500 13px 'IBM Plex Mono';color:#6B7488;">{date}</span>
+    </div>
+    <div style="font:500 15px 'IBM Plex Sans';color:#FFC79E;margin-top:6px;">{title}</div>
+    <div style="display:flex;flex-direction:column;gap:9px;margin-top:16px;">
+      {items.map((it) => (
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <span style={`font:600 10px 'IBM Plex Mono';color:${it.tagColor};background:${it.tagBg};padding:3px 8px;border-radius:5px;flex:none;min-width:58px;text-align:center;letter-spacing:.06em;`}>{it.tag}</span>
+          <span style="font:400 14.5px/1.55 'IBM Plex Sans';color:#c8d1e0;">{it.text}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>

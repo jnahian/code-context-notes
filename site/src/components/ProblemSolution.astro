@@ -1,0 +1,32 @@
+---
+// "The third way" — two bad options vs. the fix
+---
+<section style="background:#F4F1E9;padding:88px 32px;">
+  <div style="max-width:1120px;margin:0 auto;">
+    <div data-reveal style="text-align:center;max-width:660px;margin:0 auto;">
+      <div style="font:600 12px 'IBM Plex Mono';letter-spacing:.2em;color:#E8722A;text-transform:uppercase;">The third way</div>
+      <h2 style="margin:14px 0 0;font:700 42px/1.1 'Space Grotesk';color:#0B1220;letter-spacing:-.02em;">Context shouldn't live in your source — or drift away from it.</h2>
+      <p style="margin:16px auto 0;max-width:520px;font:400 17px/1.6 'IBM Plex Sans';color:#4a4f5c;">Two bad options, and the one you actually want.</p>
+    </div>
+    <div class="dc-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:44px;">
+      <div data-reveal style="background:#FBF9F3;border:1px solid #e7e0d0;border-radius:16px;padding:26px;">
+        <div style="font:600 12px 'IBM Plex Mono';color:#b0785a;">OPTION 1</div>
+        <h3 style="margin:10px 0 8px;font:600 20px 'Space Grotesk';color:#0B1220;">Code comments</h3>
+        <p style="margin:0 0 16px;font:400 14.5px/1.6 'IBM Plex Sans';color:#5a5f6c;">Clutter the source, ship to prod, and force a diff for every "note to self."</p>
+        <div style="font:500 12.5px/1.7 'IBM Plex Mono';color:#8a8574;background:#F1EADA;border-radius:9px;padding:12px 14px;">// TODO: this is fragile,<br />// ask Sam before editing<br /><span style="color:#c0392b;">— now it's in git forever</span></div>
+      </div>
+      <div data-reveal style="background:#FBF9F3;border:1px solid #e7e0d0;border-radius:16px;padding:26px;">
+        <div style="font:600 12px 'IBM Plex Mono';color:#b0785a;">OPTION 2</div>
+        <h3 style="margin:10px 0 8px;font:600 20px 'Space Grotesk';color:#0B1220;">External docs</h3>
+        <p style="margin:0 0 16px;font:400 14.5px/1.6 'IBM Plex Sans';color:#5a5f6c;">Live in another tab, drift out of date, and lose their link to the actual lines.</p>
+        <div style="font:500 12.5px/1.7 'IBM Plex Mono';color:#8a8574;background:#F1EADA;border-radius:9px;padding:12px 14px;">wiki/payments.md<br /><span style="color:#8A93A6;">last edited 8 months ago</span><br /><span style="color:#c0392b;">— which function again?</span></div>
+      </div>
+      <div data-reveal style="background:#0B1220;border:1px solid #0B1220;border-radius:16px;padding:26px;box-shadow:0 24px 54px rgba(11,18,32,.2);">
+        <div style="font:600 12px 'IBM Plex Mono';color:#FF8A3D;">THE FIX</div>
+        <h3 style="margin:10px 0 8px;font:600 20px 'Space Grotesk';color:#F4F1E9;">Context Notes</h3>
+        <p style="margin:0 0 16px;font:400 14.5px/1.6 'IBM Plex Sans';color:#9BA3B4;">Beside the code, out of the source. Anchored by content hash, versioned, shareable.</p>
+        <div style="font:500 12.5px/1.7 'IBM Plex Mono';color:#c8d1e0;background:#131C2E;border-radius:9px;padding:12px 14px;">.code-notes/charge.json<br /><span style="color:#57B6A9;">→ #7c1e0a · still attached</span><br /><span style="color:#57B6A9;">→ 0 lines of source touched</span></div>
+      </div>
+    </div>
+  </div>
+</section>

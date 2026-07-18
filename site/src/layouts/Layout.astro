@@ -1,0 +1,73 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'Code Context Notes — notes that stick to your code',
+  description = 'Attach context beside any code — no source edits, no git noise. Notes follow by content hash and survive every refactor. AI agents can read & write them, on your terms.',
+} = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <slot />
+    <script>
+      // scroll reveal — mirrors the design's IntersectionObserver
+      const els = document.querySelectorAll('[data-reveal]');
+      const io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              e.target.classList.add('is-visible');
+              io.unobserve(e.target);
+            }
+          });
+        },
+        { threshold: 0.12 }
+      );
+      els.forEach((el) => io.observe(el));
+
+      // close any open install dropdown when clicking outside it
+      document.addEventListener('click', (e) => {
+        document.querySelectorAll('details.install-dd[open]').forEach((d) => {
+          if (!d.contains(e.target as Node)) d.removeAttribute('open');
+        });
+      });
+
+      // trust-gate: click a mode to highlight it
+      const gate = document.querySelector('[data-trust-gate]');
+      if (gate) {
+        const rows = gate.querySelectorAll('[data-mode]');
+        const select = (mode: string) => {
+          rows.forEach((r) => {
+            const on = r.getAttribute('data-mode') === mode;
+            (r as HTMLElement).style.background = on ? 'rgba(87,182,169,.14)' : 'transparent';
+            (r as HTMLElement).style.borderColor = on ? 'rgba(87,182,169,.7)' : '#1E2A40';
+          });
+        };
+        rows.forEach((r) =>
+          r.addEventListener('click', () => select(r.getAttribute('data-mode')!))
+        );
+        select('Audit');
+      }
+    </script>
+  </body>
+</html>
