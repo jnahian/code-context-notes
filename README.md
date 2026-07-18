@@ -1,13 +1,13 @@
 <div align="center">
-  <img src="images/icon.png" alt="Code Context Notes" width="128" height="128">
+  <img src="https://raw.githubusercontent.com/jnahian/code-context-notes/main/packages/extension/images/icon.png" alt="Code Context Notes" width="128" height="128">
 
   # Code Context Notes
 
   Add contextual notes to your code with full version history and intelligent tracking. Notes stay with your code even when line numbers change.
 
-  [![VSCode Marketplace](https://img.shields.io/visual-studio-marketplace/v/jnahian.code-context-notes?style=for-the-badge&logo=visual-studio-code&label=VS%20Code)](https://marketplace.visualstudio.com/items?itemName=jnahian.code-context-notes)
+  [![VS Code Marketplace](https://vsmarketplacebadges.dev/version-short/jnahian.code-context-notes.svg?style=for-the-badge&logo=visual-studio-code&label=VS%20Code)](https://marketplace.visualstudio.com/items?itemName=jnahian.code-context-notes)
   [![Open VSX](https://img.shields.io/open-vsx/v/jnahian/code-context-notes?style=for-the-badge&logo=eclipse-ide&label=Open%20VSX)](https://open-vsx.org/extension/jnahian/code-context-notes)
-  [![Downloads](https://img.shields.io/visual-studio-marketplace/d/jnahian.code-context-notes?style=for-the-badge)](https://marketplace.visualstudio.com/items?itemName=jnahian.code-context-notes)
+  [![Downloads](https://vsmarketplacebadges.dev/downloads-short/jnahian.code-context-notes.svg?style=for-the-badge&label=Downloads)](https://marketplace.visualstudio.com/items?itemName=jnahian.code-context-notes)
 </div>
 
 ## The Problem
