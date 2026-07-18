@@ -127,6 +127,10 @@ export function ChangelogPage() {
                         <span className="text-green-500 font-bold">✓</span>
                         <span>Note repositioning now locks and re-reads, so following an editor's changes can't overwrite a note edited concurrently by another process</span>
                       </div>
+                      <div className="flex items-start space-x-2">
+                        <span className="text-green-500 font-bold">✓</span>
+                        <span>Reverting an agent's delete restores the note; empty-content notes survive reload; approved edits record who approved them; a restore is logged as its own action</span>
+                      </div>
                     </div>
                   </div>
 
@@ -140,6 +144,7 @@ export function ChangelogPage() {
                       <p>• Agent-write identity comes from the writer, not the note — an agent can no longer edit or delete a human's note without approval in queue mode</p>
                       <p>• Note content can't forge note structure: storage is now a length-delimited format, so a note body can't delete itself or fake its history on reload</p>
                       <p>• The audit log never drops an entry under load — rotation is atomic and appends are lock-free</p>
+                      <p>• A proposal's file value can't split its frontmatter — the free-text fields are JSON-encoded, the last spot the "content can't forge structure" invariant wasn't mirrored</p>
                     </div>
                   </div>
 

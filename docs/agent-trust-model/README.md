@@ -116,14 +116,14 @@ An independent audit of the write path, plus adversarial testing, turned up defe
 
 **Residual, filed for a later release:** note content containing a literal `## Edit History` line is handled by v2, but the broader principle — that the on-disk format should escape rather than length-delimit — is left as a possible future refactor. v2 closes the exploit; the format is not changing again in v0.5.
 
-## Deferred follow-ups
+## Review follow-ups (addressed in this release)
 
-Non-blocking items from the final whole-branch review, to pick up in a later release:
+The final whole-branch review flagged four non-blocking items; all were fixed before release rather than deferred:
 
-- **Record `approvedBy` on an approved *edit*, not just an approved create.** Parity gap: an edit-approve attributes the note to the approver as author but doesn't set `approvedBy`. Recording it means threading the field through `updateNote` (a routed, security-sensitive path), which is the reason not to rush it.
-- **Give a restore its own history action.** Un-delete currently records `action: 'edited'`; a dedicated `'restored'` would keep the edit-revert `history[length-2]` heuristic exact as non-edit history entries accumulate. Harmless today.
-- **Length-delimit proposal frontmatter** (`ProposalStore`) the way note storage now is. Theoretical — it needs a real newline-named file, which `create_note`'s existence check blocks first — but it's the one spot the "content can't forge structure" invariant isn't mirrored.
-- **Empty/whitespace-only-content notes vanish on reload** (`isValidNote` requires truthy content). Pre-existing, predates v0.5, orthogonal to the trust model.
+- **`approvedBy` is recorded on an approved *edit*,** not just an approved create — threaded through `updateNote`, and not exposed by the MCP `edit_note` tool so an agent can't forge it.
+- **Un-delete records history action `'restored'`** instead of masquerading as `'edited'`.
+- **Proposal frontmatter is hardened:** a `file` value's newline can no longer split it (free-text scalars are JSON-encoded) — the last spot the note store's "content can't forge structure" invariant wasn't mirrored.
+- **Empty-content notes survive reload** (`isValidNote` accepts empty-string content but still rejects a missing content section, so real corruption isn't masked).
 
 ## Out of scope
 
