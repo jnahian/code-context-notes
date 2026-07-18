@@ -31,6 +31,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
+  Tag,
+  Server,
+  Shield,
 } from "lucide-react";
 
 export function DocsPage() {
@@ -433,6 +436,115 @@ export function DocsPage() {
               </CardContent>
             </Card>
 
+            {/* Note Types & Metadata */}
+            <Card id="note-types" className="shadow-brand-drop bg-white">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Tag className="h-5 w-5 text-brand-orange" />
+                  <span>Note Types & Metadata</span>
+                  <Badge className="bg-brand-orange">New</Badge>
+                </CardTitle>
+                <CardDescription>
+                  Every note carries structured fields so both humans and AI agents can filter, prioritize, and act on them
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <h4 className="font-semibold mb-2">Type</h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Describes what a note is for. Default{" "}
+                    <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">context</code>.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {["context", "instruction", "warning", "decision", "todo", "handoff", "rationale"].map((t) => (
+                      <Badge key={t} variant="outline" className="border-brand-orange text-brand-orange">
+                        {t}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">Priority</h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Default{" "}
+                    <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">normal</code>.{" "}
+                    <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">critical</code>{" "}
+                    notes sort first in agent digests.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {["low", "normal", "high", "critical"].map((p) => (
+                      <Badge key={p} variant="outline" className="border-brand-orange text-brand-orange">
+                        {p}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">Scope</h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    What the note applies to. Default{" "}
+                    <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">line</code>.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {["line", "function", "class", "file", "directory"].map((s) => (
+                      <Badge key={s} variant="outline" className="border-brand-orange text-brand-orange">
+                        {s}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div>
+                    <h4 className="font-semibold mb-2">Tags</h4>
+                    <p className="text-sm text-muted-foreground">
+                      A free-form list of string labels for grouping and search.
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-2">References</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Link a note to a{" "}
+                      <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">pr</code>,{" "}
+                      <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">issue</code>,{" "}
+                      <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">commit</code>,{" "}
+                      <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">test</code>,{" "}
+                      <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">url</code>, or{" "}
+                      <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">note</code> — each with a value and an optional label.
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-2">Expiry</h4>
+                    <p className="text-sm text-muted-foreground">
+                      An{" "}
+                      <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">expiresAt</code>{" "}
+                      ISO timestamp. Expired notes are filtered out of agent digests.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-brand-orange">
+                  <h4 className="font-semibold mb-2 text-brand-orange">Setting & Filtering</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>
+                      Run{" "}
+                      <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">Code Notes: Set Note Type / Tags / Priority…</code>{" "}
+                      to edit a note's metadata.
+                    </li>
+                    <li>
+                      Use{" "}
+                      <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">Filter Notes by Type…</code>{" "}
+                      to narrow the sidebar, and{" "}
+                      <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">Toggle Expired Notes</code>{" "}
+                      to show or hide expired ones.
+                    </li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Usage Guide */}
             <Card id="usage-guide" className="bg-white">
               <CardHeader>
@@ -547,6 +659,165 @@ export function DocsPage() {
               </CardContent>
             </Card>
 
+            {/* Agents & MCP Server */}
+            <Card id="agents-mcp" className="shadow-brand-drop bg-white">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Server className="h-5 w-5 text-brand-orange" />
+                  <span>AI Agents & MCP Server</span>
+                  <Badge className="bg-brand-orange">New</Badge>
+                </CardTitle>
+                <CardDescription>
+                  Give AI coding agents like Claude Code and Cursor read/write access to your workspace notes
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    The standalone MCP server{" "}
+                    <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">@jnahian/code-notes-mcp</code>{" "}
+                    speaks over stdio and exposes your notes to any MCP-capable agent.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <h4 className="font-semibold mb-2">Read Tools</h4>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li><code className="bg-brand-navy text-brand-warm px-1 rounded-lg">search_notes</code></li>
+                      <li><code className="bg-brand-navy text-brand-warm px-1 rounded-lg">get_notes_for_file</code></li>
+                      <li><code className="bg-brand-navy text-brand-warm px-1 rounded-lg">get_notes_for_changes</code> — pre-edit context for a diff</li>
+                      <li><code className="bg-brand-navy text-brand-warm px-1 rounded-lg">list_instructions</code></li>
+                      <li><code className="bg-brand-navy text-brand-warm px-1 rounded-lg">get_handoffs</code></li>
+                      <li><code className="bg-brand-navy text-brand-warm px-1 rounded-lg">get_note</code></li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-2">Write Tools</h4>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Only exposed when the server is started with{" "}
+                      <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">--agent &lt;name&gt;</code>.
+                    </p>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li><code className="bg-brand-navy text-brand-warm px-1 rounded-lg">create_note</code></li>
+                      <li><code className="bg-brand-navy text-brand-warm px-1 rounded-lg">edit_note</code></li>
+                      <li><code className="bg-brand-navy text-brand-warm px-1 rounded-lg">delete_note</code></li>
+                      <li><code className="bg-brand-navy text-brand-warm px-1 rounded-lg">add_handoff</code></li>
+                      <li><code className="bg-brand-navy text-brand-warm px-1 rounded-lg">add_decision</code></li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">Resources</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {["code-notes://digest", "code-notes://index", "code-notes://file/{path}"].map((r) => (
+                      <code key={r} className="bg-brand-navy text-brand-warm px-2 py-1 rounded-lg text-xs">
+                        {r}
+                      </code>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">Auto-Generated Exports</h4>
+                  <p className="text-sm text-muted-foreground">
+                    The server keeps two files in{" "}
+                    <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">.code-notes/</code>{" "}
+                    up to date — deterministically and debounced:{" "}
+                    <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">INDEX.json</code>{" "}
+                    (a machine-readable index) and{" "}
+                    <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">AGENTS.md</code>{" "}
+                    (a human-readable digest hoisting instructions, warnings, and handoffs).
+                  </p>
+                </div>
+
+                <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-brand-orange">
+                  <h4 className="font-semibold mb-2 text-brand-orange">Safe Concurrent Writes</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Per-note advisory file locks in{" "}
+                    <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">.code-notes/.locks/</code>{" "}
+                    are shared with the extension, so agent and human edits never race.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Agent Trust Model */}
+            <Card id="trust-model" className="shadow-brand-drop bg-white">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Shield className="h-5 w-5 text-brand-orange" />
+                  <span>Agent Trust Model</span>
+                  <Badge className="bg-brand-orange">v0.5</Badge>
+                </CardTitle>
+                <CardDescription>
+                  One setting decides how much you trust agent (MCP) writes to your notes
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <code className="block bg-brand-navy text-brand-warm p-3 rounded-xl text-sm mb-2">
+                    "codeContextNotes.agentWriteMode": "audit"
+                  </code>
+                  <p className="text-sm text-muted-foreground">
+                    The policy lives in{" "}
+                    <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">.code-notes/config.json</code>,
+                    shared by the extension and the MCP server and re-read on every call — no restart needed.
+                    There is deliberately no server flag for the mode.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="border-l-4 border-brand-orange pl-4">
+                    <h4 className="font-semibold mb-1 flex items-center space-x-2">
+                      <span>direct</span>
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
+                      Writes land immediately, attributed with{" "}
+                      <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">authorType: agent</code>.
+                    </p>
+                  </div>
+
+                  <div className="border-l-4 border-brand-orange pl-4">
+                    <h4 className="font-semibold mb-1 flex items-center space-x-2">
+                      <span>audit</span>
+                      <Badge variant="outline" className="border-brand-orange text-brand-orange">Default</Badge>
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
+                      Writes land <em>and</em> every operation is logged to{" "}
+                      <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">.code-notes/_audit.log</code>.
+                      The <strong>Agent activity</strong> sidebar view lists them with an inline{" "}
+                      <strong>Revert</strong> (create → delete, edit → prior content, delete → restore).
+                    </p>
+                  </div>
+
+                  <div className="border-l-4 border-brand-orange pl-4">
+                    <h4 className="font-semibold mb-1">queue</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Writes never touch live notes; each becomes a proposal in{" "}
+                      <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">.code-notes/_pending/</code>.
+                      The <strong>Pending agent proposals</strong> sidebar view offers{" "}
+                      <strong>Approve / Reject / Edit-and-approve</strong>. Write tools return{" "}
+                      <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">{`{"status":"pending"}`}</code>{" "}
+                      — a success shape, not an error.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-brand-orange">
+                  <h4 className="font-semibold mb-2 text-brand-orange">Three Sidebar Views</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {["Notes", "Agent activity", "Pending agent proposals"].map((v) => (
+                      <Badge key={v} variant="outline" className="border-brand-orange text-brand-orange">
+                        {v}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Markdown Support */}
             <Card id="markdown-formatting" className="bg-white">
               <CardHeader>
@@ -648,43 +919,39 @@ export function DocsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-semibold mb-2">Storage Directory</h4>
-                  <code className="block bg-brand-navy text-brand-warm p-3 rounded-xl text-sm mb-2">
-                    "codeContextNotes.storageDirectory": ".code-notes"
-                  </code>
-                  <p className="text-sm text-muted-foreground">
-                    Directory where notes are stored (relative to workspace
-                    root). Default:{" "}
-                    <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">
-                      .code-notes
-                    </code>
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">Author Name</h4>
-                  <code className="block bg-brand-navy text-brand-warm p-3 rounded-xl text-sm mb-2">
-                    "codeContextNotes.authorName": "Your Name"
-                  </code>
-                  <p className="text-sm text-muted-foreground">
-                    Override automatic username detection. Default: git username
-                    or system username
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">Show CodeLens</h4>
-                  <code className="block bg-brand-navy text-brand-warm p-3 rounded-xl text-sm mb-2">
-                    "codeContextNotes.showCodeLens": true
-                  </code>
-                  <p className="text-sm text-muted-foreground">
-                    Enable/disable CodeLens indicators above code with notes.
-                    Default:{" "}
-                    <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">
-                      true
-                    </code>
-                  </p>
+                <p className="text-sm text-muted-foreground">
+                  All settings are prefixed with{" "}
+                  <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">codeContextNotes.</code>{" "}
+                  and can be set in VS Code settings or{" "}
+                  <code className="bg-brand-navy text-brand-warm px-1 rounded-lg">settings.json</code>.
+                </p>
+                <div className="space-y-3">
+                  {[
+                    { key: "storageDirectory", def: '".code-notes"', desc: "Directory where notes are stored (relative to workspace root)." },
+                    { key: "authorName", def: '""', desc: "Override automatic username detection. Falls back to git or system username." },
+                    { key: "showCodeLens", def: "true", desc: "Show CodeLens indicators above code that has notes." },
+                    { key: "sidebar.sortBy", def: '"file"', desc: "How the Notes sidebar orders entries." },
+                    { key: "sidebar.previewLength", def: "50", desc: "Number of characters shown in a note preview." },
+                    { key: "sidebar.autoExpand", def: "false", desc: "Automatically expand tree groups in the sidebar." },
+                    { key: "agentWriteMode", def: '"audit"', desc: "How agent (MCP) writes are handled: direct, audit, or queue." },
+                    { key: "agentAllowList", def: "[]", desc: "Agent names permitted to write. Empty means all agents are allowed." },
+                    { key: "auditLogRetention", def: "1000", desc: "Maximum number of entries kept in the agent audit log." },
+                    { key: "exports.enabled", def: "true", desc: "Master switch for auto-generated exports in .code-notes/." },
+                    { key: "exports.indexJson", def: "true", desc: "Generate the machine-readable INDEX.json export." },
+                    { key: "exports.agentsMarkdown", def: "true", desc: "Generate the human-readable AGENTS.md digest." },
+                  ].map((s) => (
+                    <div key={s.key} className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 border-b border-slate-100 dark:border-slate-800 pb-3">
+                      <div className="sm:flex-1">
+                        <code className="bg-brand-navy text-brand-warm px-1 rounded-lg text-sm">
+                          {s.key}
+                        </code>
+                        <p className="text-sm text-muted-foreground mt-1">{s.desc}</p>
+                      </div>
+                      <Badge variant="outline" className="border-brand-orange text-brand-orange shrink-0 font-mono">
+                        {s.def}
+                      </Badge>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>

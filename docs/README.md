@@ -1,33 +1,29 @@
 # Documentation
 
-This directory contains all project documentation organized by category.
+Current, user-facing docs live in **guide/** and **reference/**. The other folders hold historical analysis and development notes kept for reference.
 
-## Structure
+## User guides — [guide/](guide/)
 
-- **architecture/** - System architecture, component analysis, and storage documentation
-- **testing/** - Test plans, setup guides, and testing summaries
-- **development/** - Development plans, fixes, and release checklists
-- **guides/** - User guides, PRD, and reference materials
-- **archive/** - Completed project documentation and historical summaries
+- [Getting started](guide/getting-started.md)
+- [Usage](guide/usage.md)
+- [Note types & metadata](guide/note-types-metadata.md)
+- [Agents & MCP](guide/agents-and-mcp.md)
+- [Trust model](guide/trust-model.md)
+- [Configuration](guide/configuration.md)
+- [Commands & shortcuts](guide/commands-shortcuts.md)
+- [FAQ](guide/faq.md)
 
-## Quick Links
+## Reference — [reference/](reference/)
 
-### Getting Started
-- [Quick Reference](guides/QUICK_REFERENCE.md)
-- [Problem & Solution](guides/PROBLEM_AND_SOLUTION.md)
-- [PRD](guides/PRD.md)
+- [Architecture](reference/architecture.md)
+- [Note schema](reference/note-schema.md)
+- [Storage format](reference/storage-format.md)
 
-### Architecture
-- [Architecture Overview](architecture/ARCHITECTURE.md)
-- [Storage Documentation](architecture/STORAGE-README.md)
-- [Comment Editor Analysis](architecture/COMMENT_EDITOR_INDEX.md)
+## Other
 
-### Testing
-- [Testing Quick Start](testing/TESTING_QUICK_START.md)
-- [Running Tests](testing/RUNNING_TESTS.md)
-- [Test Plan](testing/TEST_PLAN.md)
+- **changelogs/** — per-version release notes ([latest: v0.5.0](changelogs/v0.5.0.md))
+- **agent-trust-model/** — trust-model design notes and spec
+- **superpowers/** — implementation plans and specs
+- **architecture/**, **testing/**, **development/**, **guides/**, **archive/** — historical / development documentation
 
-### Development
-- [Release Checklist](development/RELEASE_CHECKLIST.md)
-- [TODO](development/TODO.md)
-- [Next Steps](development/NEXT_STEPS.md)
+> **Note:** the `architecture/`, `testing/`, `guides/`, and `archive/` folders predate the monorepo and MCP server and are not kept current — prefer `reference/` and `guide/` above.
