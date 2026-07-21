@@ -37,22 +37,32 @@ const navLinks = [
         <p style="margin:14px 0 0;font:400 16px/1.7 'IBM Plex Sans';color:#c8d1e0;">Select any range of code (or just place the cursor on a line) and press <span style="font-family:'IBM Plex Mono';color:#FFC79E;">⌘⌥N</span> — or run <span style="font-family:'IBM Plex Mono';color:#FFC79E;">Add Note</span> from the command palette. Write the note, set an optional type and tags, and save. It's written to <span style="font-family:'IBM Plex Mono';color:#FFC79E;">.code-notes/</span> and anchored to the selection's content hash.</p>
 
         <h2 id="anatomy" style="margin:52px 0 0;font:600 26px 'Space Grotesk';color:#F4F1E9;scroll-margin-top:88px;">Anatomy of a note</h2>
-        <p style="margin:14px 0 18px;font:400 16px/1.7 'IBM Plex Sans';color:#c8d1e0;">Every note is a small JSON record. Beyond the body, it carries structured metadata and a full edit history.</p>
+        <p style="margin:14px 0 18px;font:400 16px/1.7 'IBM Plex Sans';color:#c8d1e0;">Every note is one markdown file named by note ID — readable, diffable, and mergeable like source. Beyond the body it carries structured metadata and the full edit history for that code location.</p>
         <div style="background:#080d17;border:1px solid #1E2A40;border-radius:12px;overflow:hidden;">
-          <div style="padding:10px 16px;border-bottom:1px solid #16202f;font:500 12px 'IBM Plex Mono';color:#5c6780;">.code-notes/charge.json</div>
+          <div style="padding:10px 16px;border-bottom:1px solid #16202f;font:500 12px 'IBM Plex Mono';color:#5c6780;">.code-notes/7c1e0a9d-…-4b2f.md</div>
           <div style="padding:16px 18px;font:500 13.5px/1.85 'IBM Plex Mono';">
-            <div style="color:#c8d1e0;">&#123;</div>
-            <div><span style="color:#57B6A9;">&nbsp;&nbsp;"anchor"</span><span style="color:#c8d1e0;">: </span><span style="color:#FFC79E;">"#7c1e0a9d"</span><span style="color:#c8d1e0;">,</span> <span style="color:#3c4a63;">// content hash</span></div>
-            <div><span style="color:#57B6A9;">&nbsp;&nbsp;"type"</span><span style="color:#c8d1e0;">: </span><span style="color:#FFC79E;">"warning"</span><span style="color:#c8d1e0;">,</span> <span style="color:#3c4a63;">// context · instruction · warning · decision · todo · handoff · rationale</span></div>
-            <div><span style="color:#57B6A9;">&nbsp;&nbsp;"priority"</span><span style="color:#c8d1e0;">: </span><span style="color:#FF8A3D;">"high"</span><span style="color:#c8d1e0;">,</span> <span style="color:#3c4a63;">// low · normal · high · critical</span></div>
-            <div><span style="color:#57B6A9;">&nbsp;&nbsp;"tags"</span><span style="color:#c8d1e0;">: [</span><span style="color:#FFC79E;">"payments"</span><span style="color:#c8d1e0;">, </span><span style="color:#FFC79E;">"idempotency"</span><span style="color:#c8d1e0;">],</span></div>
-            <div><span style="color:#57B6A9;">&nbsp;&nbsp;"scope"</span><span style="color:#c8d1e0;">: </span><span style="color:#FFC79E;">"function"</span><span style="color:#c8d1e0;">,</span> <span style="color:#3c4a63;">// line · function · class · file · directory</span></div>
-            <div><span style="color:#57B6A9;">&nbsp;&nbsp;"references"</span><span style="color:#c8d1e0;">: [</span><span style="color:#FFC79E;">"RFC-integrations"</span><span style="color:#c8d1e0;">],</span></div>
-            <div><span style="color:#57B6A9;">&nbsp;&nbsp;"body"</span><span style="color:#c8d1e0;">: </span><span style="color:#FFC79E;">"Idempotency assumed — read the RFC first."</span><span style="color:#c8d1e0;">,</span></div>
-            <div><span style="color:#57B6A9;">&nbsp;&nbsp;"history"</span><span style="color:#c8d1e0;">: [&#123; </span><span style="color:#57B6A9;">"by"</span><span style="color:#c8d1e0;">: </span><span style="color:#FFC79E;">"@sam"</span><span style="color:#c8d1e0;">, </span><span style="color:#57B6A9;">"at"</span><span style="color:#c8d1e0;">: </span><span style="color:#FFC79E;">"2026-07-16"</span><span style="color:#c8d1e0;"> &#125;]</span></div>
-            <div style="color:#c8d1e0;">&#125;</div>
+            <div style="color:#F4F1E9;"># Code Context Note</div>
+            <div>&nbsp;</div>
+            <div><span style="color:#57B6A9;">**File:**</span><span style="color:#c8d1e0;"> src/payments/charge.ts</span></div>
+            <div><span style="color:#57B6A9;">**Lines:**</span><span style="color:#c8d1e0;"> 40-58</span></div>
+            <div><span style="color:#57B6A9;">**Content Hash:**</span><span style="color:#FFC79E;"> 7c1e0a9d…</span></div>
+            <div>&nbsp;</div>
+            <div style="color:#F4F1E9;">## Note: 7c1e0a9d-…-4b2f</div>
+            <div><span style="color:#57B6A9;">**Author:**</span><span style="color:#c8d1e0;"> sam</span></div>
+            <div><span style="color:#57B6A9;">**Type:**</span><span style="color:#c8d1e0;"> warning</span> <span style="color:#3c4a63;">— context · instruction · warning · decision · todo · handoff · rationale</span></div>
+            <div><span style="color:#57B6A9;">**Priority:**</span><span style="color:#FF8A3D;"> high</span> <span style="color:#3c4a63;">— low · normal · high · critical</span></div>
+            <div><span style="color:#57B6A9;">**Scope:**</span><span style="color:#c8d1e0;"> function</span> <span style="color:#3c4a63;">— line · function · class · file · directory</span></div>
+            <div><span style="color:#57B6A9;">**Tags:**</span><span style="color:#c8d1e0;"> payments, idempotency</span></div>
+            <div><span style="color:#57B6A9;">**AuthorType:**</span><span style="color:#c8d1e0;"> human</span> <span style="color:#3c4a63;">— or agent</span></div>
+            <div>&nbsp;</div>
+            <div style="color:#F4F1E9;">## Current Content</div>
+            <div style="color:#c8d1e0;">Idempotency assumed — read the RFC first.</div>
+            <div>&nbsp;</div>
+            <div style="color:#F4F1E9;">## Edit History</div>
+            <div style="color:#3c4a63;">### 2026-07-16… - sam - created</div>
           </div>
         </div>
+        <p style="margin:14px 0 0;font:400 14.5px/1.7 'IBM Plex Sans';color:#8A93A6;">Metadata lines are written only when set. Content is length-delimited (<span style="font-family:'IBM Plex Mono';color:#FFC79E;">**Content Lines:** N</span>), so a note body can never be re-parsed as note structure — which matters once agents are the ones writing.</p>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;">
           <span style="font:500 12px 'IBM Plex Mono';color:#c8d1e0;background:#131C2E;border:1px solid #24313f;padding:5px 11px;border-radius:7px;">type</span>
           <span style="font:500 12px 'IBM Plex Mono';color:#c8d1e0;background:#131C2E;border:1px solid #24313f;padding:5px 11px;border-radius:7px;">tags</span>
@@ -74,7 +84,19 @@ const navLinks = [
         <p style="margin:14px 0 0;font:400 16px/1.7 'IBM Plex Sans';color:#c8d1e0;">A dedicated panel lists every note in the workspace. Filter by tag, type, priority, or scope; click to jump straight to the anchored code; and spot drifted notes at a glance.</p>
 
         <h2 id="mcp" style="margin:52px 0 0;font:600 26px 'Space Grotesk';color:#F4F1E9;scroll-margin-top:88px;">MCP server &amp; trust model</h2>
-        <p style="margin:14px 0 0;font:400 16px/1.7 'IBM Plex Sans';color:#c8d1e0;">A standalone MCP server exposes your notes to AI coding agents. Access is governed by a trust mode set per workspace:</p>
+        <p style="margin:14px 0 0;font:400 16px/1.7 'IBM Plex Sans';color:#c8d1e0;">Two files regenerate in <span style="font-family:'IBM Plex Mono';color:#FFC79E;">.code-notes/</span> whenever notes change: <span style="font-family:'IBM Plex Mono';color:#FFC79E;">AGENTS.md</span>, a digest that hoists <span style="font-family:'IBM Plex Mono';color:#FFC79E;">instruction</span>, <span style="font-family:'IBM Plex Mono';color:#FFC79E;">warning</span>, and <span style="font-family:'IBM Plex Mono';color:#FFC79E;">handoff</span> notes to the top, and <span style="font-family:'IBM Plex Mono';color:#FFC79E;">INDEX.json</span>, a machine index of every note. Point any agent at the digest and it has your context with zero setup.</p>
+
+        <h3 style="margin:28px 0 0;font:600 18px 'Space Grotesk';color:#F4F1E9;">Connect an agent</h3>
+        <p style="margin:12px 0 0;font:400 16px/1.7 'IBM Plex Sans';color:#c8d1e0;">For live reads and writes, run the standalone MCP server — no install needed. Without <span style="font-family:'IBM Plex Mono';color:#FFC79E;">--agent</span> it stays read-only.</p>
+        <div style="margin:16px 0 0;background:#080d17;border:1px solid #1E2A40;border-radius:11px;padding:16px 18px;font:500 13.5px/1.8 'IBM Plex Mono';color:#c8d1e0;"><div style="color:#3c4a63;">// .mcp.json</div><div>&#123; <span style="color:#57B6A9;">"mcpServers"</span>: &#123; <span style="color:#57B6A9;">"code-notes"</span>: &#123;</div><div>&nbsp;&nbsp;<span style="color:#57B6A9;">"command"</span>: <span style="color:#FFC79E;">"npx"</span>,</div><div>&nbsp;&nbsp;<span style="color:#57B6A9;">"args"</span>: [<span style="color:#FFC79E;">"-y"</span>, <span style="color:#FFC79E;">"@jnahian/code-notes-mcp"</span>, <span style="color:#FFC79E;">"--workspace"</span>, <span style="color:#FFC79E;">"."</span>, <span style="color:#FFC79E;">"--agent"</span>, <span style="color:#FFC79E;">"claude-code"</span>]</div><div>&#125; &#125; &#125;</div></div>
+
+        <h3 style="margin:28px 0 0;font:600 18px 'Space Grotesk';color:#F4F1E9;">Tools</h3>
+        <p style="margin:12px 0 0;font:400 16px/1.7 'IBM Plex Sans';color:#c8d1e0;"><span style="color:#57B6A9;font-weight:600;">Read</span> — <span style="font-family:'IBM Plex Mono';color:#FFC79E;">get_notes_for_changes</span> (pre-edit context for a diff), <span style="font-family:'IBM Plex Mono';color:#FFC79E;">get_note</span>, <span style="font-family:'IBM Plex Mono';color:#FFC79E;">get_notes_for_file</span>, <span style="font-family:'IBM Plex Mono';color:#FFC79E;">list_instructions</span>, <span style="font-family:'IBM Plex Mono';color:#FFC79E;">get_handoffs</span>, <span style="font-family:'IBM Plex Mono';color:#FFC79E;">search_notes</span>.</p>
+        <p style="margin:10px 0 0;font:400 16px/1.7 'IBM Plex Sans';color:#c8d1e0;"><span style="color:#FF8A3D;font-weight:600;">Write</span> — <span style="font-family:'IBM Plex Mono';color:#FFC79E;">create_note</span>, <span style="font-family:'IBM Plex Mono';color:#FFC79E;">edit_note</span>, <span style="font-family:'IBM Plex Mono';color:#FFC79E;">delete_note</span>, <span style="font-family:'IBM Plex Mono';color:#FFC79E;">add_handoff</span>, <span style="font-family:'IBM Plex Mono';color:#FFC79E;">add_decision</span>.</p>
+        <p style="margin:10px 0 0;font:400 16px/1.7 'IBM Plex Sans';color:#c8d1e0;"><span style="color:#8A93A6;font-weight:600;">Resources</span> — <span style="font-family:'IBM Plex Mono';color:#FFC79E;">code-notes://digest</span>, <span style="font-family:'IBM Plex Mono';color:#FFC79E;">code-notes://index</span>, <span style="font-family:'IBM Plex Mono';color:#FFC79E;">code-notes://file/&#123;path&#125;</span>.</p>
+
+        <h3 style="margin:28px 0 0;font:600 18px 'Space Grotesk';color:#F4F1E9;">Trust model</h3>
+        <p style="margin:12px 0 0;font:400 16px/1.7 'IBM Plex Sans';color:#c8d1e0;">Agent writes are routed by a trust mode set per workspace — the mode lives in <span style="font-family:'IBM Plex Mono';color:#FFC79E;">.code-notes/config.json</span>, not in the server's flags, so an agent can't choose its own rails:</p>
         <div style="display:flex;flex-direction:column;gap:10px;margin:20px 0 0;">
           <div style="display:flex;gap:14px;align-items:flex-start;background:#0F1826;border:1px solid #1E2A40;border-radius:11px;padding:14px 16px;"><span style="font:600 13px 'IBM Plex Mono';color:#57B6A9;width:64px;flex:none;">Audit</span><span style="font:400 14.5px/1.55 'IBM Plex Sans';color:#9BA3B4;">The default. Agent writes land immediately and are logged to an audit trail you can review and revert.</span></div>
           <div style="display:flex;gap:14px;align-items:flex-start;background:#0F1826;border:1px solid #1E2A40;border-radius:11px;padding:14px 16px;"><span style="font:600 13px 'IBM Plex Mono';color:#57B6A9;width:64px;flex:none;">Queue</span><span style="font:400 14.5px/1.55 'IBM Plex Sans';color:#9BA3B4;">Proposed writes wait in a queue for your one-click approval or rejection.</span></div>
