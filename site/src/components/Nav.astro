@@ -1,0 +1,37 @@
+---
+// Shared sticky top nav. Pass page-specific links + an optional badge.
+import InstallButton from './InstallButton.astro';
+interface LinkItem {
+  label: string;
+  href: string;
+  external?: boolean;
+}
+interface Props {
+  links: LinkItem[];
+  badge?: string;
+  maxWidth?: number;
+}
+const { links, badge, maxWidth = 1200 } = Astro.props;
+---
+<div style="position:sticky;top:0;z-index:50;background:rgba(11,18,32,.85);backdrop-filter:blur(12px);border-bottom:1px solid #182234;">
+  <div style={`max-width:${maxWidth}px;margin:0 auto;padding:14px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;`}>
+    <a href="/" style="display:flex;align-items:center;gap:11px;">
+      <img src="/logo.png" width="32" height="32" style="border-radius:9px;display:block;" alt="Code Context Notes logo" />
+      <span style="font:700 17px 'Space Grotesk';color:#F4F1E9;">Code Context Notes</span>
+      {badge && (
+        <span style="font:500 12px 'IBM Plex Mono';color:#57B6A9;background:rgba(87,182,169,.12);padding:3px 9px;border-radius:6px;margin-left:6px;">{badge}</span>
+      )}
+    </a>
+    <div style="display:flex;align-items:center;gap:28px;">
+      {links.map((l) => (
+        <a
+          href={l.href}
+          target={l.external ? '_blank' : undefined}
+          rel={l.external ? 'noopener' : undefined}
+          style="font:500 14px 'IBM Plex Sans';color:#9BA3B4;"
+        >{l.label}</a>
+      ))}
+      <InstallButton label="Install" size="sm" align="right" />
+    </div>
+  </div>
+</div>

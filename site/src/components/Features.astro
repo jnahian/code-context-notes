@@ -1,0 +1,100 @@
+---
+// Features — content-hash anchoring, agent trust gate, + 4-card grid
+---
+<section id="features" style="background:#0B1220;padding:92px 32px;">
+  <div style="max-width:1120px;margin:0 auto;">
+    <div data-reveal style="text-align:center;max-width:620px;margin:0 auto 56px;">
+      <div style="font:600 12px 'IBM Plex Mono';letter-spacing:.2em;color:#57B6A9;text-transform:uppercase;">Agent-first by design</div>
+      <h2 style="margin:14px 0 0;font:700 42px/1.1 'Space Grotesk';color:#F4F1E9;letter-spacing:-.02em;">Optimized context, in and out of the agent loop.</h2>
+    </div>
+
+    <!-- feature row 1: content hash -->
+    <div data-reveal class="dc-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:center;margin-bottom:28px;">
+      <div>
+        <div style="display:inline-flex;font:600 12px 'IBM Plex Mono';color:#FF8A3D;background:rgba(255,138,61,.1);border:1px solid rgba(255,138,61,.25);padding:5px 11px;border-radius:999px;">CONTENT-HASH ANCHORING</div>
+        <h3 style="margin:16px 0 10px;font:600 28px 'Space Grotesk';color:#F4F1E9;">Context that never points at the wrong line.</h3>
+        <p style="margin:0;max-width:440px;font:400 16px/1.65 'IBM Plex Sans';color:#9BA3B4;">Every note is bound to the <em style="color:#FFC79E;font-style:normal;">content</em> of the code it describes, not a line number. Refactor, rename, reformat — the note follows. Your agent is never handed context that drifted onto the wrong lines.</p>
+      </div>
+      <div style="background:#0F1826;border:1px solid #24313f;border-radius:15px;overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:7px;padding:11px 14px;border-bottom:1px solid #1a2536;"><span style="width:10px;height:10px;border-radius:50%;background:#FF8A3D;"></span><span style="width:10px;height:10px;border-radius:50%;background:#33405a;"></span><span style="width:10px;height:10px;border-radius:50%;background:#33405a;"></span><span style="margin-left:8px;font:500 12px 'IBM Plex Mono';color:#5c6780;">hash.ts</span></div>
+        <div style="position:relative;padding:14px 0;font:500 13px/1.7 'IBM Plex Mono';">
+          <div style="display:flex;"><span style="width:44px;text-align:right;padding-right:16px;color:#3c4a63;">08</span><span style="color:#7d8aa6;">import</span><span style="color:#c8d1e0;">&nbsp;&#123; sha1 &#125; </span><span style="color:#7d8aa6;">from</span><span style="color:#57B6A9;">&nbsp;'./crypto'</span></div>
+          <div style="overflow:hidden;animation:insertGrow 7s ease-in-out infinite;">
+            <div style="display:flex;background:rgba(87,182,169,.07);"><span style="width:44px;text-align:right;padding-right:16px;color:#57B6A9;">+</span><span style="color:#7d8aa6;">import</span><span style="color:#c8d1e0;">&nbsp;&#123; log &#125; </span><span style="color:#7d8aa6;">from</span><span style="color:#57B6A9;">&nbsp;'./log'</span></div>
+            <div style="display:flex;background:rgba(87,182,169,.07);"><span style="width:44px;text-align:right;padding-right:16px;color:#57B6A9;">+</span><span style="color:#c8d1e0;">&nbsp;</span></div>
+          </div>
+          <div style="position:relative;">
+            <div style="display:flex;background:rgba(255,138,61,.06);"><span style="width:44px;text-align:right;padding-right:16px;color:#3c4a63;">09</span><span style="color:#FF8A3D;">export function</span><span style="color:#c8d1e0;">&nbsp;shortHash(b) &#123;</span></div>
+            <div style="display:flex;"><span style="width:44px;text-align:right;padding-right:16px;color:#3c4a63;">10</span><span style="color:#c8d1e0;">&nbsp;&nbsp;return </span><span style="color:#57B6A9;">sha1</span><span style="color:#c8d1e0;">(b).slice(0,8)</span></div>
+            <div style="position:absolute;top:-14px;right:14px;width:200px;">
+              <div style="position:absolute;top:-12px;left:20px;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffb27a,#E8722A);box-shadow:0 4px 10px rgba(0,0,0,.5);animation:pinBob 7s ease-in-out infinite;"></div>
+              <div style="background:#F4F1E9;border-radius:9px;padding:11px 12px;animation:chipPulse 7s ease-in-out infinite;"><div style="font:400 12px/1.4 'IBM Plex Sans';color:#2a2f3a;">Anchored by content — won't break on move.</div><div style="display:flex;justify-content:space-between;margin-top:8px;"><span style="font:600 11px 'IBM Plex Mono';color:#E8722A;background:#FFE6D3;padding:2px 7px;border-radius:5px;">#a3f9c2</span><span style="font:500 10px 'IBM Plex Mono';color:#8A93A6;">@dana</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- feature row 2: agent trust -->
+    <div data-reveal class="dc-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:center;margin-bottom:44px;">
+      <div class="dc-order-2" style="order:2;">
+        <div style="display:inline-flex;font:600 12px 'IBM Plex Mono';color:#57B6A9;background:rgba(87,182,169,.1);border:1px solid rgba(87,182,169,.28);padding:5px 11px;border-radius:999px;">MCP SERVER · TRUST MODEL</div>
+        <h3 style="margin:16px 0 10px;font:600 28px 'Space Grotesk';color:#F4F1E9;">Agents read &amp; write — on your terms.</h3>
+        <p style="margin:0 0 16px;max-width:440px;font:400 16px/1.65 'IBM Plex Sans';color:#9BA3B4;">A standalone MCP server hands agents the right context on demand — <span style="font-family:'IBM Plex Mono';color:#c8d1e0;">get_notes_for_changes</span> returns the notes for the exact code they're about to edit. Writes pass through a trust gate you set per workspace.</p>
+        <div style="display:flex;flex-direction:column;gap:8px;max-width:380px;">
+          <div style="display:flex;gap:10px;align-items:center;"><span style="font:600 12px 'IBM Plex Mono';color:#57B6A9;width:58px;">Audit</span><span style="font:400 13px 'IBM Plex Sans';color:#9BA3B4;">the default — writes land immediately and are logged so you can review and revert.</span></div>
+          <div style="display:flex;gap:10px;align-items:center;"><span style="font:600 12px 'IBM Plex Mono';color:#57B6A9;width:58px;">Queue</span><span style="font:400 13px 'IBM Plex Sans';color:#9BA3B4;">writes wait for your one-click approval.</span></div>
+          <div style="display:flex;gap:10px;align-items:center;"><span style="font:600 12px 'IBM Plex Mono';color:#57B6A9;width:58px;">Direct</span><span style="font:400 13px 'IBM Plex Sans';color:#9BA3B4;">trusted agents commit straight to <span style="font-family:'IBM Plex Mono';color:#c8d1e0;">.code-notes/</span>.</span></div>
+        </div>
+      </div>
+      <div class="dc-order-1" style="order:1;position:relative;background:#0F1826;border:1px solid #24313f;border-radius:15px;padding:30px 22px;">
+        <div data-trust-gate style="display:flex;align-items:center;justify-content:space-between;position:relative;">
+          <div style="text-align:center;width:96px;">
+            <div style="width:56px;height:56px;margin:0 auto;border-radius:14px;background:linear-gradient(135deg,#1b3b3a,#0e2322);border:1px solid #2e5e59;display:flex;align-items:center;justify-content:center;font:600 22px 'IBM Plex Mono';color:#57B6A9;">◇</div>
+            <div style="font:600 11px 'IBM Plex Mono';color:#9BA3B4;margin-top:9px;">AI agent</div>
+          </div>
+          <div style="flex:1;padding:0 4px;">
+            <div style="border:1.5px dashed rgba(87,182,169,.55);border-radius:12px;padding:12px 12px 10px;animation:gateGlow 4s ease-in-out infinite;">
+              <div style="font:600 10px 'IBM Plex Mono';letter-spacing:.16em;color:#57B6A9;text-align:center;margin-bottom:10px;">TRUST GATE</div>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <div data-mode="Audit" style="display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:8px;background:transparent;border:1px solid #1E2A40;cursor:pointer;"><span style="font:500 13px;">👁</span><span style="font:600 12px 'IBM Plex Sans';color:#c8d1e0;">Audit</span><span style="margin-left:auto;font:400 10px 'IBM Plex Mono';color:#6B7488;">log</span></div>
+                <div data-mode="Queue" style="display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:8px;background:transparent;border:1px solid #1E2A40;cursor:pointer;"><span style="font:500 13px;">⏱</span><span style="font:600 12px 'IBM Plex Sans';color:#c8d1e0;">Queue</span><span style="margin-left:auto;font:400 10px 'IBM Plex Mono';color:#6B7488;">approve</span></div>
+                <div data-mode="Direct" style="display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:8px;background:transparent;border:1px solid #1E2A40;cursor:pointer;"><span style="font:500 13px;">⚡</span><span style="font:600 12px 'IBM Plex Sans';color:#c8d1e0;">Direct</span><span style="margin-left:auto;font:400 10px 'IBM Plex Mono';color:#6B7488;">write</span></div>
+              </div>
+            </div>
+          </div>
+          <div style="text-align:center;width:96px;">
+            <div style="width:56px;height:56px;margin:0 auto;border-radius:14px;background:#131C2E;border:1px solid #2a3a52;display:flex;align-items:center;justify-content:center;font:600 18px 'IBM Plex Mono';color:#FF8A3D;">&#123; &#125;</div>
+            <div style="font:600 11px 'IBM Plex Mono';color:#9BA3B4;margin-top:9px;">.code-notes/</div>
+          </div>
+          <div style="position:absolute;left:74px;top:14px;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffb27a,#E8722A);box-shadow:0 0 12px rgba(255,138,61,.7);animation:tokenTravel 4s ease-in-out infinite;"></div>
+          <div style="position:absolute;left:calc(50% - 26px);top:-6px;font:600 10px 'IBM Plex Mono';color:#0B1220;background:#57B6A9;padding:3px 8px;border-radius:6px;animation:stampPop 4s ease-in-out infinite;">APPROVED ✓</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- feature grid -->
+    <div class="dc-grid-4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;">
+      <div data-reveal style="background:#0F1826;border:1px solid #1E2A40;border-radius:14px;padding:22px;">
+        <div style="font:600 16px 'IBM Plex Mono';color:#FF8A3D;">⌖</div>
+        <h4 style="margin:12px 0 7px;font:600 16px 'Space Grotesk';color:#F4F1E9;">Pre-edit context</h4>
+        <p style="margin:0;font:400 13.5px/1.55 'IBM Plex Sans';color:#8A93A6;"><span style="font-family:'IBM Plex Mono';color:#c8d1e0;">get_notes_for_changes</span> hands an agent the notes for the exact code it's about to touch.</p>
+      </div>
+      <div data-reveal style="background:#0F1826;border:1px solid #1E2A40;border-radius:14px;padding:22px;">
+        <div style="font:600 16px 'IBM Plex Mono';color:#FF8A3D;">◫</div>
+        <h4 style="margin:12px 0 7px;font:600 16px 'Space Grotesk';color:#F4F1E9;">Living digest</h4>
+        <p style="margin:0;font:400 13.5px/1.55 'IBM Plex Sans';color:#8A93A6;">Every change regenerates <span style="font-family:'IBM Plex Mono';color:#c8d1e0;">AGENTS.md</span> + <span style="font-family:'IBM Plex Mono';color:#c8d1e0;">INDEX.json</span> — a prioritized context digest agents ingest.</p>
+      </div>
+      <div data-reveal style="background:#0F1826;border:1px solid #1E2A40;border-radius:14px;padding:22px;">
+        <div style="font:600 16px 'IBM Plex Mono';color:#FF8A3D;">☰</div>
+        <h4 style="margin:12px 0 7px;font:600 16px 'Space Grotesk';color:#F4F1E9;">Structured, not prose</h4>
+        <p style="margin:0;font:400 13.5px/1.55 'IBM Plex Sans';color:#8A93A6;">Type, priority, scope, tags, and references make every note machine-readable.</p>
+      </div>
+      <div data-reveal style="background:#0F1826;border:1px solid #1E2A40;border-radius:14px;padding:22px;">
+        <div style="font:600 16px 'IBM Plex Mono';color:#FF8A3D;">⑃</div>
+        <h4 style="margin:12px 0 7px;font:600 16px 'Space Grotesk';color:#F4F1E9;">Handoffs &amp; decisions</h4>
+        <p style="margin:0;font:400 13.5px/1.55 'IBM Plex Sans';color:#8A93A6;">Agents leave breadcrumbs — <span style="font-family:'IBM Plex Mono';color:#c8d1e0;">add_handoff</span> and <span style="font-family:'IBM Plex Mono';color:#c8d1e0;">add_decision</span> — for the next agent or teammate.</p>
+      </div>
+    </div>
+  </div>
+</section>
