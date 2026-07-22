@@ -79,7 +79,20 @@ export class StorageManager implements NoteStorage {
   async createStorage(): Promise<void> {
     const storagePath = this.getStoragePath();
     try {
-      await fs.mkdir(storagePath, { recursive: true });
+      const created = await fs.mkdir(storagePath, { recursive: true });
+      // ponytail: only on first creation, so deleting the file keeps it deleted
+      if (created !== undefined) {
+        await fs.writeFile(
+          path.join(storagePath, '.gitignore'),
+          [
+            '# Code Context Notes stores its notes here, untracked by default.',
+            '# Delete this file if you want to commit your notes and share them with your team.',
+            '*',
+            ''
+          ].join('\n'),
+          'utf-8'
+        );
+      }
     } catch (error) {
       throw new Error(`Failed to create storage directory: ${error}`);
     }

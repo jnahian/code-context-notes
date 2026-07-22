@@ -69,6 +69,18 @@ describe('StorageManager Test Suite', () => {
 		expect(exists).toBe(true);
 	});
 
+	it('createStorage should write a self-ignoring .gitignore once', async () => {
+		await storageManager.createStorage();
+		const gitignorePath = path.join(storageManager.getStoragePath(), '.gitignore');
+		expect(await fs.readFile(gitignorePath, 'utf-8')).toContain('*');
+
+		// Deleting it must not bring it back on the next call
+		await fs.unlink(gitignorePath);
+		await storageManager.createStorage();
+		const exists = await fs.access(gitignorePath).then(() => true).catch(() => false);
+		expect(exists).toBe(false);
+	});
+
 	it('saveNote should create storage and save note file', async () => {
 		await storageManager.saveNote(testNote);
 
