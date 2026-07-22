@@ -8,6 +8,7 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Colors for console output
 const colors = {
@@ -36,9 +37,11 @@ async function main() {
   log('==========================================', 'blue');
 
   // Load environment variables
-  const envPath = path.join(process.cwd(), '.env');
+  // .env lives at the monorepo root, but this script runs from packages/extension
+  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+  const envPath = path.join(repoRoot, '.env');
   if (!fs.existsSync(envPath)) {
-    log('Error: .env file not found', 'red');
+    log(`Error: .env file not found at ${envPath}`, 'red');
     process.exit(1);
   }
 
