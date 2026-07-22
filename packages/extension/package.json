@@ -2,7 +2,7 @@
   "name": "code-context-notes",
   "displayName": "Code Context Notes - Smart Annotations",
   "description": "Add contextual notes to your code with full version history and intelligent tracking",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "publisher": "jnahian",
   "icon": "images/icon.png",
   "galleryBanner": {
@@ -610,7 +610,7 @@
     "url": "https://github.com/jnahian/code-context-notes"
   },
   "dependencies": {
-    "@jnahian/code-notes-core": "0.2.0",
+    "@jnahian/code-notes-core": "0.2.1",
     "uuid": "^14.0.0"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@jnahian/code-notes-core",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Shared core for Code Context Notes — schema, storage, exports, lock manager.",
   "license": "MIT",
   "type": "module",

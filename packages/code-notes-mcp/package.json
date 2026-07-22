@@ -1,6 +1,6 @@
 {
   "name": "@jnahian/code-notes-mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "MCP server for Code Context Notes — gives coding agents read/write access to workspace notes.",
   "license": "MIT",
   "type": "module",
@@ -20,7 +20,7 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
-    "@jnahian/code-notes-core": "0.2.0",
+    "@jnahian/code-notes-core": "0.2.1",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "diff": "^5.2.0",
     "zod": "^4.4.3"
